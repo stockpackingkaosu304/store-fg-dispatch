@@ -311,7 +311,7 @@ document.getElementById("globalCameraInput").addEventListener("change", function
 ============================================================= */
 var sbClient = null;
 try {
-    var SB_URL = "https://suardrnsfpdqwcguppqkb.supabase.co";
+    var SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co/rest/v1/";
     var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
     sbClient = window.supabase.createClient(SB_URL, SB_KEY);
 } catch(e) {

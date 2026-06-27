@@ -327,15 +327,23 @@ async function uploadPhotos(uid, files, txnId) {
     var tasks = files.map(function(file, i) {
         var ext  = file.name.split(".").pop() || "jpg";
         var path = txnId + "/" + uid + "_" + i + "." + ext;
+        
+        console.log("เริ่มอัปโหลด:", path); // ดูว่าชื่อไฟล์เป็นอะไร
+
         return sbClient.storage
             .from("dispatch-photos")
             .upload(path, file, { upsert: true })
             .then(function(r) {
-                if (r.error) return { ok: false, name: file.name };
+                if (r.error) {
+                    console.error("❌ อัปโหลดไฟล์ไม่สำเร็จ [" + file.name + "]:", r.error);
+                    return { ok: false, name: file.name };
+                }
                 var pub = sbClient.storage.from("dispatch-photos").getPublicUrl(path);
+                console.log("✅ อัปโหลดสำเร็จ:", pub.data.publicUrl);
                 return { ok: true, url: pub.data.publicUrl };
             })
-            .catch(function() {
+            .catch(function(err) {
+                console.error("❌ เกิด Error รุนแรงตอนอัปโหลด:", err);
                 return { ok: false, name: file.name };
             });
     });

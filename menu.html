@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS Main Menu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 50; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden">
+        <div class="bg-slate-800 p-8 text-center text-white">
+            <div class="inline-block bg-sky-500 p-4 rounded-full mb-4 shadow-lg shadow-sky-500/30">
+                <i class="fa-solid fa-boxes-stacked text-4xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold tracking-wider mb-1">STORE FG DISPATCH</h1>
+            <p class="text-slate-400 text-sm">ระบบจัดการคลังสินค้าและจ่ายงาน</p>
+        </div>
+
+        <div class="p-6 space-y-4">
+            
+            <button onclick="goToLayout()" class="w-full group relative bg-white border-2 border-slate-200 hover:border-sky-500 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md text-left">
+                <div class="bg-sky-50 group-hover:bg-sky-500 text-sky-500 group-hover:text-white w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-colors">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">แผนผังคลังสินค้า</h2>
+                    <p class="text-xs text-slate-500">ดูตำแหน่งสินค้า และสถานะพื้นที่ว่าง (Layout)</p>
+                </div>
+                <i class="fa-solid fa-chevron-right absolute right-6 text-slate-300 group-hover:text-sky-500 transition-colors"></i>
+            </button>
+
+            <button onclick="openLoginModal()" class="w-full group relative bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md text-left">
+                <div class="bg-emerald-50 group-hover:bg-emerald-500 text-emerald-500 group-hover:text-white w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-colors">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">บันทึกจ่ายงาน</h2>
+                    <p class="text-xs text-slate-500">บันทึกการเบิกจ่ายสินค้า (Dispatch)</p>
+                </div>
+                <i class="fa-solid fa-lock absolute right-6 text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
+            </button>
+            
+            <div class="pt-4 text-center">
+                <a href="report.html" class="text-xs font-semibold text-slate-400 hover:text-sky-600 transition-colors">
+                    <i class="fa-solid fa-chart-pie mr-1"></i> สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal-overlay">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl transform transition-all m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">
+                    <i class="fa-solid fa-id-card text-emerald-500 mr-2"></i>ยืนยันตัวตน
+                </h3>
+                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-red-500">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <p class="text-sm text-slate-500 mb-4">กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน</p>
+            
+            <input type="text" id="staffIdInput" placeholder="เช่น EMP001" class="w-full border border-gray-300 rounded-xl p-3 text-center text-lg uppercase tracking-widest font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none mb-4">
+            
+            <button onclick="confirmLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition-colors">
+                เข้าสู่ระบบจ่ายงาน
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function goToLayout() {
+            // ไปที่หน้า layout.html (เราจะสร้างกันในเฟส 3)
+            window.location.href = "layout.html"; 
+        }
+
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+            // เช็คว่าเคยกรอกไว้ไหม ถ้าเคยให้ดึงมาโชว์เลย
+            const savedStaffId = localStorage.getItem("savedStaffId");
+            if(savedStaffId) {
+                document.getElementById('staffIdInput').value = savedStaffId;
+            }
+            document.getElementById('staffIdInput').focus();
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+        }
+
+        function confirmLogin() {
+            const staffId = document.getElementById('staffIdInput').value.trim().toUpperCase();
+            if(!staffId) {
+                alert("กรุณากรอกรหัสพนักงานครับ!");
+                return;
+            }
+            // บันทึก Staff ID ลงในเบราว์เซอร์
+            localStorage.setItem("savedStaffId", staffId);
+            // ส่งไปที่หน้า index.html (จ่ายงาน)
+            window.location.href = "index.html";
+        }
+
+        // กด Enter ในช่องกรอกรหัสพนักงานได้เลย
+        document.getElementById("staffIdInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                confirmLogin();
+            }
+        });
+    </script>
+</body>
+</html>

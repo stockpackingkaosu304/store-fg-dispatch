@@ -8,204 +8,315 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; }
         
-        /* สไตล์สำหรับช่องเก็บของ */
+        /* สไตล์ช่องชั้นวาง (Rack) ให้เหมือนในแปลน */
         .rack-box {
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
+            border: 1px solid #64748b;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 0.75rem;
-            color: #334155;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #1e293b;
             cursor: pointer;
+            background-color: #ffffff;
             transition: all 0.2s;
-            height: 40px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            position: relative;
         }
-        .rack-box:hover { transform: scale(1.05); border-color: #94a3b8; z-index: 10; }
+        .rack-box:hover { background-color: #e2e8f0; z-index: 10; box-shadow: inset 0 0 0 2px #0ea5e9; }
         
-        /* สไตล์สีตามสถานะ */
-        .status-empty { background-color: #bbf7d0; border-color: #4ade80; } /* เขียว */
-        .status-partial { background-color: #fef08a; border-color: #facc15; } /* เหลือง */
-        .status-full { background-color: #fecaca; border-color: #f87171; color: #7f1d1d; } /* แดง */
-        .status-unknown { background-color: #f1f5f9; } /* สีเทา (ยังไม่มีข้อมูลในระบบ) */
+        /* สีสถานะ */
+        .status-empty { background-color: #bbf7d0 !important; } /* ว่าง - เขียว */
+        .status-partial { background-color: #fef08a !important; } /* กลาง - เหลือง */
+        .status-full { background-color: #fca5a5 !important; color: #7f1d1d; } /* เต็ม - แดง */
+        .status-unknown { background-color: #ffffff; }
 
-        /* อนิเมชันไฟกะพริบตอนค้นหา */
+        /* ไฟกะพริบเวลาค้นหาเจอ */
         .highlight-blink {
-            animation: blinker 1s linear infinite;
+            animation: blinker 0.8s linear infinite;
             border: 3px solid #0ea5e9 !important;
-            box-shadow: 0 0 15px rgba(14, 165, 233, 0.6);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.8);
+            z-index: 20;
         }
-        @keyframes blinker { 50% { opacity: 0.5; transform: scale(1.1); } }
+        @keyframes blinker { 50% { opacity: 0.6; transform: scale(1.05); } }
 
-        /* Modal */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 50; align-items: center; justify-content: center; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 50; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
+        
+        /* ซ่อน Scrollbar แต่อยู่ให้เลื่อนได้ */
+        .hide-scroll::-webkit-scrollbar { height: 6px; }
+        .hide-scroll::-webkit-scrollbar-track { background: #f1f5f9; rounded: 4px; }
+        .hide-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <div class="sticky top-0 bg-slate-800 text-white p-4 shadow-lg z-40">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
+    <div class="sticky top-0 bg-slate-800 text-white p-3 shadow-lg z-40">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-3 items-center justify-between">
             <div class="flex items-center gap-3 w-full md:w-auto">
-                <a href="menu.html" class="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-sm transition-colors">
+                <a href="menu.html" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-sm transition-colors whitespace-nowrap">
                     <i class="fa-solid fa-chevron-left mr-1"></i> เมนูหลัก
                 </a>
-                <h1 class="text-lg font-bold"><i class="fa-solid fa-map-location-dot text-sky-400 mr-2"></i>ผังคลังสินค้า</h1>
+                <h1 class="text-base font-bold whitespace-nowrap"><i class="fa-solid fa-map text-sky-400 mr-2"></i>ผังคลังสินค้า</h1>
             </div>
-            
             <div class="relative w-full md:w-96">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                <input type="text" id="searchInput" placeholder="ค้นหารหัสสินค้า, ชื่อชิ้นงาน หรือ รหัสช่อง..." 
+                <input type="text" id="searchInput" placeholder="ค้นหารหัสสินค้า, ชื่อชิ้นงาน, รหัสช่อง..." 
                     class="w-full bg-slate-900 border border-slate-600 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
             </div>
         </div>
     </div>
 
-    <div class="bg-white border-b py-2 px-4 text-xs flex justify-center gap-4 text-slate-600 font-medium">
-        <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-300"></span> ว่าง (Empty)</div>
-        <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-300"></span> กลาง (Partial)</div>
-        <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-300"></span> เต็ม (Full)</div>
+    <div class="bg-white border-b py-2 px-4 text-xs flex justify-center gap-6 text-slate-600 font-bold shadow-sm">
+        <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-300 shadow-sm"></span> ว่าง</div>
+        <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-300 shadow-sm"></span> กลาง</div>
+        <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-300 shadow-sm"></span> เต็ม</div>
     </div>
 
-    <div class="flex-1 p-4 overflow-x-hidden">
-        <div class="max-w-6xl mx-auto space-y-8">
-            
-            <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
-                <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">ชั้น 1 (Zone 1ST)</h2>
-                
-                <div class="flex gap-4 mb-4">
-                    <div class="bg-slate-200 text-slate-500 w-24 h-16 rounded flex items-center justify-center text-xs font-bold uppercase tracking-wider">Office</div>
-                    <div class="bg-slate-200 text-slate-500 w-24 h-16 rounded flex flex-col items-center justify-center text-xs font-bold uppercase tracking-wider"><i class="fa-solid fa-elevator text-lg"></i> Lift</div>
-                </div>
+    <div class="md:hidden bg-sky-50 text-sky-700 text-[10px] text-center py-1 font-bold">
+        <i class="fa-solid fa-arrows-left-right"></i> ปัดซ้าย-ขวา เพื่อดูแผนผังทั้งหมด
+    </div>
 
-                <div id="grid-a1" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-2">
+    <div class="flex-1 p-2 md:p-6 space-y-6 max-w-[100vw] overflow-hidden">
+        
+        <div class="bg-white p-4 rounded-xl shadow-md border border-slate-200">
+            <h2 class="text-lg font-black text-slate-800 mb-4 border-l-4 border-sky-500 pl-2">ชั้น 1 (A1 - 1ST)</h2>
+            <div class="overflow-x-auto hide-scroll pb-4">
+                <div id="layout-a1" class="min-w-[700px] bg-white relative mx-auto text-slate-800">
                     </div>
             </div>
-
-            <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
-                <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">ชั้น 2 (Zone 2ST)</h2>
-                
-                <div class="flex gap-4 mb-4">
-                    <div class="bg-slate-200 text-slate-500 w-32 h-16 rounded flex items-center justify-center text-xs font-bold uppercase tracking-wider"><i class="fa-solid fa-users mr-2"></i> Staff Room</div>
-                </div>
-
-                <div id="grid-a2" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-12 gap-2">
-                    </div>
-            </div>
-
         </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-md border border-slate-200">
+            <h2 class="text-lg font-black text-slate-800 mb-4 border-l-4 border-sky-500 pl-2">ชั้น 2 (A2 - 2ST)</h2>
+            <div class="overflow-x-auto hide-scroll pb-4">
+                <div id="layout-a2" class="min-w-[950px] bg-white relative mx-auto text-slate-800">
+                    </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="infoModal" class="modal-overlay" onclick="closeModal(event)">
         <div class="bg-white rounded-2xl p-6 w-11/12 max-w-sm shadow-2xl m-auto" onclick="event.stopPropagation()">
             <div class="flex justify-between items-start mb-4">
-                <h3 id="modalTitle" class="text-2xl font-bold text-slate-800">A1-00</h3>
-                <span id="modalStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase">Status</span>
+                <h3 id="modalTitle" class="text-2xl font-black text-slate-800 tracking-wider">A1-00</h3>
+                <span id="modalStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase border">Status</span>
             </div>
-            
-            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4">
-                <p class="text-xs text-slate-500 font-semibold mb-1 uppercase tracking-wider"><i class="fa-solid fa-barcode mr-1"></i> รหัสสินค้า (Item Code):</p>
-                <div id="modalItems" class="text-sm font-mono text-sky-700 font-bold break-words mb-3">
-                    ไม่มีข้อมูลสินค้า
-                </div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
+                <p class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider"><i class="fa-solid fa-barcode mr-1"></i> รหัสสินค้า (ITEM CODE):</p>
+                <div id="modalItems" class="text-sm font-mono text-sky-700 font-bold break-words mb-3 bg-white p-2 rounded border border-slate-100">ไม่มีข้อมูล</div>
                 
-                <p class="text-xs text-slate-500 font-semibold mb-1 uppercase tracking-wider"><i class="fa-solid fa-tag mr-1"></i> ชื่อชิ้นงาน (Part Name):</p>
-                <div id="modalPartNames" class="text-sm text-slate-700 break-words">
-                    -
-                </div>
+                <p class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider"><i class="fa-solid fa-tag mr-1"></i> ชื่อชิ้นงาน (PART NAME):</p>
+                <div id="modalPartNames" class="text-sm text-slate-700 font-medium break-words bg-white p-2 rounded border border-slate-100">-</div>
             </div>
-
-            <button onclick="closeModal(event)" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition-colors">
-                ปิดหน้าต่าง
-            </button>
+            <button onclick="closeModal(event)" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md">ปิดหน้าต่าง</button>
         </div>
     </div>
 
     <script>
-        /* ตั้งค่า Supabase */
+        // === โค้ดสร้างแผนผังให้ตรงกับรูปภาพเป๊ะๆ ===
+
+        // สร้างแผนผัง A1 (1ST)
+        function buildA1Layout() {
+            const colMid = ['A1-09','A1-08','A1-07','A1-06','A1-05','A1-04','A1-03','A1-02','A1-01'];
+            // สังเกตจากรูป A1-15 ซ้ำ 2 ครั้ง ผมสร้าง ID พิเศษป้องกัน Error แต่โชว์เป็น 15
+            const colRight = ['A1-14','A1-15','A1-15-B','A1-17','A1-18','A1-19','A1-20','A1-21'];
+            const colBot = ['A1-22','A1-23','A1-24','A1-25','A1-26','A1-27','A1-28','A1-29'];
+
+            return `
+            <div class="border-2 border-slate-800 p-2 w-[700px] mx-auto bg-white">
+                <div class="flex">
+                    <div class="w-20 h-16 border border-slate-800 flex items-center justify-center font-bold text-xs text-center bg-gray-50">Cargo<br>Lift</div>
+                    <div class="flex-1 flex flex-col">
+                        <div class="flex">
+                            <div class="w-48 h-8 border border-slate-800 flex items-center justify-center font-bold text-xs bg-gray-50">Shipping Office</div>
+                        </div>
+                        <div class="flex">
+                            <div class="w-24">
+                                <div class="h-8 border border-slate-800 flex items-center justify-center font-bold text-[10px] bg-gray-50">QA Area</div>
+                                <div class="flex">
+                                    <div class="rack-box h-8 flex-1" id="box-A1-11">A1-11</div>
+                                    <div class="rack-box h-8 flex-1" id="box-A1-12">A1-12</div>
+                                </div>
+                            </div>
+                            <div class="rack-box w-16 h-8 mt-8" id="box-A1-13">A1-13</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex mt-6 gap-10 pl-16">
+                    <div class="w-16 flex flex-col border border-slate-800">
+                        <div class="h-6 border-b border-slate-800 bg-gray-50"></div>
+                        <div class="h-6 border-b border-slate-800 bg-gray-50"></div>
+                        <div class="h-6 bg-gray-50"></div>
+                    </div>
+                    <div class="w-40 flex flex-col border border-slate-800">
+                        ${colMid.map(id => `<div class="rack-box h-6 border-b border-slate-400" id="box-${id}">${id}</div>`).join('')}
+                    </div>
+                    <div class="w-48 flex flex-col border border-slate-800">
+                        ${colRight.map(id => `<div class="rack-box h-6 border-b border-slate-400" id="box-${id}">${id.replace('-B','')}</div>`).join('')}
+                    </div>
+                </div>
+
+                <div class="flex mt-6 items-end gap-10 pl-4">
+                    <div class="w-[320px] h-32 border-2 border-slate-800 flex items-center justify-center text-5xl font-bold tracking-widest bg-gray-50">office</div>
+                    <div class="w-48 flex flex-col border border-slate-800">
+                        ${colBot.map(id => `<div class="rack-box h-6 border-b border-slate-400" id="box-${id}">${id}</div>`).join('')}
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mt-2 pl-24">
+                    <div class="w-24 h-6 border border-slate-800 flex items-center justify-center font-bold text-xs bg-gray-50">Toilet</div>
+                    <div class="w-24 h-6 border border-slate-800 flex items-center justify-center font-bold text-xs bg-gray-50">Toilet</div>
+                </div>
+            </div>
+            `;
+        }
+
+        // สร้างแผนผัง A2 (2ST)
+        function buildA2Layout() {
+            // อิงตามรูป: ข้าม 49 ไป
+            const row1 = ['54','53','52','51','50','48','47','46','45','44','43','42','41','40'];
+            const midTop = ['30','31','32','33','34','35','36','37','38','39'];
+            const midBot = ['23','22','21','20','19','18','17','16','15','14'];
+            const bot1 = ['01','02','03'];
+            const bot2 = ['04','05','06','07','08','09','10','11','12','13'];
+
+            return `
+            <div class="border-2 border-slate-800 p-0 w-[950px] mx-auto bg-white flex">
+                <div class="w-[280px] border-r-2 border-slate-800 flex flex-col bg-white">
+                    <div class="flex h-6 border-b border-slate-800">
+                        <div class="w-12 bg-teal-400 border-r border-slate-800 flex items-center justify-center text-[9px] font-bold">LIFT</div>
+                        ${['A2-62','A2-63','A2-64'].map(id => `<div class="rack-box flex-1 border-r border-slate-400" id="box-${id}">${id}</div>`).join('')}
+                        <div class="flex-1"></div>
+                    </div>
+                    <div class="flex h-6 mt-4 pl-10 pr-6">
+                        ${['A2-61','A2-62-B'].map(id => `<div class="rack-box flex-1 border border-slate-800" id="box-${id}">${id.replace('-B','')}</div>`).join('')}
+                    </div>
+                    <div class="flex h-6 mt-4">
+                        ${['A2-60','A2-59','A2-58','A2-57','A2-56','A2-55'].map(id => `<div class="rack-box flex-1 border-r border-t border-b border-slate-800 text-[9px]" id="box-${id}">${id}</div>`).join('')}
+                    </div>
+                    <div class="flex-1 bg-gray-200 border-t border-slate-800 mt-0 flex flex-col items-center justify-center text-white font-bold tracking-widest text-lg min-h-[100px] shadow-inner" style="text-shadow: 1px 1px 2px #aaa;">
+                        <i class="fa-solid fa-bed text-2xl mb-1 text-slate-700"></i> <span class="text-slate-700">STAFF ROOM</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col bg-white p-2 gap-4">
+                    <div>
+                        <div class="h-6 bg-gray-200 border border-slate-800 border-b-0 w-full ml-1"></div>
+                        <div class="flex border border-slate-800">
+                            <div class="flex items-center justify-center w-4 text-[8px] bg-white border-r border-slate-400 font-bold"><i class="fa-solid fa-fire-extinguisher text-red-500"></i></div>
+                            ${row1.map(n => `<div class="rack-box flex-1 border-r border-slate-400 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="flex gap-6 mt-2">
+                        <div class="flex flex-col w-[160px] border border-slate-800">
+                            <div class="flex h-6 border-b border-slate-400">
+                                ${['27','28','29'].map(n => `<div class="rack-box flex-1 border-r border-slate-400 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                            </div>
+                            <div class="flex h-6">
+                                ${['26','25','24'].map(n => `<div class="rack-box flex-1 border-r border-slate-400 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                            </div>
+                        </div>
+                        <div class="flex flex-col flex-1 border border-slate-800">
+                            <div class="flex h-6 border-b border-slate-400">
+                                ${midTop.map(n => `<div class="rack-box flex-1 border-r border-slate-400 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                            </div>
+                            <div class="flex h-6">
+                                ${midBot.map(n => `<div class="rack-box flex-1 border-r border-slate-400 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex mt-4 h-6 border border-slate-800">
+                        ${bot1.map(n => `<div class="rack-box w-12 border-r border-slate-400 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                        <div class="w-14 bg-teal-400 border-r border-slate-800 flex items-center justify-center text-[9px] font-bold"><i class="fa-solid fa-fire-extinguisher text-red-600 mr-1"></i>LIFT</div>
+                        ${bot2.map(n => `<div class="rack-box flex-1 border-r border-slate-400 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+
+        // ฝัง Layout ลงใน HTML
+        document.getElementById('layout-a1').innerHTML = buildA1Layout();
+        document.getElementById('layout-a2').innerHTML = buildA2Layout();
+
+        /* =============================================================
+           ระบบเชื่อม Database และการค้นหา
+        ============================================================= */
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+        let locationData = {};
 
-        let locationData = {}; // เก็บข้อมูลจาก Database
-
-        // 1. ฟังก์ชันสร้างกล่องสี่เหลี่ยมตามจำนวนช่อง
-        function renderGrid(prefix, count, containerId) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = "";
-            for(let i = 1; i <= count; i++) {
-                let id = prefix + "-" + (i < 10 ? "0" + i : i);
-                let div = document.createElement("div");
-                div.className = "rack-box status-unknown"; // ค่าเริ่มต้นเป็นสีเทา (ไม่มีข้อมูล)
-                div.id = "box-" + id;
-                div.innerText = id;
-                div.onclick = () => openModal(id);
-                container.appendChild(div);
-            }
-        }
-
-        // 2. ดึงข้อมูลจากฐานข้อมูลมาลงสี
         async function fetchLocations() {
             const { data, error } = await sbClient.from("locations").select("*");
-            if(error) { console.error("Error fetching locations:", error); return; }
+            if(error) return;
 
-            // แปลงข้อมูลให้อยู่ในรูปแบบ Object เพื่อให้ค้นหาง่าย
             data.forEach(loc => {
+                // เก็บข้อมูลเข้าตัวแปร
                 locationData[loc.location_id] = loc;
                 
-                // หา DOM ของกล่องนี้ แล้วระบายสี
-                const box = document.getElementById("box-" + loc.location_id);
-                if(box) {
-                    box.className = "rack-box"; // ล้างคลาสเก่า
-                    if(loc.status === 'Empty') box.classList.add('status-empty');
-                    else if(loc.status === 'Partial') box.classList.add('status-partial');
-                    else if(loc.status === 'Full') box.classList.add('status-full');
-                    else box.classList.add('status-unknown');
-                }
+                // จัดการเรื่อง ID พิเศษที่เราสร้างไว้กันพัง (A1-15 ซ้ำ, A2-62 ซ้ำ)
+                let targetIds = ["box-" + loc.location_id];
+                if(loc.location_id === 'A1-15') targetIds.push("box-A1-15-B");
+                if(loc.location_id === 'A2-62') targetIds.push("box-A2-62-B");
+
+                // ระบายสีลงกล่อง
+                targetIds.forEach(id => {
+                    const box = document.getElementById(id);
+                    if(box) {
+                        box.onclick = () => openModal(loc.location_id);
+                        if(loc.status === 'Empty') box.classList.add('status-empty');
+                        else if(loc.status === 'Partial') box.classList.add('status-partial');
+                        else if(loc.status === 'Full') box.classList.add('status-full');
+                        else box.classList.add('status-unknown');
+                    }
+                });
             });
         }
 
-        // 3. ระบบค้นหาปุ๊บ ไฟกะพริบปั๊บ (ค้นหาด้วย ID, รหัสสินค้า, หรือ ชื่อชิ้นงาน)
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const term = e.target.value.trim().toUpperCase();
-            
-            // ล้างไฟกะพริบเก่าออกให้หมดก่อน
             document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
             if(!term) return;
 
-            // ค้นหาใน locationData
             for(const [locId, data] of Object.entries(locationData)) {
                 const items = (data.items_list || "").toUpperCase();
                 const parts = (data.part_names || "").toUpperCase();
                 
-                // ถ้าคำค้นหาตรงกับอันใดอันหนึ่ง ให้ไฟกะพริบ
                 if(locId.includes(term) || items.includes(term) || parts.includes(term)) {
-                    const box = document.getElementById("box-" + locId);
-                    if(box) box.classList.add('highlight-blink');
+                    let targetIds = ["box-" + locId];
+                    if(locId === 'A1-15') targetIds.push("box-A1-15-B");
+                    if(locId === 'A2-62') targetIds.push("box-A2-62-B");
+
+                    targetIds.forEach(id => {
+                        const box = document.getElementById(id);
+                        if(box) box.classList.add('highlight-blink');
+                    });
                 }
             }
         });
 
-        // 4. ระบบแสดง Modal (หน้าต่างเด้ง) พร้อมชื่อชิ้นงาน
         function openModal(locId) {
             document.getElementById('modalTitle').innerText = locId;
-            const data = locationData[locId] || { status: 'Unknown', items_list: 'ไม่มีข้อมูลในระบบ', part_names: '-' };
+            const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '-', part_names: '-' };
             
             const badge = document.getElementById('modalStatusBadge');
-            badge.innerText = data.status;
-            badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase ";
-            if(data.status === 'Empty') badge.className += "bg-green-100 text-green-700";
-            else if(data.status === 'Partial') badge.className += "bg-yellow-100 text-yellow-700";
-            else if(data.status === 'Full') badge.className += "bg-red-100 text-red-700";
-            else badge.className += "bg-slate-200 text-slate-600";
+            badge.innerText = data.status === 'Empty' ? 'ว่าง (Empty)' : data.status === 'Partial' ? 'กลาง (Partial)' : data.status === 'Full' ? 'เต็ม (Full)' : 'ไม่มีข้อมูล';
+            badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase border ";
+            
+            if(data.status === 'Empty') badge.className += "bg-green-100 text-green-700 border-green-300";
+            else if(data.status === 'Partial') badge.className += "bg-yellow-100 text-yellow-700 border-yellow-300";
+            else if(data.status === 'Full') badge.className += "bg-red-100 text-red-700 border-red-300";
+            else badge.className += "bg-slate-100 text-slate-500 border-slate-300";
 
             document.getElementById('modalItems').innerText = data.items_list || "-";
             document.getElementById('modalPartNames').innerText = data.part_names || "-";
-            
             document.getElementById('infoModal').classList.add('active');
         }
 
@@ -213,12 +324,7 @@
             document.getElementById('infoModal').classList.remove('active');
         }
 
-        // เริ่มการทำงานเมื่อหน้าเว็บโหลดเสร็จ
-        document.addEventListener("DOMContentLoaded", () => {
-            renderGrid("A1", 29, "grid-a1"); // ชั้น 1 มี 29 ช่อง
-            renderGrid("A2", 64, "grid-a2"); // ชั้น 2 มี 64 ช่อง
-            fetchLocations(); // ดึงข้อมูลมาระบายสี
-        });
+        document.addEventListener("DOMContentLoaded", fetchLocations);
     </script>
 </body>
 </html>

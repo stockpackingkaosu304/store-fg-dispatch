@@ -36,7 +36,7 @@
                 <i class="fa-solid fa-chevron-right absolute right-6 text-slate-300 group-hover:text-sky-500 transition-colors"></i>
             </button>
 
-            <button onclick="openLoginModal()" class="w-full group relative bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md text-left">
+         <button onclick="openLoginModal('index.html')" class="w-full group relative bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md text-left">
                 <div class="bg-emerald-50 group-hover:bg-emerald-500 text-emerald-500 group-hover:text-white w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-colors">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </div>
@@ -48,9 +48,9 @@
             </button>
             
             <div class="pt-4 text-center">
-                <a href="report.html" class="text-xs font-semibold text-slate-400 hover:text-sky-600 transition-colors">
+                <button onclick="openLoginModal('report.html')" class="text-xs font-semibold text-slate-400 hover:text-sky-600 transition-colors cursor-pointer bg-transparent border-none">
                     <i class="fa-solid fa-chart-pie mr-1"></i> สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)
-                </a>
+                </button>
             </div>
 
         </div>
@@ -78,13 +78,17 @@
     </div>
 
     <script>
+        let targetPage = ""; // ตัวแปรเก็บว่าพนักงานกดไปหน้าไหน
+
         function goToLayout() {
-            // ไปที่หน้า layout.html (เราจะสร้างกันในเฟส 3)
+            // ไปที่หน้า layout.html (เข้าได้เลยไม่ต้องใส่รหัส)
             window.location.href = "layout.html"; 
         }
 
-        function openLoginModal() {
+        function openLoginModal(page) {
+            targetPage = page; // จำไว้ว่าผู้ใช้จะไปหน้าไหน
             document.getElementById('loginModal').classList.add('active');
+            
             // เช็คว่าเคยกรอกไว้ไหม ถ้าเคยให้ดึงมาโชว์เลย
             const savedStaffId = localStorage.getItem("savedStaffId");
             if(savedStaffId) {
@@ -105,8 +109,9 @@
             }
             // บันทึก Staff ID ลงในเบราว์เซอร์
             localStorage.setItem("savedStaffId", staffId);
-            // ส่งไปที่หน้า index.html (จ่ายงาน)
-            window.location.href = "index.html";
+            
+            // ส่งไปที่หน้าที่พนักงานกดเลือกมา (index.html หรือ report.html)
+            window.location.href = targetPage;
         }
 
         // กด Enter ในช่องกรอกรหัสพนักงานได้เลย

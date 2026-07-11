@@ -3,321 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Store Layout - WMS</title>
+    <title>3D Store Layout - WMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
         
         /* สไตล์ช่องชั้นวาง (Rack) */
         .rack-box {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 700;
-            color: #1e293b;
+            color: #0f172a;
             cursor: pointer;
             background-color: #ffffff;
-            transition: all 0.2s;
-            position: relative;
+            transition: all 0.2s ease;
+            border: 1px solid #475569;
         }
-        .rack-box:hover { background-color: #e2e8f0; z-index: 10; box-shadow: inset 0 0 0 2px #0ea5e9; }
+        .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
         
         /* สีสถานะ */
-        .status-empty { background-color: #bbf7d0 !important; } /* ว่าง - เขียว */
-        .status-partial { background-color: #fef08a !important; } /* กลาง - เหลือง */
-        .status-full { background-color: #fca5a5 !important; color: #7f1d1d; } /* เต็ม - แดง */
+        .status-empty { background-color: #4ade80 !important; color: #042f1a; } /* เขียว */
+        .status-partial { background-color: #facc15 !important; color: #422006; } /* เหลือง */
+        .status-full { background-color: #f87171 !important; color: #4c0505; } /* แดง */
         .status-unknown { background-color: #ffffff; }
 
         /* ไฟกะพริบเวลาค้นหาเจอ */
         .highlight-blink {
             animation: blinker 0.8s linear infinite;
-            border: 3px solid #0ea5e9 !important;
-            box-shadow: 0 0 15px rgba(14, 165, 233, 0.8);
-            z-index: 20;
+            background-color: #0ea5e9 !important;
+            color: white !important;
+            box-shadow: 0 0 20px #0ea5e9;
+            z-index: 40;
         }
-        @keyframes blinker { 50% { opacity: 0.6; transform: scale(1.05); } }
+        @keyframes blinker { 50% { opacity: 0.4; transform: scale(1.08); } }
 
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 50; align-items: center; justify-content: center; }
+        /* โครงสร้างฉาก 3 มิติ (3D Scene) */
+        .scene-container {
+            perspective: 1800px;
+            perspective-origin: 50% 30%;
+            width: 100%;
+            min-height: 75vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+        
+        .building-3d {
+            position: relative;
+            transform-style: preserve-3d;
+            width: 950px;
+            height: 500px;
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* เลเยอร์แต่ละชั้น */
+        .floor-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.6);
+            border: 3px solid #475569;
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform-style: preserve-3d;
+            transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* --- สเตทมุมกล้องควบคุมด้วย JS --- */
+        /* 1. มุมมองตึก 3 มิติซ้อนกัน */
+        .state-3d { transform: rotateX(60deg) rotateZ(-30deg) translateZ(-80px); }
+        .state-3d #floor1-layer { transform: translateZ(0px); opacity: 1; }
+        .state-3d #floor2-layer { transform: translateZ(250px); opacity: 1; }
+
+        /* 2. โฟกัสชั้น 1 (ดึงมาข้างหน้า แบนราบ หน้าตรงเพื่อให้กดง่าย) */
+        .state-f1 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
+        .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; background: rgba(30, 41, 59, 0.95); }
+        .state-f1 #floor2-layer { transform: translateZ(400px); opacity: 0.05; pointer-events: none; }
+
+        /* 3. โฟกัสชั้น 2 (ดันชั้น 1 ลงไป ปรับชั้น 2 แบนราบมาแทนที่) */
+        .state-f2 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
+        .state-f2 #floor1-layer { transform: translateZ(-400px); opacity: 0.05; pointer-events: none; }
+        .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; background: rgba(30, 41, 59, 0.95); }
+
+        /* ลิฟต์แนวดิ่ง */
+        .elevator-shaft {
+            position: absolute;
+            background: repeating-linear-gradient(45deg, #334155, #334155 10px, #1e293b 10px, #1e293b 20px);
+            border: 2px dashed #64748b;
+            transform-style: preserve-3d;
+            transition: opacity 0.5s;
+        }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
         
-        /* ซ่อน Scrollbar แต่อยู่ให้เลื่อนได้ */
-        .hide-scroll::-webkit-scrollbar { height: 6px; }
-        .hide-scroll::-webkit-scrollbar-track { background: #f1f5f9; rounded: 4px; }
-        .hide-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        
-        /* คลาสสำหรับการย่อส่วน (Scale) */
-        .scale-wrapper { transform-origin: top left; transition: transform 0.3s ease; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col select-none">
 
-    <!-- Header & Search -->
-    <div class="sticky top-0 bg-slate-800 text-white p-3 shadow-lg z-40">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-3 items-center justify-between">
+    <div class="sticky top-0 bg-slate-900 text-white p-3 shadow-2xl z-50 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
             <div class="flex items-center gap-3 w-full md:w-auto">
-                <a href="menu.html" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-sm transition-colors whitespace-nowrap">
-                    <i class="fa-solid fa-chevron-left mr-1"></i> เมนูหลัก
+                <a href="menu.html" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm transition-colors whitespace-nowrap border border-slate-700">
+                    <i class="fa-solid fa-house mr-1"></i> เมนูหลัก
                 </a>
-                <h1 class="text-base font-bold whitespace-nowrap"><i class="fa-solid fa-map text-sky-400 mr-2"></i>ผังคลังสินค้า</h1>
+                <h1 class="text-base font-black whitespace-nowrap tracking-wider"><i class="fa-solid fa-cubes text-sky-400 mr-2"></i>WMS 3D STORE LAYOUT</h1>
             </div>
-            <div class="relative w-full md:w-96 flex gap-2">
-                <div class="relative w-full">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="searchInput" placeholder="รหัสสินค้า, ชื่อ, ช่อง..." 
-                        class="w-full bg-slate-900 border border-slate-600 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-                </div>
-                <!-- ปุ่มสลับมุมมองสำหรับมือถือ -->
-                <button onclick="toggleViewMode()" class="md:hidden bg-sky-600 hover:bg-sky-500 px-3 rounded-full text-white text-xs font-bold whitespace-nowrap flex items-center gap-1 shadow-md">
-                    <i id="viewIcon" class="fa-solid fa-expand"></i> <span id="viewText">ขนาดจริง</span>
-                </button>
+            
+            <div class="relative w-full md:w-96">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="searchInput" placeholder="ค้นหารหัสสินค้า, ชื่อชิ้นงาน, รหัสช่อง..." 
+                    class="w-full bg-slate-950 border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
             </div>
         </div>
     </div>
 
-    <!-- แถบสี (Legend) และ คำแนะนำ -->
-    <div class="bg-white border-b shadow-sm">
-        <div class="py-2 px-4 text-xs flex justify-center gap-6 text-slate-600 font-bold">
-            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-300 shadow-sm"></span> ว่าง</div>
-            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-300 shadow-sm"></span> กลาง</div>
-            <div class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-300 shadow-sm"></span> เต็ม</div>
-        </div>
-        <div class="md:hidden bg-amber-50 text-amber-700 text-[10px] text-center py-1 font-bold border-t border-amber-100">
-            <i class="fa-solid fa-mobile-screen lg:rotate-90"></i> แนะนำให้หมุนจอแนวนอน (Landscape) เพื่อให้อ่านง่ายขึ้น
-        </div>
+    <div class="bg-slate-950 border-b border-slate-800 p-2 flex flex-wrap justify-center gap-2 shadow-inner">
+        <button onclick="changeView('3d')" id="btn-3d" class="bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group"></i> ดูภาพรวม 3D
+        </button>
+        <button onclick="changeView('f1')" id="btn-f1" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-align-justify"></i> โฟกัส ชั้น 1
+        </button>
+        <button onclick="changeView('f2')" id="btn-f2" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-align-justify"></i> โฟกัส ชั้น 2
+        </button>
     </div>
 
-    <div class="flex-1 p-2 md:p-6 space-y-6 max-w-[100vw] overflow-x-hidden">
-        
-        <!-- ================= ชั้น 1 (1ST) ================= -->
-        <div class="bg-white p-3 md:p-4 rounded-xl shadow-md border border-slate-200">
-            <h2 class="text-lg font-black text-slate-800 mb-2 border-l-4 border-sky-500 pl-2">ชั้น 1 (A1 - 1ST)</h2>
-            <div class="overflow-x-auto hide-scroll pb-2">
-                <!-- คอนเทนเนอร์หลักคุมความสูงอัตโนมัติ -->
-                <div id="container-a1" class="relative mx-auto">
-                    <!-- Wrapper สำหรับ Scale ย่อส่วน -->
-                    <div id="wrapper-a1" class="scale-wrapper">
-                        <!-- โค้ด HTML แผนผัง A1 จะถูกดึงมาใส่ตรงนี้ -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= ชั้น 2 (2ST) ================= -->
-        <div class="bg-white p-3 md:p-4 rounded-xl shadow-md border border-slate-200">
-            <h2 class="text-lg font-black text-slate-800 mb-2 border-l-4 border-sky-500 pl-2">ชั้น 2 (A2 - 2ST)</h2>
-            <div class="overflow-x-auto hide-scroll pb-2">
-                <div id="container-a2" class="relative mx-auto">
-                    <div id="wrapper-a2" class="scale-wrapper">
-                        <!-- โค้ด HTML แผนผัง A2 จะถูกดึงมาใส่ตรงนี้ -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <div class="bg-slate-900 py-2 px-4 text-xs flex justify-center gap-6 text-slate-400 font-bold border-b border-slate-800/50">
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-400 shadow"></span> ว่าง (Empty)</div>
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-400 shadow"></span> มีบางส่วน (Partial)</div>
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-400 shadow"></span> เต็ม (Full)</div>
     </div>
 
-    <!-- Modal แจ้งรายละเอียด -->
-    <div id="infoModal" class="modal-overlay" onclick="closeModal(event)">
-        <div class="bg-white rounded-2xl p-6 w-11/12 max-w-sm shadow-2xl m-auto" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-start mb-4">
-                <h3 id="modalTitle" class="text-2xl font-black text-slate-800 tracking-wider">A1-00</h3>
-                <span id="modalStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase border">Status</span>
-            </div>
-            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
-                <p class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider"><i class="fa-solid fa-barcode mr-1"></i> รหัสสินค้า (ITEM CODE):</p>
-                <div id="modalItems" class="text-sm font-mono text-sky-700 font-bold break-words mb-3 bg-white p-2 rounded border border-slate-100">ไม่มีข้อมูล</div>
+    <div class="flex-1 overflow-x-auto hide-scroll w-full bg-slate-950 flex items-center">
+        <div class="scene-container min-w-[1000px]">
+            <div id="building" class="building-3d state-3d">
                 
-                <p class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider"><i class="fa-solid fa-tag mr-1"></i> ชื่อชิ้นงาน (PART NAME):</p>
-                <div id="modalPartNames" class="text-sm text-slate-700 font-medium break-words bg-white p-2 rounded border border-slate-100">-</div>
+                <div id="shaft-lift-bot" class="elevator-shaft" style="left: 236px; top: 38px; width: 60px; height: 24px; transform: translateZ(12px) rotateX(90deg) translateY(-125px); opacity: 0.7;"></div>
+
+                <div id="floor1-layer" class="floor-layer" style="width: 550px; height: 430px; left: 0; top: 35px;">
+                    <div class="text-xs font-black text-sky-400 mb-3 tracking-wider uppercase"><i class="fa-solid fa-stairs mr-1"></i> Floor 1 (Zone 1ST)</div>
+                    
+                    <div class="flex">
+                        <div class="w-[80px] h-[64px] border border-slate-700 flex items-center justify-center font-bold text-[10px] text-center bg-slate-800/80 text-teal-400 shrink-0">Cargo<br>Lift</div>
+                        <div class="flex flex-col flex-1">
+                            <div class="w-[424px] h-[32px] border border-slate-700 border-l-0 flex items-center justify-center font-bold text-xs bg-slate-800/80 text-slate-300">Shipping Office</div>
+                            <div class="flex h-[32px]">
+                                <div class="w-[104px] border-r border-slate-700 shrink-0"></div>
+                                <div class="w-[160px] flex flex-col shrink-0 border-r border-b border-slate-700 bg-slate-900/40">
+                                    <div class="h-[16px] flex items-center justify-center font-bold text-[9px] text-slate-400">QA Area</div>
+                                    <div class="flex h-[16px] border-t border-slate-700">
+                                        <div class="rack-box flex-1 border-r border-slate-700" id="box-A1-11">A1-11</div>
+                                        <div class="rack-box flex-1" id="box-A1-12">A1-12</div>
+                                    </div>
+                                </div>
+                                <div class="w-[160px] flex flex-col shrink-0 border-r border-b border-slate-700">
+                                    <div class="h-[16px]"></div>
+                                    <div class="flex h-[16px] border-t border-slate-700">
+                                        <div class="rack-box w-[80px] border-r border-slate-700" id="box-A1-13">A1-13</div>
+                                        <div class="w-[60px] bg-teal-500/20 text-teal-400 font-bold text-[9px] flex items-center justify-center border-l border-slate-700">LIFT</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex mt-6 ml-[80px] gap-[40px]">
+                        <div class="w-[64px] flex flex-col border border-slate-700 bg-slate-800/30 shrink-0">
+                            <div class="h-[22px] border-b border-slate-700"></div>
+                            <div class="h-[22px] border-b border-slate-700"></div>
+                            <div class="h-[22px]"></div>
+                        </div>
+                        <div class="w-[160px] flex flex-col border border-slate-700 shrink-0">
+                            ${['A1-09','A1-08','A1-07','A1-06','A1-05','A1-04','A1-03','A1-02','A1-01'].map(id => `<div class="rack-box h-[22px] border-b border-slate-600 last:border-b-0" id="box-${id}">${id}</div>`).join('')}
+                        </div>
+                        <div class="w-[192px] flex flex-col border border-slate-700 shrink-0">
+                            ${['A1-14','A1-15','A1-15-B','A1-17','A1-18','A1-19','A1-20','A1-21'].map(id => `<div class="rack-box h-[22px] border-b border-slate-600 last:border-b-0" id="box-${id}">${id.replace('-B','')}</div>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="flex mt-6 gap-[40px]">
+                        <div class="w-[344px] h-[154px] border border-slate-700 flex items-center justify-center text-3xl font-black tracking-widest bg-slate-800/50 text-slate-500 shrink-0 uppercase shadow-inner">Office</div>
+                        <div class="w-[192px] flex flex-col border border-slate-700 shrink-0">
+                            ${['A1-22','A1-23','A1-24','A1-25','A1-26','A1-27','A1-28','A1-29'].map(id => `<div class="rack-box h-[22px] border-b border-slate-600 last:border-b-0" id="box-${id}">${id}</div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div id="floor2-layer" class="floor-layer" style="width: 950px; height: 430px; left: 0; top: 35px;">
+                    <div class="text-xs font-black text-amber-400 mb-3 tracking-wider uppercase"><i class="fa-solid fa-stairs mr-1"></i> Floor 2 (Zone 2ST)</div>
+                    
+                    <div class="flex w-full h-[370px]">
+                        <div class="w-[280px] border-r border-slate-700 flex flex-col shrink-0 pr-2">
+                            <div class="flex h-[24px] border border-slate-700 bg-slate-900/50">
+                                <div class="w-[48px] bg-teal-600 text-white flex items-center justify-center text-[9px] font-bold border-r border-slate-700">LIFT</div>
+                                ${['A2-62','A2-63','A2-64'].map(id => `<div class="rack-box flex-1 border-r border-slate-600 last:border-r-0" id="box-${id}">${id}</div>`).join('')}
+                                <div class="flex-1"></div>
+                            </div>
+                            <div class="flex h-[24px] mt-4 px-8">
+                                ${['A2-61','A2-62-B'].map(id => `<div class="rack-box flex-1 border border-slate-700 first:border-r-0" id="box-${id}">${id.replace('-B','')}</div>`).join('')}
+                            </div>
+                            <div class="flex h-[24px] mt-4">
+                                ${['A2-60','A2-59','A2-58','A2-57','A2-56','A2-55'].map(id => `<div class="rack-box flex-1 border border-slate-600 text-[9px]" id="box-${id}">${id}</div>`).join('')}
+                            </div>
+                            <div class="flex-1 bg-slate-800/60 border border-slate-700 mt-4 flex flex-col items-center justify-center text-slate-400 font-bold tracking-widest text-sm shadow-inner rounded-lg">
+                                <i class="fa-solid fa-bed text-xl mb-1 text-slate-500"></i> STAFF ROOM
+                            </div>
+                        </div>
+
+                        <div class="flex-1 flex flex-col pl-3 gap-5">
+                            <div>
+                                <div class="h-[20px] bg-slate-800/60 border border-slate-700 border-b-0 w-full"></div>
+                                <div class="flex border border-slate-700">
+                                    <div class="flex items-center justify-center w-[20px] bg-slate-900 border-r border-slate-600"><i class="fa-solid fa-fire-extinguisher text-red-500 text-[9px]"></i></div>
+                                    ${['54','53','52','51','50','48','47','46','45','44','43','42','41','40'].map(n => `<div class="rack-box flex-1 border-r border-slate-600 last:border-r-0 text-[10px] h-[22px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                                </div>
+                            </div>
+
+                            <div class="flex gap-6">
+                                <div class="flex flex-col w-[160px] border border-slate-700 shrink-0">
+                                    <div class="flex h-[22px] border-b border-slate-600">
+                                        ${['27','28','29'].map(n => `<div class="rack-box flex-1 border-r border-slate-600 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                                    </div>
+                                    <div class="flex h-[22px]">
+                                        ${['26','25','24'].map(n => `<div class="rack-box flex-1 border-r border-slate-600 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                                    </div>
+                                </div>
+                                <div class="flex flex-col flex-1 border border-slate-700">
+                                    <div class="flex h-[22px] border-b border-slate-600">
+                                        ${['30','31','32','33','34','35','36','37','38','39'].map(n => `<div class="rack-box flex-1 border-r border-slate-600 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                                    </div>
+                                    <div class="flex h-[22px]">
+                                        ${['23','22','21','20','19','18','17','16','15','14'].map(n => `<div class="rack-box flex-1 border-r border-slate-600 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex h-[24px] border border-slate-700">
+                                ${['01','02','03'].map(n => `<div class="rack-box w-[48px] border-r border-slate-600 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                                <div class="w-[60px] bg-teal-600 text-white border-r border-slate-700 flex items-center justify-center text-[9px] font-bold"><i class="fa-solid fa-fire-extinguisher text-red-400 mr-1 text-[8px]"></i>LIFT</div>
+                                ${['04','05','06','07','08','09','10','11','12','13'].map(n => `<div class="rack-box flex-1 border-r border-slate-600 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-            <button onclick="closeModal(event)" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <div id="infoModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-11/12 max-w-sm shadow-2xl m-auto text-slate-100" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-start mb-4">
+                <h3 id="modalTitle" class="text-2xl font-black text-white tracking-wider">A1-00</h3>
+                <span id="modalStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase border border-slate-600">Status</span>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-5 min-h-[120px]" id="modalBodyContent">
+                </div>
+            <button onclick="closeModal(event)" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-95">ปิดหน้าต่าง</button>
         </div>
     </div>
 
     <script>
-        // สถานะมุมมอง: true = ย่อพอดีจอ, false = ขนาดจริง (เลื่อนไถได้)
-        let isFitToScreen = true;
+        // โค้ดสร้างความปลอดภัยและเปลี่ยนมุมมองกล้อง 3D
+        function changeView(mode) {
+            const building = document.getElementById('building');
+            const shaft = document.getElementById('shaft-lift-bot');
+            
+            // เคลียร์คลาสเก่าออกทั้งหมด
+            building.className = "building-3d";
+            
+            // ปรับปุ่มควบคุมให้มีไฮไลท์สีตามสถานะที่เลือก
+            document.getElementById('btn-3d').className = "text-xs font-bold px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5 " + (mode==='3d' ? 'bg-sky-600 text-white':'bg-slate-800 text-slate-400 hover:bg-slate-700');
+            document.getElementById('btn-f1').className = "text-xs font-bold px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5 " + (mode==='f1' ? 'bg-sky-600 text-white':'bg-slate-800 text-slate-400 hover:bg-slate-700');
+            document.getElementById('btn-f2').className = "text-xs font-bold px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5 " + (mode==='f2' ? 'bg-sky-600 text-white':'bg-slate-800 text-slate-400 hover:bg-slate-700');
 
-        // === โค้ดสร้างแผนผัง HTML ===
-        function buildA1Layout() {
-            const colMid = ['A1-09','A1-08','A1-07','A1-06','A1-05','A1-04','A1-03','A1-02','A1-01'];
-            const colRight = ['A1-14','A1-15','A1-15-B','A1-17','A1-18','A1-19','A1-20','A1-21'];
-            const colBot = ['A1-22','A1-23','A1-24','A1-25','A1-26','A1-27','A1-28','A1-29'];
-
-            return `
-            <div class="border-2 border-slate-800 p-6 w-[700px] bg-white relative mx-auto">
-                <div class="flex">
-                    <div class="w-[80px] h-[64px] border border-slate-800 flex items-center justify-center font-bold text-xs text-center bg-gray-50 shrink-0">Cargo<br>Lift</div>
-                    <div class="flex flex-col flex-1">
-                        <div class="w-[424px] h-[32px] border border-slate-800 border-l-0 flex items-center justify-center font-bold text-xs bg-gray-50">Shipping Office</div>
-                        <div class="flex h-[32px]">
-                            <div class="w-[104px] border-r border-slate-800 shrink-0"></div>
-                            <div class="w-[160px] flex flex-col shrink-0 border-r border-b border-slate-800">
-                                <div class="h-[16px] border-slate-800 border-t-0 flex items-center justify-center font-bold text-[10px] bg-gray-50">QA Area</div>
-                                <div class="flex h-[16px] border-t border-slate-800">
-                                    <div class="rack-box flex-1 border-r border-slate-800" id="box-A1-11">A1-11</div>
-                                    <div class="rack-box flex-1" id="box-A1-12">A1-12</div>
-                                </div>
-                            </div>
-                            <div class="w-[160px] flex flex-col shrink-0 border-r border-b border-slate-800">
-                                <div class="h-[16px] bg-white"></div>
-                                <div class="flex h-[16px] border-t border-slate-800">
-                                    <div class="rack-box w-[80px] border-r border-slate-800" id="box-A1-13">A1-13</div>
-                                    <div class="flex-1 bg-white"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex mt-8 ml-[80px] gap-[40px]">
-                    <div class="w-[64px] flex flex-col border border-slate-800 shrink-0">
-                        <div class="h-[24px] border-b border-slate-800 bg-gray-50"></div>
-                        <div class="h-[24px] border-b border-slate-800 bg-gray-50"></div>
-                        <div class="h-[24px] bg-gray-50"></div>
-                    </div>
-                    <div class="w-[160px] flex flex-col border border-slate-800 shrink-0">
-                        ${colMid.map(id => `<div class="rack-box h-[24px] border-b border-slate-400 last:border-b-0" id="box-${id}">${id}</div>`).join('')}
-                    </div>
-                    <div class="w-[192px] flex flex-col border border-slate-800 shrink-0">
-                        ${colRight.map((id) => `<div class="rack-box h-[24px] border-b border-slate-400 last:border-b-0" id="box-${id}">${id.replace('-B','')}</div>`).join('')}
-                    </div>
-                </div>
-                <div class="flex mt-8 gap-[40px]">
-                    <div class="w-[344px] h-[192px] border-2 border-slate-800 flex items-center justify-center text-5xl font-bold tracking-widest bg-gray-50 shrink-0 uppercase">Office</div>
-                    <div class="w-[192px] flex flex-col border border-slate-800 shrink-0">
-                        ${colBot.map(id => `<div class="rack-box h-[24px] border-b border-slate-400 last:border-b-0" id="box-${id}">${id}</div>`).join('')}
-                    </div>
-                </div>
-                <div class="flex mt-2 ml-[80px] gap-[40px]">
-                    <div class="w-[100px] h-[24px] border border-slate-800 flex items-center justify-center font-bold text-[10px] bg-gray-50 uppercase tracking-widest">Toilet</div>
-                    <div class="w-[100px] h-[24px] border border-slate-800 flex items-center justify-center font-bold text-[10px] bg-gray-50 uppercase tracking-widest">Toilet</div>
-                </div>
-            </div>
-            `;
-        }
-
-        function buildA2Layout() {
-            const row1 = ['54','53','52','51','50','48','47','46','45','44','43','42','41','40'];
-            const midTop = ['30','31','32','33','34','35','36','37','38','39'];
-            const midBot = ['23','22','21','20','19','18','17','16','15','14'];
-            const bot1 = ['01','02','03'];
-            const bot2 = ['04','05','06','07','08','09','10','11','12','13'];
-
-            return `
-            <div class="border-2 border-slate-800 p-0 w-[950px] bg-white flex mx-auto">
-                <div class="w-[280px] border-r-2 border-slate-800 flex flex-col bg-white">
-                    <div class="flex h-[24px] border-b border-slate-800">
-                        <div class="w-[48px] bg-teal-400 border-r border-slate-800 flex items-center justify-center text-[9px] font-bold">LIFT</div>
-                        ${['A2-62','A2-63','A2-64'].map(id => `<div class="rack-box flex-1 border-r border-slate-400" id="box-${id}">${id}</div>`).join('')}
-                        <div class="flex-1"></div>
-                    </div>
-                    <div class="flex h-[24px] mt-4 px-8">
-                        ${['A2-61','A2-62-B'].map(id => `<div class="rack-box flex-1 border border-slate-800 first:border-r-0" id="box-${id}">${id.replace('-B','')}</div>`).join('')}
-                    </div>
-                    <div class="flex h-[24px] mt-4">
-                        ${['A2-60','A2-59','A2-58','A2-57','A2-56','A2-55'].map(id => `<div class="rack-box flex-1 border border-slate-800 border-l-0 text-[9px]" id="box-${id}">${id}</div>`).join('')}
-                    </div>
-                    <div class="flex-1 bg-gray-200 border-t border-slate-800 flex flex-col items-center justify-center text-slate-700 font-bold tracking-widest text-lg min-h-[100px] shadow-inner">
-                        <i class="fa-solid fa-bed text-2xl mb-1"></i> STAFF ROOM
-                    </div>
-                </div>
-                <div class="flex-1 flex flex-col bg-white p-3 gap-6">
-                    <div>
-                        <div class="h-[24px] bg-gray-200 border border-slate-800 border-b-0 w-full"></div>
-                        <div class="flex border border-slate-800">
-                            <div class="flex items-center justify-center w-[16px] bg-white border-r border-slate-400 font-bold"><i class="fa-solid fa-fire-extinguisher text-red-500 text-[8px]"></i></div>
-                            ${row1.map(n => `<div class="rack-box flex-1 border-r border-slate-400 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
-                        </div>
-                    </div>
-                    <div class="flex gap-8 mt-2">
-                        <div class="flex flex-col w-[160px] border border-slate-800">
-                            <div class="flex h-[24px] border-b border-slate-400">
-                                ${['27','28','29'].map(n => `<div class="rack-box flex-1 border-r border-slate-400 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
-                            </div>
-                            <div class="flex h-[24px]">
-                                ${['26','25','24'].map(n => `<div class="rack-box flex-1 border-r border-slate-400 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
-                            </div>
-                        </div>
-                        <div class="flex flex-col flex-1 border border-slate-800">
-                            <div class="flex h-[24px] border-b border-slate-400">
-                                ${midTop.map(n => `<div class="rack-box flex-1 border-r border-slate-400 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
-                            </div>
-                            <div class="flex h-[24px]">
-                                ${midBot.map(n => `<div class="rack-box flex-1 border-r border-slate-400 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex mt-2 h-[24px] border border-slate-800">
-                        ${bot1.map(n => `<div class="rack-box w-[48px] border-r border-slate-400 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
-                        <div class="w-[60px] bg-teal-400 border-r border-slate-800 flex items-center justify-center text-[9px] font-bold"><i class="fa-solid fa-fire-extinguisher text-red-600 mr-1"></i>LIFT</div>
-                        ${bot2.map(n => `<div class="rack-box flex-1 border-r border-slate-400 last:border-r-0 text-[10px]" id="box-A2-${n}">A2-${n}</div>`).join('')}
-                    </div>
-                </div>
-            </div>
-            `;
-        }
-
-        // วาด HTML ลงใน Wrapper
-        document.getElementById('wrapper-a1').innerHTML = buildA1Layout();
-        document.getElementById('wrapper-a2').innerHTML = buildA2Layout();
-
-        /* =============================================================
-           ระบบ Auto-Fit Scale (ย่อส่วนอัตโนมัติบนมือถือ)
-        ============================================================= */
-        function adjustMapScale() {
-            const screenW = window.innerWidth;
-            const a1Wrapper = document.getElementById('wrapper-a1');
-            const a1Container = document.getElementById('container-a1');
-            const a2Wrapper = document.getElementById('wrapper-a2');
-            const a2Container = document.getElementById('container-a2');
-
-            // หากเป็นจอมือถือ/แท็บเล็ต และเปิดโหมด Fit To Screen ไว้
-            if (screenW < 1024 && isFitToScreen) {
-                const padding = 40; // ระยะขอบซ้ายขวาเผื่อไว้
-                
-                // คำนวณอัตราส่วน (Scale) ให้ชั้น 1 (ต้นฉบับกว้าง 700)
-                const scale1 = (screenW - padding) / 700;
-                a1Wrapper.style.transform = `scale(${scale1 > 1 ? 1 : scale1})`;
-                a1Container.style.height = `${a1Wrapper.offsetHeight * (scale1 > 1 ? 1 : scale1)}px`;
-
-                // คำนวณอัตราส่วน (Scale) ให้ชั้น 2 (ต้นฉบับกว้าง 950)
-                const scale2 = (screenW - padding) / 950;
-                a2Wrapper.style.transform = `scale(${scale2 > 1 ? 1 : scale2})`;
-                a2Container.style.height = `${a2Wrapper.offsetHeight * (scale2 > 1 ? 1 : scale2)}px`;
-            } else {
-                // โหมดขนาดจริง หรือเปิดคอมพิวเตอร์
-                a1Wrapper.style.transform = 'scale(1)';
-                a1Container.style.height = `${a1Wrapper.offsetHeight}px`;
-                
-                a2Wrapper.style.transform = 'scale(1)';
-                a2Container.style.height = `${a2Wrapper.offsetHeight}px`;
+            if (mode === '3d') {
+                building.classList.add('state-3d');
+                if(shaft) shaft.style.opacity = "0.7";
+            } else if (mode === 'f1') {
+                building.classList.add('state-f1');
+                if(shaft) shaft.style.opacity = "0";
+            } else if (mode === 'f2') {
+                building.classList.add('state-f2');
+                if(shaft) shaft.style.opacity = "0";
             }
         }
 
-        // ฟังก์ชันเมื่อกดปุ่ม "สลับมุมมอง"
-        function toggleViewMode() {
-            isFitToScreen = !isFitToScreen; // สลับสถานะ
-            const icon = document.getElementById('viewIcon');
-            const text = document.getElementById('viewText');
-
-            if (isFitToScreen) {
-                icon.className = "fa-solid fa-expand";
-                text.innerText = "ขนาดจริง"; // กดแล้วจะไปเป็นขนาดจริง
-            } else {
-                icon.className = "fa-solid fa-compress";
-                text.innerText = "ย่อพอดีจอ"; // กดแล้วจะไปเป็นแบบย่อ
-            }
-            adjustMapScale(); // คำนวณขนาดใหม่ทันที
-        }
-
-        // ดักจับเวลาหมุนจอหรือย่อขยายหน้าต่างเบราว์เซอร์
-        window.addEventListener('resize', adjustMapScale);
-
         /* =============================================================
-           ระบบเชื่อม Database (Supabase)
+           ระบบเชื่อมต่อฐานข้อมูล Supabase อัตโนมัติ
         ============================================================= */
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
@@ -330,6 +314,8 @@
 
             data.forEach(loc => {
                 locationData[loc.location_id] = loc;
+                
+                // รองรับ ID แผนผังจำลองพิเศษ (A1-15 ซ้ำ, A2-62 ซ้ำ) เพื่อป้องกันโค้ดรวน
                 let targetIds = ["box-" + loc.location_id];
                 if(loc.location_id === 'A1-15') targetIds.push("box-A1-15-B");
                 if(loc.location_id === 'A2-62') targetIds.push("box-A2-62-B");
@@ -338,6 +324,7 @@
                     const box = document.getElementById(id);
                     if(box) {
                         box.onclick = () => openModal(loc.location_id);
+                        box.className = "rack-box"; // เคลียร์คลาสเก่า
                         if(loc.status === 'Empty') box.classList.add('status-empty');
                         else if(loc.status === 'Partial') box.classList.add('status-partial');
                         else if(loc.status === 'Full') box.classList.add('status-full');
@@ -347,6 +334,7 @@
             });
         }
 
+        // ระบบค้นหาสินค้าแล้วกะพริบไฟแบบ 3D Aura Effect
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const term = e.target.value.trim().toUpperCase();
             document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
@@ -369,33 +357,46 @@
             }
         });
 
+        // เปิด Modal แยกการ์ดรายการสินค้าให้อ่านง่ายบนจอมือถือ
         function openModal(locId) {
             document.getElementById('modalTitle').innerText = locId;
-            const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '-', part_names: '-' };
+            const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '', part_names: '' };
             
             const badge = document.getElementById('modalStatusBadge');
             badge.innerText = data.status === 'Empty' ? 'ว่าง (Empty)' : data.status === 'Partial' ? 'กลาง (Partial)' : data.status === 'Full' ? 'เต็ม (Full)' : 'ไม่มีข้อมูล';
             badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase border ";
-            
-            if(data.status === 'Empty') badge.className += "bg-green-100 text-green-700 border-green-300";
-            else if(data.status === 'Partial') badge.className += "bg-yellow-100 text-yellow-700 border-yellow-300";
-            else if(data.status === 'Full') badge.className += "bg-red-100 text-red-700 border-red-300";
-            else badge.className += "bg-slate-100 text-slate-500 border-slate-300";
+            if(data.status === 'Empty') badge.className += "bg-green-950 text-green-400 border-green-800";
+            else if(data.status === 'Partial') badge.className += "bg-yellow-950 text-yellow-400 border-yellow-800";
+            else if(data.status === 'Full') badge.className += "bg-red-950 text-red-400 border-red-800";
+            else badge.className += "bg-slate-800 text-slate-400 border-slate-700";
 
-            document.getElementById('modalItems').innerText = data.items_list || "-";
-            document.getElementById('modalPartNames').innerText = data.part_names || "-";
+            let itemsArr = (data.items_list || "").split(',').map(s => s.trim()).filter(s => s !== "");
+            let partsArr = (data.part_names || "").split(',').map(s => s.trim()).filter(s => s !== "");
+            let htmlContent = '';
+
+            if (itemsArr.length === 0) {
+                htmlContent = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-box-open text-3xl mb-2 block text-slate-600"></i> ไม่มีสินค้าในช่องนี้</div>`;
+            } else {
+                htmlContent = '<div class="space-y-2.5 max-h-[250px] overflow-y-auto pr-1 hide-scroll">';
+                for(let i = 0; i < itemsArr.length; i++) {
+                    htmlContent += `
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex items-start gap-3 shadow-md">
+                        <div class="bg-sky-950 text-sky-400 rounded-md p-2 mt-0.5 border border-sky-900/50"><i class="fa-solid fa-box text-xs"></i></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wide"><i class="fa-solid fa-barcode"></i> ${itemsArr[i] || '-'}</div>
+                            <div class="text-xs font-bold text-white break-words mt-0.5">${partsArr[i] || '-'}</div>
+                        </div>
+                    </div>`;
+                }
+                htmlContent += '</div>';
+            }
+
+            document.getElementById('modalBodyContent').innerHTML = htmlContent;
             document.getElementById('infoModal').classList.add('active');
         }
 
-        function closeModal(e) {
-            document.getElementById('infoModal').classList.remove('active');
-        }
-
-        // เมื่อหน้าจอโหลดเสร็จ ให้ดึงข้อมูลฐานข้อมูล และคำนวณการย่อขนาดแผนผังทันที
-        document.addEventListener("DOMContentLoaded", () => {
-            fetchLocations();
-            adjustMapScale();
-        });
+        function closeModal(e) { document.getElementById('infoModal').classList.remove('active'); }
+        document.addEventListener("DOMContentLoaded", fetchLocations);
     </script>
 </body>
 </html>

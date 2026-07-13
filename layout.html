@@ -10,20 +10,20 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
         
-        /* สไตล์ช่องชั้นวาง (Rack) */
+        /* สไตล์ช่องชั้นวาง */
         .rack-box {
             display: flex; align-items: center; justify-content: center;
             font-size: 0.65rem; font-weight: 700; color: #0f172a;
             cursor: pointer; background-color: #ffffff;
-            transition: all 0.2s ease; border: 1px solid #475569;
+            transition: all 0.2s ease; border: 1px solid #64748b;
         }
         .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
         
-        /* สีสถานะ */
+        /* สีสถานะจากฐานข้อมูล */
         .status-empty { background-color: #4ade80 !important; color: #042f1a; } 
         .status-partial { background-color: #facc15 !important; color: #422006; } 
         .status-full { background-color: #f87171 !important; color: #4c0505; } 
-        .status-unknown { background-color: #ffffff; }
+        .status-unknown { background-color: #e2e8f0; color: #64748b; }
 
         .highlight-blink {
             animation: blinker 0.8s linear infinite;
@@ -32,7 +32,7 @@
         }
         @keyframes blinker { 50% { opacity: 0.4; transform: scale(1.08); } }
 
-        /* โครงสร้างฉาก 3 มิติ (3D Scene) */
+        /* โครงสร้างฉาก 3 มิติ */
         .scene-container {
             perspective: 2000px; perspective-origin: 50% 20%;
             width: 100%; min-height: 80vh;
@@ -45,45 +45,52 @@
             display: flex; align-items: center; justify-content: center;
         }
         
+        /* บังคับความกว้างรวม 1050px (ซ้าย 510px + ขวา 540px) */
         .building-3d {
             position: relative; transform-style: preserve-3d;
-            width: 1000px; height: 500px; /* ยึดความกว้าง 1000px ตาม Wireframe */
+            width: 1050px; height: 550px; 
             transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        /* เลเยอร์แต่ละชั้น บังคับขนาด 1000px เท่ากันเพื่อความสมมาตร */
+        /* เลเยอร์พื้นตึก */
         .floor-layer {
             position: absolute; top: 0; left: 0;
-            width: 1000px; height: 460px;
-            background: rgba(30, 41, 59, 0.8);
+            width: 1050px; height: 550px;
+            background: rgba(30, 41, 59, 0.85);
             border: 2px solid #64748b;
-            padding: 20px;
+            padding: 10px;
             box-shadow: 0 25px 50px rgba(0,0,0,0.8);
             transform-style: preserve-3d;
             transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex; /* ใช้ Flexbox แบ่งซ้ายขวา */
         }
 
         .floor-layer::before {
-            content: ''; position: absolute; top: 100%; left: -2px; right: -2px; height: 15px;
+            content: ''; position: absolute; top: 100%; left: -2px; right: -2px; height: 20px;
             background: #0f172a; transform-origin: top; transform: rotateX(-90deg); border: 1px solid #334155;
         }
         .floor-layer::after {
-            content: ''; position: absolute; top: -2px; bottom: -2px; right: -15px; width: 15px;
+            content: ''; position: absolute; top: -2px; bottom: -2px; right: -20px; width: 20px;
             background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b;
         }
 
         /* มุมกล้อง JS */
         .state-3d { transform: rotateX(60deg) rotateZ(-30deg) translateZ(-80px); }
         .state-3d #floor1-layer { transform: translateZ(0px); opacity: 1; }
-        .state-3d #floor2-layer { transform: translateZ(280px); opacity: 1; }
+        .state-3d #floor2-layer { transform: translateZ(300px); opacity: 1; }
 
         .state-f1 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
-        .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(30, 41, 59, 1); }
+        .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
         .state-f1 #floor2-layer { transform: translateZ(500px); opacity: 0; pointer-events: none; }
 
         .state-f2 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
         .state-f2 #floor1-layer { transform: translateZ(-500px); opacity: 0; pointer-events: none; }
-        .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(30, 41, 59, 1); }
+        .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
+
+        .elevator-shaft {
+            position: absolute; background: repeating-linear-gradient(45deg, rgba(20, 184, 166, 0.1), rgba(20, 184, 166, 0.1) 10px, transparent 10px, transparent 20px);
+            border: 2px dashed #0d9488; transform-style: preserve-3d; transition: opacity 0.5s;
+        }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
@@ -125,92 +132,98 @@
             <div id="scale-wrapper">
                 <div id="building" class="building-3d state-3d">
                     
-                    <div id="floor1-layer" class="floor-layer flex">
-                        <div class="w-[600px] h-full flex flex-col justify-between relative border-r-2 border-dashed border-slate-500 pr-4">
-                            <div class="text-xs font-black text-sky-400 tracking-wider uppercase mb-2"><i class="fa-solid fa-stairs mr-1"></i> Floor 1 (Zone 1ST)</div>
+                    <div id="shaft-top" class="elevator-shaft" style="left: 10px; top: 10px; width: 60px; height: 40px; transform: translateZ(15px) rotateX(90deg) translateY(-150px); opacity: 0.7;"></div>
+                    <div id="shaft-bot" class="elevator-shaft" style="left: 450px; top: 480px; width: 60px; height: 50px; transform: translateZ(15px) rotateX(90deg) translateY(-150px); opacity: 0.7;"></div>
+
+                    <div id="floor1-layer" class="floor-layer">
+                        
+                        <div class="w-[510px] h-full flex flex-col justify-between border-r-2 border-dashed border-sky-500/50 pr-2">
                             
-                            <div class="flex h-[100px] gap-4">
-                                <div class="w-[80px] bg-teal-900 border border-teal-500 text-teal-300 flex items-center justify-center font-bold text-xs text-center">CARGO<br>LIFT</div>
-                                <div class="flex-1 flex flex-col gap-2">
-                                    <div class="h-[40px] bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 font-bold text-sm">SHIPPING OFFICE</div>
-                                    <div class="flex-1 flex gap-2">
-                                        <div class="flex-1 bg-yellow-900/40 border border-yellow-700/50 flex items-center justify-center text-yellow-500 font-bold text-xs">QA AREA</div>
-                                        <div class="flex gap-1 w-[120px]">
-                                            <div class="rack-box flex-1" id="box-A1-11">A1-11</div>
-                                            <div class="rack-box flex-1" id="box-A1-12">A1-12</div>
+                            <div class="h-[120px] flex flex-col">
+                                <div class="text-xs font-black text-sky-400 tracking-wider uppercase mb-1"><i class="fa-solid fa-building mr-1"></i> 1ST FLOOR</div>
+                                <div class="flex flex-1 gap-2">
+                                    <div class="w-[80px] bg-teal-900 border border-teal-500 flex items-center justify-center font-bold text-teal-300 text-[10px] text-center">CARGO<br>LIFT</div>
+                                    <div class="flex-1 flex flex-col gap-2">
+                                        <div class="flex-1 bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 font-bold text-sm">SHIPPING OFFICE</div>
+                                        <div class="h-[40px] flex gap-2">
+                                            <div class="w-[180px] bg-yellow-900/40 border border-yellow-700/50 flex items-center justify-center text-yellow-500 font-bold text-xs">QA AREA</div>
+                                            <div id="f1-r1-racks" class="flex flex-1 border border-slate-600"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="flex justify-center gap-8 py-4">
-                                <div id="f1-col-1" class="w-[120px] flex flex-col border border-slate-600"></div>
-                                <div id="f1-col-2" class="w-[120px] flex flex-col border border-slate-600"></div>
+                            <div class="h-[250px] flex justify-center gap-10 py-2 pl-[60px]">
+                                <div id="f1-col-1" class="w-[120px] flex flex-col border border-slate-600 bg-slate-900/50"></div>
+                                <div id="f1-col-2" class="w-[120px] flex flex-col border border-slate-600 bg-slate-900/50"></div>
                             </div>
 
-                            <div class="flex gap-4 h-[120px] items-end">
-                                <div class="flex-1 bg-indigo-900/40 border border-indigo-700/50 h-full flex items-center justify-center text-indigo-400 font-black text-2xl tracking-widest">OFFICE</div>
-                                <div id="f1-col-3" class="w-[120px] flex flex-col border border-slate-600"></div>
-                                <div class="w-[60px] h-[60px] bg-teal-900 border border-teal-500 text-teal-300 flex items-center justify-center font-bold text-[10px]">LIFT</div>
+                            <div class="h-[140px] flex items-end pb-2">
+                                <div class="w-[330px] h-full bg-indigo-900/40 border border-indigo-700/50 flex items-center justify-center text-indigo-400 font-black text-2xl tracking-widest mr-2">OFFICE</div>
+                                <div id="f1-col-3" class="w-[100px] h-full flex flex-col border border-slate-600 mr-2"></div>
+                                <div class="w-[60px] h-[60px] bg-teal-900 border border-teal-500 flex items-center justify-center font-bold text-teal-300 text-[10px]">LIFT</div>
                             </div>
                         </div>
 
-                        <div class="w-[360px] h-full ml-4 flex items-center justify-center bg-slate-900/30 rounded-lg border-2 border-dashed border-slate-700">
-                            <div class="text-center text-slate-600">
-                                <i class="fa-solid fa-ban text-3xl mb-2 block opacity-50"></i>
-                                <span class="font-bold text-sm tracking-widest">EMPTY SPACE</span><br>
-                                <span class="text-[10px]">(พื้นที่ดัมมี่ เพื่อจัดแกน 3 มิติ)</span>
+                        <div class="flex-1 ml-4 border-2 border-dashed border-slate-700 bg-slate-900/30 rounded-lg flex items-center justify-center">
+                            <div class="text-center text-slate-600 opacity-50">
+                                <i class="fa-solid fa-ban text-4xl mb-2"></i>
+                                <div class="font-black tracking-widest text-lg">EMPTY SPACE</div>
+                                <div class="text-xs mt-1">พื้นที่ว่างจำลอง เพื่อรักษาสมดุล 3 มิติให้ตึกตรงกัน</div>
                             </div>
                         </div>
+
                     </div>
 
                     <div id="floor2-layer" class="floor-layer">
-                        <div class="text-xs font-black text-amber-400 tracking-wider uppercase mb-2"><i class="fa-solid fa-stairs mr-1"></i> Floor 2 (Zone 2ST)</div>
                         
-                        <div class="flex w-full h-[390px] gap-3">
-                            <div class="w-[580px] flex flex-col justify-between">
-                                <div class="flex h-[30px] border border-slate-600">
-                                    <div class="w-[80px] bg-teal-900 text-teal-300 flex items-center justify-center font-bold text-xs border-r border-teal-500">LIFT</div>
-                                    <div id="f2-r1" class="flex flex-1"></div>
+                        <div class="w-[510px] h-full flex flex-col justify-between pr-2">
+                            
+                            <div class="h-[120px] flex flex-col gap-2">
+                                <div class="text-xs font-black text-amber-400 tracking-wider uppercase mb-[-4px]"><i class="fa-solid fa-building mr-1"></i> 2ND FLOOR</div>
+                                <div class="flex flex-1 border border-slate-600">
+                                    <div class="w-[80px] bg-teal-900 text-teal-300 flex items-center justify-center font-bold text-[10px] border-r border-teal-500">LIFT</div>
+                                    <div id="f2-red-r1" class="flex flex-1"></div>
                                 </div>
-                                <div class="flex h-[30px] pr-[100px] pl-[80px] mt-2">
-                                    <div id="f2-r2" class="flex flex-1 border border-slate-600"></div>
-                                </div>
-                                <div class="flex h-[30px] pr-[100px] pl-[80px] mt-2">
-                                    <div id="f2-r3" class="flex flex-1 border border-slate-600"></div>
-                                </div>
-                                
-                                <div class="flex-1 mt-3 bg-amber-900/30 border border-amber-700/50 flex items-center justify-center text-amber-500 font-bold tracking-widest mb-3">STAFF ROOM</div>
-
-                                <div class="flex h-[30px] border border-slate-600">
-                                    <div class="rack-box w-[50px] border-r border-slate-400 text-[10px]" id="box-A2-01">A2-01</div>
-                                    <div class="rack-box w-[50px] border-r border-slate-400 text-[10px]" id="box-A2-02">A2-02</div>
-                                    <div class="rack-box w-[50px] border-r border-slate-400 text-[10px]" id="box-A2-03">A2-03</div>
-                                    <div class="w-[60px] bg-teal-900 text-teal-300 flex items-center justify-center font-bold text-[10px] border-r border-slate-500">LIFT</div>
-                                    <div id="f2-rbot1" class="flex flex-1"></div>
-                                </div>
+                                <div id="f2-red-r2" class="flex h-[30px] border border-slate-600 ml-[80px]"></div>
+                                <div id="f2-red-r3" class="flex h-[30px] border border-slate-600 ml-[80px]"></div>
                             </div>
 
-                            <div class="flex-1 flex flex-col justify-between border-l-2 border-dashed border-slate-500 pl-3">
-                                <div class="flex border border-slate-600 bg-slate-900">
-                                    <div class="w-[20px] border-r border-slate-500 flex items-center justify-center text-red-500 text-[8px]"><i class="fa-solid fa-fire-extinguisher"></i></div>
-                                    <div id="f2-side1" class="flex flex-1 h-[26px]"></div>
-                                </div>
-                                <div class="flex gap-2 h-[80px]">
-                                    <div class="flex flex-col flex-1 border border-slate-600">
-                                        <div id="f2-side2-t" class="flex flex-1 border-b border-slate-400"></div>
-                                        <div id="f2-side2-b" class="flex flex-1"></div>
-                                    </div>
-                                    <div class="flex flex-col flex-1 border border-slate-600">
-                                        <div id="f2-side3-t" class="flex flex-1 border-b border-slate-400"></div>
-                                        <div id="f2-side3-b" class="flex flex-1"></div>
-                                    </div>
-                                </div>
-                                <div class="flex h-[30px] border border-slate-600">
-                                    <div id="f2-side4" class="flex flex-1"></div>
-                                </div>
+                            <div class="flex-1 my-3 bg-amber-900/30 border border-amber-700/50 flex items-center justify-center text-amber-500 font-black tracking-widest text-xl shadow-inner">
+                                STAFF ROOM
+                            </div>
+
+                            <div class="h-[60px] flex mb-2">
+                                <div id="f2-yel-left" class="w-[430px] flex border border-slate-600 mr-2"></div>
+                                <div class="w-[60px] bg-teal-900 border border-teal-500 flex items-center justify-center font-bold text-teal-300 text-[10px]">LIFT</div>
                             </div>
                         </div>
+
+                        <div class="flex-1 flex flex-col justify-between pl-4 border-l-2 border-dashed border-sky-500/50">
+                            
+                            <div class="flex h-[40px] border border-slate-600 mt-[24px]">
+                                <div class="w-[20px] bg-slate-900 border-r border-slate-500 flex items-center justify-center text-red-500 text-[9px]"><i class="fa-solid fa-fire-extinguisher"></i></div>
+                                <div id="f2-right-top" class="flex flex-1"></div>
+                            </div>
+
+                            <div class="flex gap-4 h-[330px] my-3">
+                                <div class="flex flex-col flex-1 border border-slate-600">
+                                    <div id="f2-mid-l1" class="flex h-[30px] border-b border-slate-500"></div>
+                                    <div id="f2-mid-l2" class="flex h-[30px] border-b border-slate-500"></div>
+                                    <div class="flex-1 bg-slate-800/30"></div> </div>
+                                <div class="flex flex-col flex-1 border border-slate-600">
+                                    <div id="f2-mid-r1" class="flex h-[30px] border-b border-slate-500"></div>
+                                    <div id="f2-mid-r2" class="flex h-[30px] border-b border-slate-500"></div>
+                                    <div class="flex-1 bg-slate-800/30"></div>
+                                </div>
+                            </div>
+
+                            <div class="h-[60px] mb-2 flex border border-slate-600">
+                                <div id="f2-right-bot" class="flex flex-1"></div>
+                            </div>
+
+                        </div>
+
                     </div>
 
                 </div>
@@ -230,43 +243,46 @@
     </div>
 
     <script>
-        // JS สร้างกล่อง HTML
+        // ฟังก์ชันสร้างกล่อง
         function rackBox(id, label, css) { return `<div class="rack-box ${css}" id="box-${id}">${label}</div>`; }
         function renderBoxes(containerId, items, css) {
-            document.getElementById(containerId).innerHTML = items.map(i => {
-                let id = typeof i === 'string' ? i : i.id;
-                let label = typeof i === 'string' ? i : i.label;
-                return rackBox(id, label, css);
-            }).join('');
+            const el = document.getElementById(containerId);
+            if(el) el.innerHTML = items.map(i => rackBox(typeof i === 'string' ? i : i.id, typeof i === 'string' ? i : i.label, css)).join('');
         }
 
+        // โหลดข้อมูลแผนผังให้ตรงพิกัด
         function initLayout() {
-            renderBoxes('f1-col-1', ['A1-09','A1-08','A1-07','A1-06','A1-05','A1-04','A1-03','A1-02','A1-01'], 'flex-1 border-b border-slate-400 last:border-b-0');
-            renderBoxes('f1-col-2', ['A1-14',{id:'A1-15-B',label:'A1-15'},'A1-17','A1-18','A1-19','A1-20','A1-21'], 'flex-1 border-b border-slate-400 last:border-b-0');
-            renderBoxes('f1-col-3', ['A1-22','A1-23','A1-24','A1-25','A1-26','A1-27','A1-28','A1-29'], 'flex-1 border-b border-slate-400 last:border-b-0');
+            // Floor 1
+            renderBoxes('f1-r1-racks', ['A1-11','A1-12','A1-13'], 'flex-1 border-r border-slate-500 last:border-r-0');
+            renderBoxes('f1-col-1', ['A1-09','A1-08','A1-07','A1-06','A1-05','A1-04','A1-03','A1-02','A1-01'], 'flex-1 border-b border-slate-500 last:border-b-0');
+            renderBoxes('f1-col-2', ['A1-14',{id:'A1-15-B',label:'A1-15'},'A1-17','A1-18','A1-19','A1-20','A1-21'], 'flex-1 border-b border-slate-500 last:border-b-0');
+            renderBoxes('f1-col-3', ['A1-22','A1-23','A1-24','A1-25','A1-26','A1-27','A1-28','A1-29'], 'flex-1 border-b border-slate-500 last:border-b-0');
 
-            renderBoxes('f2-r1', ['A2-62','A2-63','A2-64'], 'flex-1 border-r border-slate-400 last:border-r-0');
-            renderBoxes('f2-r2', [{id:'A2-61',label:'A2-61'}, {id:'A2-62-B',label:'A2-62'}], 'flex-1 border-r border-slate-400 last:border-r-0');
-            renderBoxes('f2-r3', ['A2-60','A2-59','A2-58','A2-57','A2-56','A2-55'], 'flex-1 border-r border-slate-400 last:border-r-0 text-[10px]');
-            renderBoxes('f2-rbot1', ['04','05','06','07','08','09','10','11','12','13'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-400 last:border-r-0 text-[9px]');
+            // Floor 2 - Left (Blue Zone)
+            renderBoxes('f2-red-r1', ['A2-62','A2-63','A2-64'], 'flex-1 border-r border-slate-500 last:border-r-0');
+            renderBoxes('f2-red-r2', [{id:'A2-61',label:'A2-61'}, {id:'A2-62-B',label:'A2-62'}], 'flex-1 border-r border-slate-500 last:border-r-0');
+            renderBoxes('f2-red-r3', ['A2-60','A2-59','A2-58','A2-57','A2-56','A2-55'], 'flex-1 border-r border-slate-500 last:border-r-0 text-[10px]');
+            renderBoxes('f2-yel-left', ['A2-01','A2-02','A2-03'], 'flex-1 border-r border-slate-500 last:border-r-0 text-[10px]');
 
-            renderBoxes('f2-side1', ['54','53','52','51','50','48','47','46','45','44','43','42','41','40'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-400 last:border-r-0 text-[8px]');
-            renderBoxes('f2-side2-t', ['27','28','29'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-400 last:border-r-0 text-[8px]');
-            renderBoxes('f2-side2-b', ['26','25','24'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-400 last:border-r-0 text-[8px]');
-            renderBoxes('f2-side3-t', ['30','31','32','33','34','35','36','37','38','39'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-400 last:border-r-0 text-[8px]');
-            renderBoxes('f2-side3-b', ['23','22','21','20','19','18','17','16','15','14'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-400 last:border-r-0 text-[8px]');
-            renderBoxes('f2-side4', ['A1-13'].concat(['13','12','11','10','09','08','07','06','05','04'].map(n=>'A2-'+n)), 'flex-1 border-r border-slate-400 last:border-r-0 text-[8px]'); 
-            // หมายเหตุ f2-side4 บรรทัดบนแอบใส่ A1-13 จำลองให้เต็มช่องขวา
+            // Floor 2 - Right (Extension Zone)
+            renderBoxes('f2-right-top', ['54','53','52','51','50','48','47','46','45','44','43','42','41','40'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-500 last:border-r-0 text-[9px]');
+            renderBoxes('f2-mid-l1', ['27','28','29'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-500 last:border-r-0 text-[9px]');
+            renderBoxes('f2-mid-l2', ['26','25','24'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-500 last:border-r-0 text-[9px]');
+            renderBoxes('f2-mid-r1', ['30','31','32','33','34','35','36','37','38','39'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-500 last:border-r-0 text-[9px]');
+            renderBoxes('f2-mid-r2', ['23','22','21','20','19','18','17','16','15','14'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-500 last:border-r-0 text-[9px]');
+            renderBoxes('f2-right-bot', ['04','05','06','07','08','09','10','11','12','13'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-500 last:border-r-0 text-[9px]');
         }
 
-        // Auto Scale
+        // ระบบ Auto Scale ปรับขนาดตึกตามหน้าจอ
         function resize3D() {
             const wrapper = document.getElementById('scale-wrapper');
             const w = window.innerWidth;
-            wrapper.style.transform = `scale(${w < 1050 ? (w-40) / 1000 : 1})`;
+            // ถ้าน้อยกว่า 1100px ให้ย่อสัดส่วนลง
+            wrapper.style.transform = `scale(${w < 1100 ? (w-40) / 1050 : 1})`;
         }
         window.addEventListener('resize', resize3D);
 
+        // ระบบมุมกล้อง
         function changeView(mode) {
             const b = document.getElementById('building');
             b.className = "building-3d";
@@ -274,9 +290,13 @@
                 document.getElementById('btn-'+m).className = `text-xs font-bold px-4 py-2 rounded-lg shadow transition-all ${mode===m ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-400'}`;
             });
             b.classList.add('state-'+mode);
+            
+            // เปิดปิดเสาลิฟต์เชื่อมต่อ
+            const shafts = document.querySelectorAll('.elevator-shaft');
+            shafts.forEach(s => s.style.opacity = mode === '3d' ? "0.7" : "0");
         }
 
-        // Supabase DB
+        // ดึงข้อมูล Supabase
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
@@ -305,6 +325,7 @@
             });
         }
 
+        // ระบบค้นหา
         document.getElementById('searchInput').addEventListener('input', e => {
             const term = e.target.value.trim().toUpperCase();
             document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
@@ -319,6 +340,7 @@
             }
         });
 
+        // เปิด Modal
         function openModal(locId) {
             document.getElementById('modalTitle').innerText = locId;
             const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '', part_names: '' };

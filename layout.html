@@ -3,25 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Store Layout - WMS</title>
+    <title>3D Store Layout - WMS (Pixel-Perfect from Excel)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
-        
+
+        /* ===== Rack boxes (คลิกได้ ผูกกับ Supabase) ===== */
         .rack-box {
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.65rem; font-weight: 700; color: #0f172a;
+            position: absolute; display: flex; align-items: center; justify-content: center;
+            font-size: 0.6rem; font-weight: 700; color: #0f172a;
             cursor: pointer; background-color: #ffffff;
-            transition: all 0.2s ease; border: 1px solid #475569;
-            box-sizing: border-box;
+            transition: all 0.15s ease; border: 1px solid #475569;
+            box-sizing: border-box; text-align: center; line-height: 1.05; padding: 1px;
+            overflow: hidden;
         }
         .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
-        
-        .status-empty { background-color: #4ade80 !important; color: #042f1a; } 
-        .status-partial { background-color: #facc15 !important; color: #422006; } 
-        .status-full { background-color: #f87171 !important; color: #4c0505; } 
+
+        .status-empty   { background-color: #4ade80 !important; color: #042f1a; }
+        .status-partial { background-color: #facc15 !important; color: #422006; }
+        .status-full    { background-color: #f87171 !important; color: #4c0505; }
         .status-unknown { background-color: #e2e8f0; color: #64748b; }
 
         .highlight-blink {
@@ -31,35 +33,54 @@
         }
         @keyframes blinker { 50% { opacity: 0.4; transform: scale(1.08); } }
 
+        /* ===== Zone boxes (ไม่คลิก - อ้างอิงจากผังโรงงานใน Excel) ===== */
+        .zone-box {
+            position: absolute; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+            text-align: center; overflow: hidden; border-radius: 3px; font-weight: 700;
+            padding: 2px; line-height: 1.15;
+        }
+        .zone-lift    { background: repeating-linear-gradient(45deg, rgba(20,184,166,.25), rgba(20,184,166,.25) 8px, rgba(13,148,136,.15) 8px, rgba(13,148,136,.15) 16px); border: 2px dashed #2dd4bf; color: #5eead4; font-size: 0.6rem; box-shadow: 0 0 12px rgba(45,212,191,.35); }
+        .zone-machine { background: rgba(129,140,248,.18); border: 1px solid #818cf8; color: #c7d2fe; font-size: 0.55rem; }
+        .zone-oven    { background: rgba(251,146,60,.18); border: 1px solid #fb923c; color: #fed7aa; font-size: 0.58rem; }
+        .zone-auto    { background: rgba(244,114,182,.18); border: 1px solid #f472b6; color: #fbcfe8; font-size: 0.58rem; }
+        .zone-packing { background: rgba(250,204,21,.12); border: 1px dashed #eab308; color: #fde68a; font-size: 0.6rem; }
+        .zone-process { background: rgba(56,189,248,.14); border: 1px solid #38bdf8; color: #bae6fd; font-size: 0.6rem; }
+        .zone-office  { background: rgba(100,116,139,.35); border: 1px solid #64748b; color: #e2e8f0; font-size: 0.65rem; }
+        .zone-staff   { background: rgba(217,119,6,.18); border: 1px solid #d97706; color: #fed7aa; font-size: 1.1rem; letter-spacing: .1em; }
+        .zone-toilet  { background: rgba(148,163,184,.15); border: 1px solid #94a3b8; color: #cbd5e1; font-size: 0.55rem; }
+        .zone-spine   { background: rgba(2,132,199,.15); border: 1px solid #0284c7; color: #7dd3fc; font-size: 0.85rem; letter-spacing: .3em; writing-mode: vertical-rl; font-weight: 900; }
+        .zone-void    { background: rgba(15,23,42,.4); border: 2px dashed #334155; color: #475569; font-size: 0.6rem; flex-direction: column; gap: 2px; }
+        .zone-other   { background: rgba(71,85,105,.2); border: 1px solid #475569; color: #cbd5e1; font-size: 0.6rem; }
+
+        .aisle-hint { position: absolute; pointer-events: none; opacity: .5; }
+
+        /* ===== 3D scene ===== */
         .scene-container {
-            perspective: 2000px; perspective-origin: 50% 20%;
-            width: 100%; min-height: 80vh;
+            perspective: 3200px; perspective-origin: 50% 20%;
+            width: 100%; min-height: 82vh;
             display: flex; align-items: center; justify-content: center;
             padding: 2rem 0; overflow: hidden;
         }
-        
         #scale-wrapper {
             transition: transform 0.3s ease; transform-origin: center center;
             display: flex; align-items: center; justify-content: center;
         }
-        
-        /* ขยายตึกเป็น 1100px และสูง 600px เพื่อให้มีพื้นที่เว้นทางเดินตาม Excel */
+
+        /* ขนาดตึก = ขนาดจริงจาก Excel เป๊ะๆ ทั้งกว้างและสูง (เท่ากันทั้ง 2 ชั้น) */
         .building-3d {
             position: relative; transform-style: preserve-3d;
-            width: 1100px; height: 600px; 
+            width: var(--bw); height: var(--bh);
             transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
-
         .floor-layer {
             position: absolute; top: 0; left: 0;
-            width: 1100px; height: 600px;
-            background: rgba(30, 41, 59, 0.85);
+            width: var(--bw); height: var(--bh);
+            background: rgba(30, 41, 59, 0.88);
             border: 2px solid #64748b;
             box-shadow: 0 25px 50px rgba(0,0,0,0.8);
             transform-style: preserve-3d;
             transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
-
         .floor-layer::before {
             content: ''; position: absolute; top: 100%; left: -2px; right: -2px; height: 20px;
             background: #0f172a; transform-origin: top; transform: rotateX(-90deg); border: 1px solid #334155;
@@ -69,27 +90,23 @@
             background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b;
         }
 
-        /* แกนหมุน 3 มิติ */
-        .state-3d { transform: rotateX(60deg) rotateZ(-30deg) translateZ(-80px); }
+        .state-3d { transform: rotateX(58deg) rotateZ(-28deg) translateZ(-120px); }
         .state-3d #floor1-layer { transform: translateZ(0px); opacity: 1; }
-        .state-3d #floor2-layer { transform: translateZ(300px); opacity: 1; }
+        .state-3d #floor2-layer { transform: translateZ(320px); opacity: 1; }
 
         .state-f1 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
         .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
-        .state-f1 #floor2-layer { transform: translateZ(500px); opacity: 0; pointer-events: none; }
+        .state-f1 #floor2-layer { transform: translateZ(600px); opacity: 0; pointer-events: none; }
 
         .state-f2 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
-        .state-f2 #floor1-layer { transform: translateZ(-500px); opacity: 0; pointer-events: none; }
+        .state-f2 #floor1-layer { transform: translateZ(-600px); opacity: 0; pointer-events: none; }
         .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
-
-        .elevator-shaft {
-            position: absolute; background: repeating-linear-gradient(45deg, rgba(20, 184, 166, 0.2), rgba(20, 184, 166, 0.2) 10px, transparent 10px, transparent 20px);
-            border: 2px dashed #0d9488; transform-style: preserve-3d; transition: opacity 0.5s;
-        }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
         .hide-scroll::-webkit-scrollbar { display: none; }
+
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 4px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col select-none">
@@ -104,13 +121,13 @@
             </div>
             <div class="relative w-full md:w-96">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                <input type="text" id="searchInput" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง..." 
+                <input type="text" id="searchInput" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง..."
                     class="w-full bg-slate-950 border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
             </div>
         </div>
     </div>
 
-    <div class="bg-slate-950 border-b border-slate-800 p-2 flex justify-center gap-2 shadow-inner">
+    <div class="bg-slate-950 border-b border-slate-800 p-2 flex flex-wrap justify-center gap-2 shadow-inner">
         <button onclick="changeView('3d')" id="btn-3d" class="bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition-all">
             <i class="fa-solid fa-layer-group"></i> ดูภาพรวม 3D
         </button>
@@ -120,71 +137,26 @@
         <button onclick="changeView('f2')" id="btn-f2" class="bg-slate-800 text-slate-400 text-xs font-bold px-4 py-2 rounded-lg shadow transition-all">
             <i class="fa-solid fa-arrow-up"></i> โฟกัส ชั้น 2
         </button>
+        <div class="flex items-center gap-2 ml-2 text-[10px] text-slate-400 flex-wrap justify-center">
+            <span><span class="legend-dot" style="background:#4ade80"></span>ว่าง</span>
+            <span><span class="legend-dot" style="background:#facc15"></span>กลาง</span>
+            <span><span class="legend-dot" style="background:#f87171"></span>เต็ม</span>
+            <span><span class="legend-dot" style="background:#818cf8"></span>เครื่องจักร</span>
+            <span><span class="legend-dot" style="background:#fb923c"></span>เตาอบ</span>
+            <span><span class="legend-dot" style="background:#2dd4bf"></span>ลิฟต์</span>
+        </div>
     </div>
 
     <div class="flex-1 overflow-hidden w-full bg-slate-950 flex items-center justify-center">
         <div class="scene-container">
             <div id="scale-wrapper">
                 <div id="building" class="building-3d state-3d">
-                    
-                    <div id="shaft-top" class="elevator-shaft" style="left: 80px; top: 60px; width: 60px; height: 60px; transform: translateZ(15px) rotateX(90deg) translateY(-150px); opacity: 0.7;"></div>
-                    <div id="shaft-bot" class="elevator-shaft" style="left: 450px; top: 500px; width: 60px; height: 60px; transform: translateZ(15px) rotateX(90deg) translateY(-150px); opacity: 0.7;"></div>
-
                     <div id="floor1-layer" class="floor-layer">
                         <div class="absolute left-[20px] top-[-15px] bg-sky-900 px-4 py-1 text-sm font-black text-sky-300 rounded-t-lg border-2 border-b-0 border-sky-500 z-20">1ST FLOOR</div>
-
-                        <div class="absolute left-[80px] top-[60px] w-[60px] h-[60px] bg-teal-900 border-2 border-teal-400 flex items-center justify-center font-bold text-teal-300 text-[10px] text-center shadow-[0_0_15px_rgba(45,212,191,0.5)]">CARGO<br>LIFT</div>
-
-                        <div class="absolute left-[160px] top-[60px] w-[140px] h-[35px] bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 font-bold text-xs">SHIPPING OFFICE</div>
-                        <div class="absolute left-[160px] top-[105px] w-[140px] h-[30px] bg-yellow-900/40 border border-yellow-700/50 flex items-center justify-center text-yellow-500 font-bold text-xs">QA AREA</div>
-                        <div class="absolute left-[160px] top-[145px] w-[140px] h-[25px] flex border border-slate-600" id="f1-racks-top"></div>
-
-                        <div class="absolute left-[180px] top-[200px] w-[50px] h-[180px] flex flex-col border border-slate-600" id="f1-col-1"></div>
-                        <div class="absolute left-[300px] top-[200px] w-[50px] h-[160px] flex flex-col border border-slate-600" id="f1-col-2"></div>
-
-                        <div class="absolute left-[80px] top-[400px] w-[200px] h-[160px] bg-indigo-900/40 border border-indigo-700/50 flex items-center justify-center text-indigo-400 font-black text-3xl tracking-widest shadow-inner">OFFICE</div>
-                        <div class="absolute left-[300px] top-[400px] w-[50px] h-[160px] flex flex-col border border-slate-600" id="f1-col-3"></div>
-
-                        <div class="absolute left-[450px] top-[500px] w-[60px] h-[60px] bg-teal-900 border-2 border-teal-400 flex items-center justify-center font-bold text-teal-300 text-[10px] shadow-[0_0_15px_rgba(45,212,191,0.5)]">LIFT</div>
-
-                        <div class="absolute left-[550px] top-[20px] w-[530px] h-[560px] border-2 border-dashed border-slate-700 bg-slate-900/30 flex items-center justify-center rounded-xl">
-                            <div class="text-center text-slate-600 opacity-50">
-                                <i class="fa-solid fa-ban text-5xl mb-3"></i>
-                                <div class="font-black tracking-widest text-2xl">EMPTY SPACE</div>
-                                <div class="text-sm mt-2 text-slate-500">พื้นที่เว้นว่างถ่วงสมมาตร<br>ให้โครงตึกเท่ากับชั้น 2</div>
-                            </div>
-                        </div>
                     </div>
-
                     <div id="floor2-layer" class="floor-layer">
                         <div class="absolute left-[20px] top-[-15px] bg-amber-900 px-4 py-1 text-sm font-black text-amber-300 rounded-t-lg border-2 border-b-0 border-amber-500 z-20">2ND FLOOR</div>
-
-                        <div class="absolute left-[80px] top-[60px] w-[60px] h-[60px] bg-teal-900 border-2 border-teal-400 flex items-center justify-center font-bold text-teal-300 text-[10px] text-center shadow-[0_0_15px_rgba(45,212,191,0.5)]">CARGO<br>LIFT</div>
-
-                        <div class="absolute left-[160px] top-[60px] w-[140px] h-[25px] flex border border-slate-600" id="f2-r1"></div>
-                        <div class="absolute left-[160px] top-[95px] w-[90px] h-[25px] flex border border-slate-600" id="f2-r2"></div>
-
-                        <div class="absolute left-[300px] top-[130px] w-[750px] h-[25px] flex border border-slate-600">
-                            <div class="w-[25px] border-r border-slate-600 flex items-center justify-center text-red-500 text-[9px] bg-slate-900"><i class="fa-solid fa-fire-extinguisher"></i></div>
-                            <div id="f2-top-horiz" class="flex flex-1"></div>
-                        </div>
-
-                        <div class="absolute left-[80px] top-[170px] w-[190px] h-[150px] bg-amber-900/30 border border-amber-700/50 flex items-center justify-center text-amber-500 font-black tracking-widest text-2xl shadow-inner">STAFF ROOM</div>
-                        <div class="absolute left-[80px] top-[340px] w-[190px] h-[25px] flex border border-slate-600" id="f2-mid-l-horiz"></div>
-
-                        <div class="absolute left-[300px] top-[340px] w-[120px] h-[25px] flex border border-slate-600" id="f2-mid-rack-l1"></div>
-                        <div class="absolute left-[300px] top-[380px] w-[120px] h-[25px] flex border border-slate-600" id="f2-mid-rack-l2"></div>
-                        
-                        <div class="absolute left-[550px] top-[340px] w-[500px] h-[25px] flex border border-slate-600" id="f2-mid-rack-r1"></div>
-                        <div class="absolute left-[550px] top-[380px] w-[500px] h-[25px] flex border border-slate-600" id="f2-mid-rack-r2"></div>
-
-                        <div class="absolute left-[300px] top-[460px] w-[120px] h-[25px] flex border border-slate-600" id="f2-bot-rack-l"></div>
-                        <div class="absolute left-[550px] top-[460px] w-[500px] h-[25px] flex border border-slate-600" id="f2-bot-rack-r"></div>
-
-                        <div class="absolute left-[450px] top-[500px] w-[60px] h-[60px] bg-teal-900 border-2 border-teal-400 flex items-center justify-center font-bold text-teal-300 text-[10px] shadow-[0_0_15px_rgba(45,212,191,0.5)]">LIFT</div>
-
                     </div>
-
                 </div>
             </div>
         </div>
@@ -202,45 +174,68 @@
     </div>
 
     <script>
-        // ฟังก์ชันสร้างช่อง HTML ให้อัตโนมัติ ป้องกัน Code รก
-        function rackBox(id, label, css) { return `<div class="rack-box ${css}" id="box-${id}">${label}</div>`; }
-        function renderBoxes(containerId, items, css) {
+        /* =========================================================================
+           RENDER_DATA ถูกสร้างจากไฟล์ Layout Map.xlsx โดยตรง (อ่านความกว้างคอลัมน์ /
+           ความสูงแถว / merged cell ทุกช่องด้วยสคริปต์ แล้วแปลงหน่วยเป็นพิกเซล)
+           ดังนั้นตำแหน่ง ซ้าย/บน/กว้าง/สูง ของทุกโซนและช่องแร็ค = พิกัดจริงใน Excel 100%
+           ช่องว่างระหว่างกล่อง (ทางเดิน) จึงเกิดขึ้นเองอัตโนมัติตามผังจริง ไม่ได้กะประมาณ
+           ========================================================================= */
+        const RENDER_DATA = {"f1": [{"id": "1ST", "loc": "1ST", "label": "1ST", "type": "spine", "left": 0, "top": 0, "width": 175, "height": 514}, {"id": "Cargo Lift", "loc": "Cargo Lift", "label": "Cargo Lift", "type": "lift", "left": 239, "top": 0, "width": 57, "height": 54}, {"id": "Shipping Office", "loc": "Shipping Office", "label": "Shipping Office", "type": "office", "left": 296, "top": 0, "width": 303, "height": 54}, {"id": "EPP Silo", "loc": "EPP Silo", "label": "EPP Silo", "type": "process", "left": 599, "top": 0, "width": 208, "height": 88}, {"id": "MC20", "loc": "MC20", "label": "MC20", "type": "machine", "left": 1732, "top": 0, "width": 128, "height": 88}, {"id": "MC19", "loc": "MC19", "label": "MC19", "type": "machine", "left": 1860, "top": 0, "width": 128, "height": 88}, {"id": "MC18", "loc": "MC18", "label": "MC18", "type": "machine", "left": 1988, "top": 0, "width": 128, "height": 88}, {"id": "MC17", "loc": "MC17", "label": "MC17", "type": "machine", "left": 2116, "top": 0, "width": 112, "height": 88}, {"id": "MC16", "loc": "MC16", "label": "MC16", "type": "machine", "left": 2228, "top": 0, "width": 80, "height": 88}, {"id": "MC15", "loc": "MC15", "label": "MC15", "type": "machine", "left": 2308, "top": 0, "width": 81, "height": 88}, {"id": "MC14", "loc": "MC14", "label": "MC14", "type": "machine", "left": 2389, "top": 0, "width": 128, "height": 88}, {"id": "In-line Packing Area", "loc": "In-line Packing Area", "label": "In-line Packing Area", "type": "packing", "left": 2581, "top": 0, "width": 64, "height": 479}, {"id": "MC13", "loc": "MC13", "label": "MC13", "type": "machine", "left": 2645, "top": 0, "width": 192, "height": 54}, {"id": "QA Area", "loc": "QA Area", "label": "QA Area", "type": "process", "left": 343, "top": 54, "width": 128, "height": 34}, {"id": "A1-13", "loc": "A1-13", "label": "A1-13", "type": "rack", "left": 471, "top": 54, "width": 128, "height": 85}, {"id": "MC12", "loc": "MC12", "label": "MC12", "type": "machine", "left": 2645, "top": 54, "width": 192, "height": 51}, {"id": "A1-11", "loc": "A1-11", "label": "A1-11", "type": "rack", "left": 343, "top": 88, "width": 64, "height": 51}, {"id": "A1-12", "loc": "A1-12", "label": "A1-12", "type": "rack", "left": 407, "top": 88, "width": 64, "height": 51}, {"id": "In-line Packing Area", "loc": "In-line Packing Area", "label": "In-line Packing Area", "type": "packing", "left": 1685, "top": 88, "width": 832, "height": 51}, {"id": "MC11", "loc": "MC11", "label": "MC11", "type": "machine", "left": 2645, "top": 105, "width": 192, "height": 34}, {"id": "MC10", "loc": "MC10", "label": "MC10", "type": "machine", "left": 2645, "top": 139, "width": 192, "height": 34}, {"id": "A1-09", "loc": "A1-09", "label": "A1-09", "type": "rack", "left": 343, "top": 156, "width": 256, "height": 17}, {"id": "A1-14", "loc": "A1-14", "label": "A1-14", "type": "rack", "left": 632, "top": 156, "width": 279, "height": 17}, {"id": "Pending Labeling Area", "loc": "Pending Labeling Area", "label": "Pending Labeling Area", "type": "packing", "left": 1053, "top": 156, "width": 239, "height": 153}, {"id": "Film M/C 2", "loc": "Film M/C 2", "label": "Film M/C 2", "type": "process", "left": 1420, "top": 156, "width": 234, "height": 34}, {"id": "WIP Area\n (Pending Packaging)", "loc": "WIP Area\n (Pending Packaging)", "label": "WIP Area\n (Pending Packaging)", "type": "packing", "left": 1685, "top": 156, "width": 623, "height": 153}, {"id": "Oven 08", "loc": "Oven 08", "label": "Oven 08", "type": "oven", "left": 2342, "top": 156, "width": 175, "height": 51}, {"id": "A1-08", "loc": "A1-08", "label": "A1-08", "type": "rack", "left": 343, "top": 173, "width": 256, "height": 17}, {"id": "A1-15", "loc": "A1-15", "label": "A1-15", "type": "rack", "left": 632, "top": 173, "width": 279, "height": 17}, {"id": "MC09", "loc": "MC09", "label": "MC09", "type": "machine", "left": 2645, "top": 173, "width": 192, "height": 34}, {"id": "A1-07", "loc": "A1-07", "label": "A1-07", "type": "rack", "left": 343, "top": 190, "width": 256, "height": 17}, {"id": "A1-15-B", "loc": "A1-15", "label": "A1-15", "type": "rack", "left": 632, "top": 190, "width": 279, "height": 17}, {"id": "A1-06", "loc": "A1-06", "label": "A1-06", "type": "rack", "left": 343, "top": 207, "width": 256, "height": 17}, {"id": "A1-17", "loc": "A1-17", "label": "A1-17", "type": "rack", "left": 632, "top": 207, "width": 279, "height": 17}, {"id": "Film M/C 1", "loc": "Film M/C 1", "label": "Film M/C 1", "type": "process", "left": 1420, "top": 207, "width": 234, "height": 34}, {"id": "Oven 07", "loc": "Oven 07", "label": "Oven 07", "type": "oven", "left": 2342, "top": 207, "width": 175, "height": 34}, {"id": "MC08", "loc": "MC08", "label": "MC08", "type": "machine", "left": 2645, "top": 207, "width": 192, "height": 34}, {"id": "A1-05", "loc": "A1-05", "label": "A1-05", "type": "rack", "left": 343, "top": 224, "width": 256, "height": 17}, {"id": "A1-18", "loc": "A1-18", "label": "A1-18", "type": "rack", "left": 632, "top": 224, "width": 279, "height": 17}, {"id": "A1-04", "loc": "A1-04", "label": "A1-04", "type": "rack", "left": 343, "top": 241, "width": 256, "height": 17}, {"id": "A1-19", "loc": "A1-19", "label": "A1-19", "type": "rack", "left": 632, "top": 241, "width": 279, "height": 17}, {"id": "Oven 06", "loc": "Oven 06", "label": "Oven 06", "type": "oven", "left": 2342, "top": 241, "width": 175, "height": 34}, {"id": "MC07", "loc": "MC07", "label": "MC07", "type": "machine", "left": 2645, "top": 241, "width": 192, "height": 34}, {"id": "A1-03", "loc": "A1-03", "label": "A1-03", "type": "rack", "left": 343, "top": 258, "width": 256, "height": 17}, {"id": "A1-20", "loc": "A1-20", "label": "A1-20", "type": "rack", "left": 632, "top": 258, "width": 279, "height": 17}, {"id": "Wrapping Machine", "loc": "Wrapping Machine", "label": "Wrapping Machine", "type": "process", "left": 911, "top": 258, "width": 78, "height": 51}, {"id": "AUTO 4", "loc": "AUTO 4", "label": "AUTO 4", "type": "auto", "left": 1356, "top": 258, "width": 298, "height": 17}, {"id": "A1-02", "loc": "A1-02", "label": "A1-02", "type": "rack", "left": 343, "top": 275, "width": 256, "height": 17}, {"id": "A1-21", "loc": "A1-21", "label": "A1-21", "type": "rack", "left": 632, "top": 275, "width": 279, "height": 34}, {"id": "Oven 05", "loc": "Oven 05", "label": "Oven 05", "type": "oven", "left": 2342, "top": 275, "width": 175, "height": 34}, {"id": "MC06", "loc": "MC06", "label": "MC06", "type": "machine", "left": 2645, "top": 275, "width": 192, "height": 34}, {"id": "A1-01", "loc": "A1-01", "label": "A1-01", "type": "rack", "left": 343, "top": 292, "width": 256, "height": 17}, {"id": "AUTO 3", "loc": "AUTO 3", "label": "AUTO 3", "type": "auto", "left": 1356, "top": 292, "width": 298, "height": 17}, {"id": "MC05", "loc": "MC05", "label": "MC05", "type": "machine", "left": 2645, "top": 309, "width": 192, "height": 34}, {"id": "office", "loc": "office", "label": "office", "type": "office", "left": 239, "top": 326, "width": 360, "height": 153}, {"id": "A1-22", "loc": "A1-22", "label": "A1-22", "type": "rack", "left": 632, "top": 326, "width": 279, "height": 34}, {"id": "Pending Labeling Area", "loc": "Pending Labeling Area", "label": "Pending Labeling Area", "type": "packing", "left": 952, "top": 326, "width": 340, "height": 102}, {"id": "AUTO 2", "loc": "AUTO 2", "label": "AUTO 2", "type": "auto", "left": 1356, "top": 326, "width": 298, "height": 17}, {"id": "WIP Area\n (Pending Packaging)", "loc": "WIP Area\n (Pending Packaging)", "label": "WIP Area\n (Pending Packaging)", "type": "packing", "left": 1685, "top": 326, "width": 623, "height": 153}, {"id": "Oven 04", "loc": "Oven 04", "label": "Oven 04", "type": "oven", "left": 2342, "top": 326, "width": 175, "height": 34}, {"id": "MC04", "loc": "MC04", "label": "MC04", "type": "machine", "left": 2645, "top": 343, "width": 192, "height": 34}, {"id": "A1-23", "loc": "A1-23", "label": "A1-23", "type": "rack", "left": 632, "top": 360, "width": 279, "height": 17}, {"id": "AUTO 1", "loc": "AUTO 1", "label": "AUTO 1", "type": "auto", "left": 1356, "top": 360, "width": 298, "height": 17}, {"id": "Oven 03", "loc": "Oven 03", "label": "Oven 03", "type": "oven", "left": 2342, "top": 360, "width": 175, "height": 34}, {"id": "A1-24", "loc": "A1-24", "label": "A1-24", "type": "rack", "left": 632, "top": 377, "width": 279, "height": 17}, {"id": "MC03", "loc": "MC03", "label": "MC03", "type": "machine", "left": 2645, "top": 377, "width": 192, "height": 34}, {"id": "A1-25", "loc": "A1-25", "label": "A1-25", "type": "rack", "left": 632, "top": 394, "width": 279, "height": 17}, {"id": "Wrapping Machine", "loc": "Wrapping Machine", "label": "Wrapping Machine", "type": "process", "left": 1356, "top": 394, "width": 128, "height": 34}, {"id": "Oven 02", "loc": "Oven 02", "label": "Oven 02", "type": "oven", "left": 2342, "top": 394, "width": 175, "height": 34}, {"id": "A1-26", "loc": "A1-26", "label": "A1-26", "type": "rack", "left": 632, "top": 411, "width": 279, "height": 17}, {"id": "MC02", "loc": "MC02", "label": "MC02", "type": "machine", "left": 2645, "top": 411, "width": 192, "height": 34}, {"id": "A1-27", "loc": "A1-27", "label": "A1-27", "type": "rack", "left": 632, "top": 428, "width": 279, "height": 17}, {"id": "Cargo Lift", "loc": "Cargo Lift", "label": "Cargo Lift", "type": "lift", "left": 952, "top": 428, "width": 212, "height": 51}, {"id": "Packing & Store Office", "loc": "Packing & Store Office", "label": "Packing & Store Office", "type": "office", "left": 1164, "top": 428, "width": 128, "height": 51}, {"id": "Assembly Area", "loc": "Assembly Area", "label": "Assembly Area", "type": "process", "left": 1356, "top": 428, "width": 298, "height": 51}, {"id": "Oven 01", "loc": "Oven 01", "label": "Oven 01", "type": "oven", "left": 2342, "top": 428, "width": 175, "height": 34}, {"id": "A1-28", "loc": "A1-28", "label": "A1-28", "type": "rack", "left": 632, "top": 445, "width": 279, "height": 17}, {"id": "MC01", "loc": "MC01", "label": "MC01", "type": "machine", "left": 2645, "top": 445, "width": 192, "height": 34}, {"id": "A1-29", "loc": "A1-29", "label": "A1-29", "type": "rack", "left": 632, "top": 462, "width": 279, "height": 17}, {"id": "QC Area", "loc": "QC Area", "label": "QC Area", "type": "process", "left": 2342, "top": 462, "width": 175, "height": 17}, {"id": "Toilet", "loc": "Toilet", "label": "Toilet", "type": "toilet", "left": 296, "top": 496, "width": 111, "height": 18}, {"id": "Toilet", "loc": "Toilet", "label": "Toilet", "type": "toilet", "left": 471, "top": 496, "width": 128, "height": 18}], "f2": [{"id": "2ST", "loc": "2ST", "label": "2ST", "type": "spine", "left": 0, "top": 0, "width": 175, "height": 513}, {"id": "Cargo Lift", "loc": "Cargo Lift", "label": "Cargo Lift", "type": "lift", "left": 239, "top": 0, "width": 57, "height": 54}, {"id": "A2-63", "loc": "A2-63", "label": "A2-63", "type": "rack", "left": 296, "top": 0, "width": 111, "height": 54}, {"id": "A2-64", "loc": "A2-64", "label": "A2-64", "type": "rack", "left": 407, "top": 0, "width": 128, "height": 54}, {"id": "A2-65", "loc": "A2-65", "label": "A2-65", "type": "rack", "left": 535, "top": 0, "width": 97, "height": 54}, {"id": "1ST", "loc": "1ST", "label": "1ST", "type": "void", "left": 632, "top": 0, "width": 2205, "height": 139}, {"id": "A2-62", "loc": "A2-62", "label": "A2-62", "type": "rack", "left": 296, "top": 71, "width": 303, "height": 68}, {"id": "A2-61", "loc": "A2-61", "label": "A2-61", "type": "rack", "left": 296, "top": 139, "width": 303, "height": 68}, {"id": "A2-54", "loc": "A2-54", "label": "A2-54", "type": "rack", "left": 632, "top": 139, "width": 111, "height": 68}, {"id": "A2-54-B", "loc": "A2-54", "label": "A2-54", "type": "rack", "left": 743, "top": 139, "width": 128, "height": 68}, {"id": "A2-52", "loc": "A2-52", "label": "A2-52", "type": "rack", "left": 871, "top": 139, "width": 81, "height": 68}, {"id": "A2-52-B", "loc": "A2-52", "label": "A2-52", "type": "rack", "left": 952, "top": 139, "width": 101, "height": 68}, {"id": "A2-50", "loc": "A2-50", "label": "A2-50", "type": "rack", "left": 1053, "top": 139, "width": 111, "height": 68}, {"id": "A2-49", "loc": "A2-49", "label": "A2-49", "type": "rack", "left": 1164, "top": 139, "width": 128, "height": 68}, {"id": "A2-48", "loc": "A2-48", "label": "A2-48", "type": "rack", "left": 1292, "top": 139, "width": 128, "height": 68}, {"id": "A2-47", "loc": "A2-47", "label": "A2-47", "type": "rack", "left": 1420, "top": 139, "width": 128, "height": 68}, {"id": "A2-46", "loc": "A2-46", "label": "A2-46", "type": "rack", "left": 1548, "top": 139, "width": 106, "height": 68}, {"id": "A2-45", "loc": "A2-45", "label": "A2-45", "type": "rack", "left": 1654, "top": 139, "width": 78, "height": 68}, {"id": "A2-44", "loc": "A2-44", "label": "A2-44", "type": "rack", "left": 1732, "top": 139, "width": 128, "height": 68}, {"id": "A2-43", "loc": "A2-43", "label": "A2-43", "type": "rack", "left": 1860, "top": 139, "width": 128, "height": 68}, {"id": "A2-42", "loc": "A2-42", "label": "A2-42", "type": "rack", "left": 1988, "top": 139, "width": 128, "height": 68}, {"id": "A2-41", "loc": "A2-41", "label": "A2-41", "type": "rack", "left": 2116, "top": 139, "width": 112, "height": 68}, {"id": "A2-40", "loc": "A2-40", "label": "A2-40", "type": "rack", "left": 2228, "top": 139, "width": 80, "height": 68}, {"id": "1ST", "loc": "1ST", "label": "1ST", "type": "void", "left": 2308, "top": 139, "width": 529, "height": 340}, {"id": "A2-60", "loc": "A2-60", "label": "A2-60", "type": "rack", "left": 239, "top": 241, "width": 57, "height": 85}, {"id": "A2-59", "loc": "A2-59", "label": "A2-59", "type": "rack", "left": 296, "top": 241, "width": 47, "height": 85}, {"id": "A2-58", "loc": "A2-58", "label": "A2-58", "type": "rack", "left": 343, "top": 241, "width": 64, "height": 85}, {"id": "A2-57", "loc": "A2-57", "label": "A2-57", "type": "rack", "left": 407, "top": 241, "width": 64, "height": 85}, {"id": "A2-56", "loc": "A2-56", "label": "A2-56", "type": "rack", "left": 471, "top": 241, "width": 64, "height": 85}, {"id": "A2-55", "loc": "A2-55", "label": "A2-55", "type": "rack", "left": 535, "top": 241, "width": 64, "height": 85}, {"id": "A2-27", "loc": "A2-27", "label": "A2-27", "type": "rack", "left": 632, "top": 241, "width": 111, "height": 51}, {"id": "A2-28", "loc": "A2-28", "label": "A2-28", "type": "rack", "left": 743, "top": 241, "width": 128, "height": 51}, {"id": "A2-29", "loc": "A2-29", "label": "A2-29", "type": "rack", "left": 871, "top": 241, "width": 81, "height": 51}, {"id": "A2-30", "loc": "A2-30", "label": "A2-30", "type": "rack", "left": 1164, "top": 241, "width": 128, "height": 51}, {"id": "A2-31", "loc": "A2-31", "label": "A2-31", "type": "rack", "left": 1292, "top": 241, "width": 128, "height": 51}, {"id": "A2-32", "loc": "A2-32", "label": "A2-32", "type": "rack", "left": 1420, "top": 241, "width": 128, "height": 51}, {"id": "A2-33", "loc": "A2-33", "label": "A2-33", "type": "rack", "left": 1548, "top": 241, "width": 106, "height": 51}, {"id": "A2-34", "loc": "A2-34", "label": "A2-34", "type": "rack", "left": 1654, "top": 241, "width": 78, "height": 51}, {"id": "A2-35", "loc": "A2-35", "label": "A2-35", "type": "rack", "left": 1732, "top": 241, "width": 128, "height": 51}, {"id": "A2-36", "loc": "A2-36", "label": "A2-36", "type": "rack", "left": 1860, "top": 241, "width": 128, "height": 51}, {"id": "A2-37", "loc": "A2-37", "label": "A2-37", "type": "rack", "left": 1988, "top": 241, "width": 128, "height": 51}, {"id": "A2-38", "loc": "A2-38", "label": "A2-38", "type": "rack", "left": 2116, "top": 241, "width": 112, "height": 51}, {"id": "A2-39", "loc": "A2-39", "label": "A2-39", "type": "rack", "left": 2228, "top": 241, "width": 80, "height": 51}, {"id": "A2-26", "loc": "A2-26", "label": "A2-26", "type": "rack", "left": 632, "top": 292, "width": 111, "height": 51}, {"id": "A2-25", "loc": "A2-25", "label": "A2-25", "type": "rack", "left": 743, "top": 292, "width": 128, "height": 51}, {"id": "A2-24", "loc": "A2-24", "label": "A2-24", "type": "rack", "left": 871, "top": 292, "width": 81, "height": 51}, {"id": "A2-23", "loc": "A2-23", "label": "A2-23", "type": "rack", "left": 1164, "top": 292, "width": 128, "height": 51}, {"id": "A2-22", "loc": "A2-22", "label": "A2-22", "type": "rack", "left": 1292, "top": 292, "width": 128, "height": 51}, {"id": "A2-21", "loc": "A2-21", "label": "A2-21", "type": "rack", "left": 1420, "top": 292, "width": 128, "height": 51}, {"id": "A2-20", "loc": "A2-20", "label": "A2-20", "type": "rack", "left": 1548, "top": 292, "width": 106, "height": 51}, {"id": "A2-19", "loc": "A2-19", "label": "A2-19", "type": "rack", "left": 1654, "top": 292, "width": 78, "height": 51}, {"id": "A2-18", "loc": "A2-18", "label": "A2-18", "type": "rack", "left": 1732, "top": 292, "width": 128, "height": 51}, {"id": "A2-17", "loc": "A2-17", "label": "A2-17", "type": "rack", "left": 1860, "top": 292, "width": 128, "height": 51}, {"id": "A2-16", "loc": "A2-16", "label": "A2-16", "type": "rack", "left": 1988, "top": 292, "width": 128, "height": 51}, {"id": "A2-15", "loc": "A2-15", "label": "A2-15", "type": "rack", "left": 2116, "top": 292, "width": 112, "height": 51}, {"id": "A2-14", "loc": "A2-14", "label": "A2-14", "type": "rack", "left": 2228, "top": 292, "width": 80, "height": 51}, {"id": "1ST", "loc": "1ST", "label": "1ST", "type": "void", "left": 239, "top": 326, "width": 360, "height": 34}, {"id": "STAFF ROOM (3ST)", "loc": "STAFF ROOM (3ST)", "label": "STAFF ROOM (3ST)", "type": "staff", "left": 239, "top": 360, "width": 360, "height": 153}, {"id": "A2-01", "loc": "A2-01", "label": "A2-01", "type": "rack", "left": 632, "top": 377, "width": 111, "height": 102}, {"id": "A2-02", "loc": "A2-02", "label": "A2-02", "type": "rack", "left": 743, "top": 377, "width": 128, "height": 102}, {"id": "A2-03", "loc": "A2-03", "label": "A2-03", "type": "rack", "left": 871, "top": 377, "width": 81, "height": 102}, {"id": "A2-04", "loc": "A2-04", "label": "A2-04", "type": "rack", "left": 1164, "top": 377, "width": 128, "height": 102}, {"id": "A2-05", "loc": "A2-05", "label": "A2-05", "type": "rack", "left": 1292, "top": 377, "width": 128, "height": 102}, {"id": "A2-06", "loc": "A2-06", "label": "A2-06", "type": "rack", "left": 1420, "top": 377, "width": 128, "height": 102}, {"id": "A2-07", "loc": "A2-07", "label": "A2-07", "type": "rack", "left": 1548, "top": 377, "width": 106, "height": 102}, {"id": "A2-08", "loc": "A2-08", "label": "A2-08", "type": "rack", "left": 1654, "top": 377, "width": 78, "height": 102}, {"id": "A2-09", "loc": "A2-09", "label": "A2-09", "type": "rack", "left": 1732, "top": 377, "width": 128, "height": 102}, {"id": "A2-10", "loc": "A2-10", "label": "A2-10", "type": "rack", "left": 1860, "top": 377, "width": 128, "height": 102}, {"id": "A2-11", "loc": "A2-11", "label": "A2-11", "type": "rack", "left": 1988, "top": 377, "width": 128, "height": 102}, {"id": "A2-12", "loc": "A2-12", "label": "A2-12", "type": "rack", "left": 2116, "top": 377, "width": 112, "height": 102}, {"id": "A2-13", "loc": "A2-13", "label": "A2-13", "type": "rack", "left": 2228, "top": 377, "width": 80, "height": 102}, {"id": "Cargo Lift", "loc": "Cargo Lift", "label": "Cargo Lift", "type": "lift", "left": 952, "top": 428, "width": 212, "height": 51}], "width": 2837, "f1_height": 514, "f2_height": 513};
+
+        document.documentElement.style.setProperty('--bw', RENDER_DATA.width + 'px');
+        document.documentElement.style.setProperty('--bh', Math.max(RENDER_DATA.f1_height, RENDER_DATA.f2_height) + 'px');
+
+        function typeClass(type) {
+            return {
+                lift: 'zone-lift', machine: 'zone-machine', oven: 'zone-oven', auto: 'zone-auto',
+                packing: 'zone-packing', process: 'zone-process', office: 'zone-office',
+                staff: 'zone-staff', toilet: 'zone-toilet', spine: 'zone-spine', void: 'zone-void', other: 'zone-other'
+            }[type] || 'zone-other';
+        }
+
+        function renderFloor(containerId, zones) {
             const el = document.getElementById(containerId);
-            if(el) el.innerHTML = items.map(i => rackBox(typeof i === 'string' ? i : i.id, typeof i === 'string' ? i : i.label, css)).join('');
+            zones.forEach(z => {
+                const div = document.createElement('div');
+                const style = `left:${z.left}px; top:${z.top}px; width:${z.width}px; height:${z.height}px;`;
+                if (z.type === 'rack') {
+                    div.className = 'rack-box status-unknown';
+                    div.id = 'box-' + z.id;
+                    div.setAttribute('style', style);
+                    div.innerText = z.loc;
+                    div.onclick = () => openModal(z.loc);
+                } else if (z.type === 'void') {
+                    div.className = 'zone-box zone-void';
+                    div.setAttribute('style', style);
+                    div.innerHTML = `<i class="fa-solid fa-down-left-and-up-right-to-center"></i><span>เปิดโล่งถึงชั้น 1</span>`;
+                } else if (z.type === 'spine') {
+                    div.className = 'zone-box zone-spine';
+                    div.setAttribute('style', style);
+                    div.innerText = z.floor === 2 ? '2ND FLOOR' : '1ST FLOOR';
+                } else {
+                    div.className = 'zone-box ' + typeClass(z.type);
+                    div.setAttribute('style', style);
+                    div.innerText = z.label;
+                }
+                el.appendChild(div);
+            });
         }
 
-        // จัดการยัดข้อมูลรหัสช่องสินค้าลงตามพิกัด
         function initLayout() {
-            // Floor 1
-            renderBoxes('f1-racks-top', ['A1-11','A1-12','A1-13'], 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f1-col-1', ['A1-09','A1-08','A1-07','A1-06','A1-05','A1-04','A1-03','A1-02','A1-01'], 'flex-1 border-b border-slate-600 last:border-b-0');
-            renderBoxes('f1-col-2', ['A1-14',{id:'A1-15-B',label:'A1-15'},'A1-17','A1-18','A1-19','A1-20','A1-21'], 'flex-1 border-b border-slate-600 last:border-b-0');
-            renderBoxes('f1-col-3', ['A1-22','A1-23','A1-24','A1-25','A1-26','A1-27','A1-28','A1-29'], 'flex-1 border-b border-slate-600 last:border-b-0');
-
-            // Floor 2
-            renderBoxes('f2-r1', ['A2-63','A2-64','A2-65'], 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f2-r2', [{id:'A2-62-B',label:'A2-62'}, {id:'A2-61',label:'A2-61'}], 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f2-top-horiz', ['54','53','52','51','50','49','48','47','46','45','44','43','42','41','40'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[8px]');
-            renderBoxes('f2-mid-l-horiz', ['A2-60','A2-59','A2-58','A2-57','A2-56','A2-55'], 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            
-            renderBoxes('f2-mid-rack-l1', ['27','28','29'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            renderBoxes('f2-mid-rack-l2', ['26','25','24'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            renderBoxes('f2-mid-rack-r1', ['30','31','32','33','34','35','36','37','38','39'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            renderBoxes('f2-mid-rack-r2', ['23','22','21','20','19','18','17','16','15','14'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            
-            renderBoxes('f2-bot-rack-l', ['A2-01','A2-02','A2-03'], 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            renderBoxes('f2-bot-rack-r', ['04','05','06','07','08','09','10','11','12','13'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
+            renderFloor('floor1-layer', RENDER_DATA.f1);
+            renderFloor('floor2-layer', RENDER_DATA.f2);
         }
 
-        // ระบบ Auto Scale หดภาพให้เข้ากับหน้าจอ
+        // ระบบ Auto Scale หดภาพให้เข้ากับหน้าจอ (ฐานอ้างอิงคือความกว้างจริงจาก Excel)
         function resize3D() {
             const wrapper = document.getElementById('scale-wrapper');
             const w = window.innerWidth;
-            wrapper.style.transform = `scale(${w < 1150 ? (w-40) / 1100 : 1})`;
+            const bw = RENDER_DATA.width;
+            const target = Math.min(1, (w - 40) / bw, (window.innerHeight * 1.1) / bw);
+            wrapper.style.transform = `scale(${Math.max(target, 0.28)})`;
         }
         window.addEventListener('resize', resize3D);
 
-        // ระบบควบคุมมุมกล้อง
         function changeView(mode) {
             const b = document.getElementById('building');
             b.className = "building-3d";
@@ -248,9 +243,6 @@
                 document.getElementById('btn-'+m).className = `text-xs font-bold px-4 py-2 rounded-lg shadow transition-all ${mode===m ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-400'}`;
             });
             b.classList.add('state-'+mode);
-            
-            // เปิดปิดเสาลิฟต์โปร่งใส
-            document.querySelectorAll('.elevator-shaft').forEach(s => s.style.opacity = mode === '3d' ? "0.7" : "0");
         }
 
         // ดึงข้อมูล Supabase Database
@@ -259,56 +251,55 @@
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
         let locationData = {};
 
+        // รวมกล่องซ้อน (เช่น A1-15 / A1-15-B, A2-54 / A2-54-B) ให้ผูกกับ location เดียวกัน
+        function boxIdsFor(locId) {
+            const ids = ['box-' + locId];
+            RENDER_DATA.f1.concat(RENDER_DATA.f2).forEach(z => {
+                if (z.loc === locId && z.id !== locId) ids.push('box-' + z.id);
+            });
+            return ids;
+        }
+
         async function fetchLocations() {
             const { data, error } = await sbClient.from("locations").select("*");
-            if(error) return;
+            if (error) return;
             data.forEach(loc => {
                 locationData[loc.location_id] = loc;
-                let tIds = ["box-" + loc.location_id];
-                if(loc.location_id === 'A1-15') tIds.push("box-A1-15-B");
-                if(loc.location_id === 'A2-62') tIds.push("box-A2-62-B");
-
-                tIds.forEach(id => {
+                boxIdsFor(loc.location_id).forEach(id => {
                     const box = document.getElementById(id);
-                    if(box) {
-                        box.onclick = () => openModal(loc.location_id);
-                        box.className = "rack-box border border-slate-600"; 
-                        if(loc.status === 'Empty') box.classList.add('status-empty');
-                        else if(loc.status === 'Partial') box.classList.add('status-partial');
-                        else if(loc.status === 'Full') box.classList.add('status-full');
+                    if (box) {
+                        box.classList.remove('status-unknown', 'status-empty', 'status-partial', 'status-full');
+                        if (loc.status === 'Empty') box.classList.add('status-empty');
+                        else if (loc.status === 'Partial') box.classList.add('status-partial');
+                        else if (loc.status === 'Full') box.classList.add('status-full');
                         else box.classList.add('status-unknown');
                     }
                 });
             });
         }
 
-        // ระบบช่องค้นหาและไฟกะพริบ
         document.getElementById('searchInput').addEventListener('input', e => {
             const term = e.target.value.trim().toUpperCase();
             document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
-            if(!term) return;
-            for(const [locId, data] of Object.entries(locationData)) {
-                if(locId.includes(term) || (data.items_list||"").toUpperCase().includes(term) || (data.part_names||"").toUpperCase().includes(term)) {
-                    let tIds = ["box-" + locId];
-                    if(locId === 'A1-15') tIds.push("box-A1-15-B");
-                    if(locId === 'A2-62') tIds.push("box-A2-62-B");
-                    tIds.forEach(id => { const b = document.getElementById(id); if(b) b.classList.add('highlight-blink'); });
+            if (!term) return;
+            for (const [locId, data] of Object.entries(locationData)) {
+                if (locId.includes(term) || (data.items_list||"").toUpperCase().includes(term) || (data.part_names||"").toUpperCase().includes(term)) {
+                    boxIdsFor(locId).forEach(id => { const b = document.getElementById(id); if (b) b.classList.add('highlight-blink'); });
                 }
             }
         });
 
-        // เปิด Modal รายละเอียดสินค้า
         function openModal(locId) {
             document.getElementById('modalTitle').innerText = locId;
             const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '', part_names: '' };
             const badge = document.getElementById('modalStatusBadge');
             badge.innerText = data.status === 'Empty' ? 'ว่าง (Empty)' : data.status === 'Partial' ? 'กลาง (Partial)' : data.status === 'Full' ? 'เต็ม (Full)' : 'ไม่มีข้อมูล';
             badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase border " + (data.status === 'Empty' ? "bg-green-950 text-green-400 border-green-800" : data.status === 'Partial' ? "bg-yellow-950 text-yellow-400 border-yellow-800" : data.status === 'Full' ? "bg-red-950 text-red-400 border-red-800" : "bg-slate-800 text-slate-400 border-slate-700");
-            
+
             let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
             let pArr = (data.part_names || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
-            
-            document.getElementById('modalBodyContent').innerHTML = iArr.length === 0 
+
+            document.getElementById('modalBodyContent').innerHTML = iArr.length === 0
                 ? `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-box-open text-3xl mb-2 block text-slate-600"></i> ไม่มีสินค้าในช่องนี้</div>`
                 : '<div class="space-y-2.5 max-h-[250px] overflow-y-auto pr-1 hide-scroll">' + iArr.map((item, i) => `<div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex items-start gap-3 shadow-md"><div class="bg-sky-950 text-sky-400 rounded-md p-2 mt-0.5 border border-sky-900/50"><i class="fa-solid fa-box text-xs"></i></div><div class="flex-1 min-w-0"><div class="text-[9px] text-slate-400 font-bold uppercase tracking-wide"><i class="fa-solid fa-barcode"></i> ${item||'-'}</div><div class="text-xs font-bold text-white break-words mt-0.5">${pArr[i]||'-'}</div></div></div>`).join('') + '</div>';
             document.getElementById('infoModal').classList.add('active');

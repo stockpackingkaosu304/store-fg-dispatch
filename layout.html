@@ -56,11 +56,13 @@
 
         /* ===== 3D scene ===== */
         .scene-container {
-            perspective: 3200px; perspective-origin: 50% 20%;
-            width: 100%; min-height: 82vh;
-            display: flex; align-items: center; justify-content: center;
-            padding: 2rem 0; overflow: hidden;
-        }
+           .scene-container {
+    perspective: 2000px; /* ลดจาก 3200px */
+    perspective-origin: 50% 20%;
+    width: 100%; min-height: 82vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem 0; overflow: hidden;
+}
         #scale-wrapper {
             transition: transform 0.3s ease; transform-origin: center center;
             display: flex; align-items: center; justify-content: center;
@@ -90,7 +92,7 @@
             background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b;
         }
 
-        .state-3d { transform: rotateX(58deg) rotateZ(-28deg) translateZ(-120px); }
+        .state-3d { transform: rotateX(58deg) rotateZ(-28deg) translateZ(150px); }
         .state-3d #floor1-layer { transform: translateZ(0px); opacity: 1; }
         .state-3d #floor2-layer { transform: translateZ(320px); opacity: 1; }
 
@@ -226,15 +228,18 @@
             renderFloor('floor2-layer', RENDER_DATA.f2);
         }
 
-        // ระบบ Auto Scale หดภาพให้เข้ากับหน้าจอ (ฐานอ้างอิงคือความกว้างจริงจาก Excel)
-        function resize3D() {
-            const wrapper = document.getElementById('scale-wrapper');
-            const w = window.innerWidth;
-            const bw = RENDER_DATA.width;
-            const target = Math.min(1, (w - 40) / bw, (window.innerHeight * 1.1) / bw);
-            wrapper.style.transform = `scale(${Math.max(target, 0.28)})`;
-        }
-        window.addEventListener('resize', resize3D);
+    // ระบบ Auto Scale หดภาพให้เข้ากับหน้าจอ (อัปเกรดล็อกสเกลไม่ให้เล็กเกินไป)
+function resize3D() {
+    const wrapper = document.getElementById('scale-wrapper');
+    const w = window.innerWidth;
+    const bw = RENDER_DATA.width;
+    
+    // อิงตามความกว้างจอเป็นหลัก (เผื่อขอบจอไว้ 60px)
+    const targetScale = (w - 60) / bw;
+    
+    // บังคับไม่ให้ภาพหดเล็กกว่า 0.45 (45%) และไม่ขยายใหญ่ล้นจอเกิน 1.2 (120%)
+    wrapper.style.transform = `scale(${Math.min(1.2, Math.max(targetScale, 0.45))})`;
+}
 
         function changeView(mode) {
             const b = document.getElementById('building');

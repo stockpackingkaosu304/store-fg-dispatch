@@ -76,13 +76,11 @@
         }
 
         /* ===== 3D scene scaffolding ===== */
-        .scene-container {
-            perspective: 2300px;
-            perspective-origin: 50% 50%;
-            width: 100%; min-height: 74vh;
-            display: flex; align-items: center; justify-content: center;
-            padding: 2.75rem 0.5rem 1.5rem; overflow: hidden;
-        }
+     .scene-container {
+    perspective: 2300px; perspective-origin: 50% 50%;
+    width: 100%; min-height: 74vh; display: flex; align-items: center; justify-content: center;
+    padding: 2.75rem 0.5rem 1.5rem;
+}
         #scale-wrapper {
             transition: transform 0.3s ease; transform-origin: center center;
             display: flex; align-items: center; justify-content: center;
@@ -171,8 +169,8 @@
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-slate-600 border border-dashed border-slate-400"></span> พื้นที่/เครื่องจักร (อ้างอิงจากผัง)</div>
     </div>
 
-    <div class="flex-1 overflow-hidden w-full flex items-center justify-center">
-        <div class="scene-container">
+    <div class="flex-1 w-full flex items-center justify-center">
+    <div class="scene-container">
             <div id="scale-wrapper">
                 <div class="building-position-wrapper">
                     <div id="floorBadge" class="floor-badge-outside bg-sky-900 text-sky-300 border border-sky-500">ภาพรวม 3 มิติ (ชั้น 1-2)</div>

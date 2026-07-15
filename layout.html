@@ -2,79 +2,121 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3D Store Layout - WMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        :root{
+            --cell: 22px;      /* grid unit, matches 1 excel column/row */
+            --cols: 51;
+            --rows: 30;
+        }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
-        
+
+        /* ===== Rack boxes (A1-xx / A2-xx) — interactive, clickable ===== */
         .rack-box {
             display: flex; align-items: center; justify-content: center;
-            font-size: 0.8rem; /* ปรับขนาดตัวหนังสือให้ใหญ่และอ่านง่ายขึ้น */
+            font-size: 10px; line-height: 1.05; text-align: center;
             font-weight: 800; color: #0f172a;
             cursor: pointer; background-color: #ffffff;
-            transition: all 0.2s ease; border: 1.5px solid #475569;
-            box-sizing: border-box;
+            transition: all 0.15s ease; border: 1.5px solid #475569;
+            box-sizing: border-box; position: relative; z-index: 5;
+            padding: 1px; overflow: hidden;
         }
-        .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; transform: scale(1.05); }
-        
-        .status-empty { background-color: #4ade80 !important; color: #042f1a; } 
-        .status-partial { background-color: #facc15 !important; color: #422006; } 
-        .status-full { background-color: #f87171 !important; color: #4c0505; } 
+        .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
+
+        .status-empty { background-color: #4ade80 !important; color: #042f1a; }
+        .status-partial { background-color: #facc15 !important; color: #422006; }
+        .status-full { background-color: #f87171 !important; color: #4c0505; }
         .status-unknown { background-color: #e2e8f0; color: #64748b; }
 
         .highlight-blink {
             animation: blinker 0.8s linear infinite;
             background-color: #0ea5e9 !important; color: white !important;
-            box-shadow: 0 0 20px #0ea5e9; z-index: 40; border-color: #0284c7;
+            box-shadow: 0 0 20px #0ea5e9; z-index: 40 !important; border-color: #0284c7;
         }
-        @keyframes blinker { 50% { opacity: 0.4; transform: scale(1.08); } }
+        @keyframes blinker { 50% { opacity: 0.4; } }
 
-        /* โครงสร้างฉาก 3 มิติ (ปรับ Perspective ให้ดูมีมิติมากขึ้น) */
-        .scene-container {
-            perspective: 1600px; /* ยิ่งค่าน้อย ยิ่งดูมีมิติเด้งเข้าตา */
-            perspective-origin: 50% 30%;
-            width: 100%; min-height: 80vh;
-            display: flex; align-items: center; justify-content: center;
-            padding: 2rem 0; overflow: hidden;
+        /* ===== Static zone / room / machine boxes (context only, from Excel) ===== */
+        .zone-box {
+            display:flex; align-items:center; justify-content:center; text-align:center;
+            font-size: 8.5px; line-height:1.1; font-weight:700; color:#94a3b8;
+            background: rgba(51,65,85,0.55); border: 1px dashed #475569;
+            box-sizing:border-box; padding:2px; overflow:hidden; border-radius:2px;
         }
-        
+        .lift-box {
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            font-size: 9px; font-weight:800; color:#5eead4;
+            background: repeating-linear-gradient(45deg, rgba(20,184,166,0.18), rgba(20,184,166,0.18) 8px, rgba(15,23,42,0.4) 8px, rgba(15,23,42,0.4) 16px);
+            border: 2px dashed #0d9488; box-sizing:border-box; border-radius:2px;
+        }
+        .toilet-box {
+            display:flex; align-items:center; justify-content:center;
+            font-size: 8.5px; font-weight:700; color:#94a3b8;
+            background: rgba(30,41,59,0.9); border: 1px solid #334155; box-sizing:border-box;
+        }
+        .void-box {
+            display:flex; align-items:center; justify-content:center; text-align:center;
+            font-size: 8.5px; font-weight:700; color:#334155;
+            background: repeating-linear-gradient(45deg, rgba(51,65,85,0.15), rgba(51,65,85,0.15) 10px, transparent 10px, transparent 20px);
+            border: 1px dashed #334155; box-sizing:border-box; border-radius:2px;
+        }
+        .floor-side-label{
+            writing-mode: vertical-rl; text-orientation: mixed;
+            display:flex; align-items:center; justify-content:center;
+            font-weight:900; letter-spacing:0.15em; font-size:15px; color:#38bdf8;
+            background: rgba(14,116,144,0.12); border: 1px solid #0e7490; border-radius:6px;
+        }
+
+        /* ===== 3D scene scaffolding ===== */
+        .scene-container {
+            perspective: 1900px;
+            perspective-origin: 50% 30%;
+            width: 100%; min-height: 78vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 1.5rem 0.5rem; overflow: hidden;
+        }
         #scale-wrapper {
             transition: transform 0.3s ease; transform-origin: center center;
             display: flex; align-items: center; justify-content: center;
         }
-        
         .building-3d {
             position: relative; transform-style: preserve-3d;
-            width: 1100px; height: 600px; 
+            width: calc(var(--cell) * var(--cols));
+            height: calc(var(--cell) * var(--rows));
             transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
-
         .floor-layer {
             position: absolute; top: 0; left: 0;
-            width: 1100px; height: 600px;
-            background: rgba(30, 41, 59, 0.85);
+            width: calc(var(--cell) * var(--cols));
+            height: calc(var(--cell) * var(--rows));
+            background: rgba(30, 41, 59, 0.9);
             border: 3px solid #64748b;
             box-shadow: 0 25px 50px rgba(0,0,0,0.8);
             transform-style: preserve-3d;
             transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+            display: grid;
+            grid-template-columns: repeat(var(--cols), var(--cell));
+            grid-template-rows: repeat(var(--rows), var(--cell));
         }
-
         .floor-layer::before {
-            content: ''; position: absolute; top: 100%; left: -3px; right: -3px; height: 25px;
+            content: ''; position: absolute; top: 100%; left: -3px; right: -3px; height: 20px;
             background: #0f172a; transform-origin: top; transform: rotateX(-90deg); border: 1px solid #334155;
         }
         .floor-layer::after {
-            content: ''; position: absolute; top: -3px; bottom: -3px; right: -25px; width: 25px;
+            content: ''; position: absolute; top: -3px; bottom: -3px; right: -20px; width: 20px;
             background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b;
         }
+        .floor-tag{
+            position:absolute; left:6px; top:6px; z-index:20;
+            padding: 3px 10px; font-size:11px; font-weight:900; border-radius:8px; letter-spacing:.05em;
+        }
 
-        /* มุมกล้อง 3D (ซูมเข้ามาใกล้ขึ้น) */
-        .state-3d { transform: rotateX(55deg) rotateZ(-25deg) translateZ(120px); }
+        .state-3d { transform: rotateX(55deg) rotateZ(-25deg) translateZ(80px); }
         .state-3d #floor1-layer { transform: translateZ(0px); opacity: 1; }
-        .state-3d #floor2-layer { transform: translateZ(350px); opacity: 1; }
+        .state-3d #floor2-layer { transform: translateZ(340px); opacity: 1; }
 
         .state-f1 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
         .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
@@ -83,11 +125,6 @@
         .state-f2 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
         .state-f2 #floor1-layer { transform: translateZ(-500px); opacity: 0; pointer-events: none; }
         .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
-
-        .elevator-shaft {
-            position: absolute; background: repeating-linear-gradient(45deg, rgba(20, 184, 166, 0.2), rgba(20, 184, 166, 0.2) 10px, transparent 10px, transparent 20px);
-            border: 2px dashed #0d9488; transform-style: preserve-3d; transition: opacity 0.5s;
-        }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
@@ -106,13 +143,13 @@
             </div>
             <div class="relative w-full md:w-96">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                <input type="text" id="searchInput" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง..." 
+                <input type="text" id="searchInput" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05, A2-30)..."
                     class="w-full bg-slate-950 border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
             </div>
         </div>
     </div>
 
-    <div class="bg-slate-950 border-b border-slate-800 p-2 flex justify-center gap-2 shadow-inner">
+    <div class="bg-slate-950 border-b border-slate-800 p-2 flex justify-center gap-2 shadow-inner flex-wrap">
         <button onclick="changeView('3d')" id="btn-3d" class="bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition-all">
             <i class="fa-solid fa-layer-group"></i> ดูภาพรวม 3D
         </button>
@@ -124,73 +161,19 @@
         </button>
     </div>
 
-    <div class="bg-slate-900 py-2 px-4 text-xs flex justify-center gap-6 text-slate-400 font-bold border-b border-slate-800/50">
+    <div class="bg-slate-900 py-2 px-4 text-[11px] flex justify-center gap-5 text-slate-400 font-bold border-b border-slate-800/50 flex-wrap">
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-400 shadow"></span> ว่าง (Empty)</div>
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-400 shadow"></span> มีบางส่วน (Partial)</div>
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-400 shadow"></span> เต็ม (Full)</div>
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-slate-600 border border-dashed border-slate-400"></span> พื้นที่/เครื่องจักร (อ้างอิงจากผัง)</div>
     </div>
 
     <div class="flex-1 overflow-hidden w-full bg-slate-950 flex items-center justify-center">
         <div class="scene-container">
             <div id="scale-wrapper">
                 <div id="building" class="building-3d state-3d">
-                    
-                    <div id="shaft-top" class="elevator-shaft" style="left: 80px; top: 60px; width: 60px; height: 60px; transform: translateZ(15px) rotateX(90deg) translateY(-170px); opacity: 0.7;"></div>
-                    <div id="shaft-bot" class="elevator-shaft" style="left: 450px; top: 500px; width: 60px; height: 60px; transform: translateZ(15px) rotateX(90deg) translateY(-170px); opacity: 0.7;"></div>
-
-                    <div id="floor1-layer" class="floor-layer">
-                        <div class="absolute left-[20px] top-[10px] bg-sky-900 px-4 py-1 text-sm font-black text-sky-300 rounded-lg border border-sky-500 z-20 shadow-lg">1ST FLOOR</div>
-
-                        <div class="absolute left-[80px] top-[60px] w-[60px] h-[60px] bg-teal-900 border-2 border-teal-400 flex items-center justify-center font-bold text-teal-300 text-[10px] text-center shadow-[0_0_15px_rgba(45,212,191,0.5)]">LIFT</div>
-
-                        <div class="absolute left-[160px] top-[60px] w-[140px] h-[35px] bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-300 font-bold text-xs">SHIPPING OFFICE</div>
-                        <div class="absolute left-[160px] top-[105px] w-[140px] h-[30px] bg-yellow-900/40 border border-yellow-700/50 flex items-center justify-center text-yellow-500 font-bold text-xs">QA AREA</div>
-                        <div class="absolute left-[160px] top-[145px] w-[140px] h-[30px] flex border border-slate-600" id="f1-racks-top"></div>
-
-                        <div class="absolute left-[180px] top-[200px] w-[60px] h-[220px] flex flex-col border border-slate-600 bg-white/5" id="f1-col-1"></div>
-                        <div class="absolute left-[300px] top-[200px] w-[60px] h-[195px] flex flex-col border border-slate-600 bg-white/5" id="f1-col-2"></div>
-
-                        <div class="absolute left-[80px] top-[440px] w-[200px] h-[120px] bg-indigo-900/40 border border-indigo-700/50 flex items-center justify-center text-indigo-400 font-black text-2xl tracking-widest shadow-inner">OFFICE</div>
-                        <div class="absolute left-[300px] top-[415px] w-[60px] h-[145px] flex flex-col border border-slate-600 bg-white/5" id="f1-col-3"></div>
-
-                        <div class="absolute left-[450px] top-[500px] w-[60px] h-[60px] bg-teal-900 border-2 border-teal-400 flex items-center justify-center font-bold text-teal-300 text-[10px] shadow-[0_0_15px_rgba(45,212,191,0.5)]">LIFT</div>
-
-                        <div class="absolute left-[550px] top-[20px] w-[530px] h-[560px] border-2 border-dashed border-slate-700 bg-slate-900/30 flex items-center justify-center rounded-xl">
-                            <div class="text-center text-slate-600 opacity-50">
-                                <i class="fa-solid fa-ban text-5xl mb-3"></i>
-                                <div class="font-black tracking-widest text-2xl">EMPTY SPACE</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="floor2-layer" class="floor-layer">
-                        <div class="absolute left-[20px] top-[10px] bg-amber-900 px-4 py-1 text-sm font-black text-amber-300 rounded-lg border border-amber-500 z-20 shadow-lg">2ND FLOOR</div>
-
-                        <div class="absolute left-[80px] top-[60px] w-[60px] h-[60px] bg-teal-900 border-2 border-teal-400 flex items-center justify-center font-bold text-teal-300 text-[10px] text-center shadow-[0_0_15px_rgba(45,212,191,0.5)]">LIFT</div>
-
-                        <div class="absolute left-[160px] top-[60px] w-[140px] h-[25px] flex border border-slate-600" id="f2-r1"></div>
-                        <div class="absolute left-[160px] top-[95px] w-[90px] h-[25px] flex border border-slate-600" id="f2-r2"></div>
-
-                        <div class="absolute left-[80px] top-[160px] w-[190px] h-[160px] bg-amber-900/30 border border-amber-700/50 flex items-center justify-center text-amber-500 font-black tracking-widest text-xl shadow-inner">STAFF ROOM</div>
-                        <div class="absolute left-[80px] top-[340px] w-[190px] h-[30px] flex border border-slate-600" id="f2-mid-l-horiz"></div>
-
-                        <div class="absolute left-[300px] top-[130px] w-[750px] h-[30px] flex border border-slate-600">
-                            <div class="w-[25px] bg-slate-900 border-r border-slate-600 flex items-center justify-center text-red-500 text-[9px]"><i class="fa-solid fa-fire-extinguisher"></i></div>
-                            <div id="f2-top-horiz" class="flex flex-1"></div>
-                        </div>
-
-                        <div class="absolute left-[300px] top-[340px] w-[120px] h-[30px] flex border border-slate-600" id="f2-mid-rack-l1"></div>
-                        <div class="absolute left-[300px] top-[390px] w-[120px] h-[30px] flex border border-slate-600" id="f2-mid-rack-l2"></div>
-                        
-                        <div class="absolute left-[550px] top-[340px] w-[500px] h-[30px] flex border border-slate-600" id="f2-mid-rack-r1"></div>
-                        <div class="absolute left-[550px] top-[390px] w-[500px] h-[30px] flex border border-slate-600" id="f2-mid-rack-r2"></div>
-
-                        <div class="absolute left-[300px] top-[475px] w-[120px] h-[30px] flex border border-slate-600" id="f2-bot-rack-l"></div>
-                        <div class="absolute left-[550px] top-[475px] w-[500px] h-[30px] flex border border-slate-600" id="f2-bot-rack-r"></div>
-
-                        <div class="absolute left-[450px] top-[500px] w-[60px] h-[60px] bg-teal-900 border-2 border-teal-400 flex items-center justify-center font-bold text-teal-300 text-[10px] shadow-[0_0_15px_rgba(45,212,191,0.5)]">LIFT</div>
-                    </div>
-
+                    <div id="floor1-layer" class="floor-layer"></div>
+                    <div id="floor2-layer" class="floor-layer"></div>
                 </div>
             </div>
         </div>
@@ -208,39 +191,50 @@
     </div>
 
     <script>
-        function rackBox(id, label, css) { return `<div class="rack-box ${css}" id="box-${id}">${label}</div>`; }
-        function renderBoxes(containerId, items, css) {
+        // ==========================================================================
+        // ข้อมูลตำแหน่งช่อง/โซน ดึงมาจากไฟล์ Excel "Layout_Map.xlsx" ชีต Layout
+        // r1,c1,r2,c2 คือพิกัดแถว/คอลัมน์ในตารางกริด (1 หน่วย = 1 แถว/คอลัมน์ในเอ็กเซล)
+        // type: rack = ช่องวางสินค้า A1-xx / A2-xx (คลิกได้), lift = ลิฟต์/ทางขนของ,
+        //       toilet = ห้องน้ำ, void = พื้นที่โล่ง (มองทะลุอีกชั้น), zone = ห้อง/พื้นที่/เครื่องจักรอื่นๆ
+        // ==========================================================================
+        const FLOOR1_DATA = [{"r1": 1, "c1": 5, "r2": 3, "c2": 6, "val": "Cargo Lift", "type": "lift"}, {"r1": 1, "c1": 7, "r2": 3, "c2": 11, "val": "Shipping Office", "type": "zone"}, {"r1": 1, "c1": 12, "r2": 5, "c2": 15, "val": "EPP Silo", "type": "zone"}, {"r1": 1, "c1": 33, "r2": 5, "c2": 34, "val": "MC20", "type": "zone"}, {"r1": 1, "c1": 35, "r2": 5, "c2": 36, "val": "MC19", "type": "zone"}, {"r1": 1, "c1": 37, "r2": 5, "c2": 38, "val": "MC18", "type": "zone"}, {"r1": 1, "c1": 39, "r2": 5, "c2": 40, "val": "MC17", "type": "zone"}, {"r1": 1, "c1": 41, "r2": 5, "c2": 42, "val": "MC16", "type": "zone"}, {"r1": 1, "c1": 43, "r2": 5, "c2": 44, "val": "MC15", "type": "zone"}, {"r1": 1, "c1": 45, "r2": 5, "c2": 46, "val": "MC14", "type": "zone"}, {"r1": 1, "c1": 48, "r2": 28, "c2": 48, "val": "In-line Packing Area", "type": "zone"}, {"r1": 1, "c1": 49, "r2": 3, "c2": 51, "val": "MC13", "type": "zone"}, {"r1": 4, "c1": 8, "r2": 5, "c2": 9, "val": "QA Area", "type": "zone"}, {"r1": 4, "c1": 10, "r2": 8, "c2": 11, "val": "A1-13", "type": "rack"}, {"r1": 4, "c1": 49, "r2": 6, "c2": 51, "val": "MC12", "type": "zone"}, {"r1": 6, "c1": 8, "r2": 8, "c2": 8, "val": "A1-11", "type": "rack"}, {"r1": 6, "c1": 9, "r2": 8, "c2": 9, "val": "A1-12", "type": "rack"}, {"r1": 6, "c1": 32, "r2": 8, "c2": 46, "val": "In-line Packing Area", "type": "zone"}, {"r1": 7, "c1": 49, "r2": 8, "c2": 51, "val": "MC11", "type": "zone"}, {"r1": 9, "c1": 49, "r2": 10, "c2": 51, "val": "MC10", "type": "zone"}, {"r1": 10, "c1": 8, "r2": 10, "c2": 11, "val": "A1-09", "type": "rack"}, {"r1": 10, "c1": 13, "r2": 10, "c2": 17, "val": "A1-14", "type": "rack"}, {"r1": 10, "c1": 21, "r2": 18, "c2": 24, "val": "Pending Labeling Area", "type": "zone"}, {"r1": 10, "c1": 27, "r2": 11, "c2": 30, "val": "Film M/C 2", "type": "zone"}, {"r1": 10, "c1": 32, "r2": 18, "c2": 42, "val": "WIP Area\n (Pending Packaging)", "type": "zone"}, {"r1": 10, "c1": 44, "r2": 12, "c2": 46, "val": "Oven 08", "type": "zone"}, {"r1": 11, "c1": 8, "r2": 11, "c2": 11, "val": "A1-08", "type": "rack"}, {"r1": 11, "c1": 13, "r2": 12, "c2": 17, "val": "A1-15", "type": "rack"}, {"r1": 11, "c1": 49, "r2": 12, "c2": 51, "val": "MC09", "type": "zone"}, {"r1": 12, "c1": 8, "r2": 12, "c2": 11, "val": "A1-07", "type": "rack"}, {"r1": 13, "c1": 8, "r2": 13, "c2": 11, "val": "A1-06", "type": "rack"}, {"r1": 13, "c1": 13, "r2": 13, "c2": 17, "val": "A1-17", "type": "rack"}, {"r1": 13, "c1": 27, "r2": 14, "c2": 30, "val": "Film M/C 1", "type": "zone"}, {"r1": 13, "c1": 44, "r2": 14, "c2": 46, "val": "Oven 07", "type": "zone"}, {"r1": 13, "c1": 49, "r2": 14, "c2": 51, "val": "MC08", "type": "zone"}, {"r1": 14, "c1": 8, "r2": 14, "c2": 11, "val": "A1-05", "type": "rack"}, {"r1": 14, "c1": 13, "r2": 14, "c2": 17, "val": "A1-18", "type": "rack"}, {"r1": 15, "c1": 8, "r2": 15, "c2": 11, "val": "A1-04", "type": "rack"}, {"r1": 15, "c1": 13, "r2": 15, "c2": 17, "val": "A1-19", "type": "rack"}, {"r1": 15, "c1": 44, "r2": 16, "c2": 46, "val": "Oven 06", "type": "zone"}, {"r1": 15, "c1": 49, "r2": 16, "c2": 51, "val": "MC07", "type": "zone"}, {"r1": 16, "c1": 8, "r2": 16, "c2": 11, "val": "A1-03", "type": "rack"}, {"r1": 16, "c1": 13, "r2": 16, "c2": 17, "val": "A1-20", "type": "rack"}, {"r1": 16, "c1": 18, "r2": 18, "c2": 19, "val": "Wrapping Machine", "type": "zone"}, {"r1": 16, "c1": 26, "r2": 16, "c2": 30, "val": "AUTO 4", "type": "zone"}, {"r1": 17, "c1": 8, "r2": 17, "c2": 11, "val": "A1-02", "type": "rack"}, {"r1": 17, "c1": 13, "r2": 18, "c2": 17, "val": "A1-21", "type": "rack"}, {"r1": 17, "c1": 44, "r2": 18, "c2": 46, "val": "Oven 05", "type": "zone"}, {"r1": 17, "c1": 49, "r2": 18, "c2": 51, "val": "MC06", "type": "zone"}, {"r1": 18, "c1": 8, "r2": 18, "c2": 11, "val": "A1-01", "type": "rack"}, {"r1": 18, "c1": 26, "r2": 18, "c2": 30, "val": "AUTO 3", "type": "zone"}, {"r1": 19, "c1": 49, "r2": 20, "c2": 51, "val": "MC05", "type": "zone"}, {"r1": 20, "c1": 5, "r2": 28, "c2": 11, "val": "office", "type": "zone"}, {"r1": 20, "c1": 13, "r2": 21, "c2": 17, "val": "A1-22", "type": "rack"}, {"r1": 20, "c1": 19, "r2": 25, "c2": 24, "val": "Pending Labeling Area", "type": "zone"}, {"r1": 20, "c1": 26, "r2": 20, "c2": 30, "val": "AUTO 2", "type": "zone"}, {"r1": 20, "c1": 32, "r2": 28, "c2": 42, "val": "WIP Area\n (Pending Packaging)", "type": "zone"}, {"r1": 20, "c1": 44, "r2": 21, "c2": 46, "val": "Oven 04", "type": "zone"}, {"r1": 21, "c1": 49, "r2": 22, "c2": 51, "val": "MC04", "type": "zone"}, {"r1": 22, "c1": 13, "r2": 22, "c2": 17, "val": "A1-23", "type": "rack"}, {"r1": 22, "c1": 26, "r2": 22, "c2": 30, "val": "AUTO 1", "type": "zone"}, {"r1": 22, "c1": 44, "r2": 23, "c2": 46, "val": "Oven 03", "type": "zone"}, {"r1": 23, "c1": 13, "r2": 23, "c2": 17, "val": "A1-24", "type": "rack"}, {"r1": 23, "c1": 49, "r2": 24, "c2": 51, "val": "MC03", "type": "zone"}, {"r1": 24, "c1": 13, "r2": 24, "c2": 17, "val": "A1-25", "type": "rack"}, {"r1": 24, "c1": 26, "r2": 25, "c2": 27, "val": "Wrapping Machine", "type": "zone"}, {"r1": 24, "c1": 44, "r2": 25, "c2": 46, "val": "Oven 02", "type": "zone"}, {"r1": 25, "c1": 13, "r2": 25, "c2": 17, "val": "A1-26", "type": "rack"}, {"r1": 25, "c1": 49, "r2": 26, "c2": 51, "val": "MC02", "type": "zone"}, {"r1": 26, "c1": 13, "r2": 26, "c2": 17, "val": "A1-27", "type": "rack"}, {"r1": 26, "c1": 19, "r2": 28, "c2": 22, "val": "Cargo Lift", "type": "lift"}, {"r1": 26, "c1": 23, "r2": 28, "c2": 24, "val": "Packing & Store Office", "type": "zone"}, {"r1": 26, "c1": 26, "r2": 28, "c2": 30, "val": "Assembly Area", "type": "zone"}, {"r1": 26, "c1": 44, "r2": 27, "c2": 46, "val": "Oven 01", "type": "zone"}, {"r1": 27, "c1": 13, "r2": 27, "c2": 17, "val": "A1-28", "type": "rack"}, {"r1": 27, "c1": 49, "r2": 28, "c2": 51, "val": "MC01", "type": "zone"}, {"r1": 28, "c1": 13, "r2": 28, "c2": 17, "val": "A1-29", "type": "rack"}, {"r1": 28, "c1": 44, "r2": 28, "c2": 46, "val": "QC Area", "type": "zone"}, {"r1": 30, "c1": 7, "r2": 30, "c2": 8, "val": "Toilet", "type": "toilet"}, {"r1": 30, "c1": 10, "r2": 30, "c2": 11, "val": "Toilet", "type": "toilet"}];
+        const FLOOR2_DATA = [{"r1": 1, "c1": 5, "r2": 3, "c2": 6, "val": "Cargo Lift", "type": "lift"}, {"r1": 1, "c1": 7, "r2": 3, "c2": 8, "val": "A2-63", "type": "rack"}, {"r1": 1, "c1": 9, "r2": 3, "c2": 10, "val": "A2-64", "type": "rack"}, {"r1": 1, "c1": 11, "r2": 3, "c2": 12, "val": "A2-65", "type": "rack"}, {"r1": 1, "c1": 13, "r2": 8, "c2": 51, "val": "1ST", "type": "void"}, {"r1": 5, "c1": 7, "r2": 8, "c2": 11, "val": "A2-62", "type": "rack"}, {"r1": 9, "c1": 7, "r2": 12, "c2": 11, "val": "A2-61", "type": "rack"}, {"r1": 9, "c1": 13, "r2": 12, "c2": 16, "val": "A2-54", "type": "rack"}, {"r1": 9, "c1": 17, "r2": 12, "c2": 20, "val": "A2-52", "type": "rack"}, {"r1": 9, "c1": 21, "r2": 12, "c2": 22, "val": "A2-50", "type": "rack"}, {"r1": 9, "c1": 23, "r2": 12, "c2": 24, "val": "A2-49", "type": "rack"}, {"r1": 9, "c1": 25, "r2": 12, "c2": 26, "val": "A2-48", "type": "rack"}, {"r1": 9, "c1": 27, "r2": 12, "c2": 28, "val": "A2-47", "type": "rack"}, {"r1": 9, "c1": 29, "r2": 12, "c2": 30, "val": "A2-46", "type": "rack"}, {"r1": 9, "c1": 31, "r2": 12, "c2": 32, "val": "A2-45", "type": "rack"}, {"r1": 9, "c1": 33, "r2": 12, "c2": 34, "val": "A2-44", "type": "rack"}, {"r1": 9, "c1": 35, "r2": 12, "c2": 36, "val": "A2-43", "type": "rack"}, {"r1": 9, "c1": 37, "r2": 12, "c2": 38, "val": "A2-42", "type": "rack"}, {"r1": 9, "c1": 39, "r2": 12, "c2": 40, "val": "A2-41", "type": "rack"}, {"r1": 9, "c1": 41, "r2": 12, "c2": 42, "val": "A2-40", "type": "rack"}, {"r1": 9, "c1": 43, "r2": 28, "c2": 51, "val": "1ST", "type": "void"}, {"r1": 15, "c1": 5, "r2": 19, "c2": 6, "val": "A2-60", "type": "rack"}, {"r1": 15, "c1": 7, "r2": 19, "c2": 7, "val": "A2-59", "type": "rack"}, {"r1": 15, "c1": 8, "r2": 19, "c2": 8, "val": "A2-58", "type": "rack"}, {"r1": 15, "c1": 9, "r2": 19, "c2": 9, "val": "A2-57", "type": "rack"}, {"r1": 15, "c1": 10, "r2": 19, "c2": 10, "val": "A2-56", "type": "rack"}, {"r1": 15, "c1": 11, "r2": 19, "c2": 11, "val": "A2-55", "type": "rack"}, {"r1": 15, "c1": 13, "r2": 17, "c2": 14, "val": "A2-27", "type": "rack"}, {"r1": 15, "c1": 15, "r2": 17, "c2": 16, "val": "A2-28", "type": "rack"}, {"r1": 15, "c1": 17, "r2": 17, "c2": 18, "val": "A2-29", "type": "rack"}, {"r1": 15, "c1": 23, "r2": 17, "c2": 24, "val": "A2-30", "type": "rack"}, {"r1": 15, "c1": 25, "r2": 17, "c2": 26, "val": "A2-31", "type": "rack"}, {"r1": 15, "c1": 27, "r2": 17, "c2": 28, "val": "A2-32", "type": "rack"}, {"r1": 15, "c1": 29, "r2": 17, "c2": 30, "val": "A2-33", "type": "rack"}, {"r1": 15, "c1": 31, "r2": 17, "c2": 32, "val": "A2-34", "type": "rack"}, {"r1": 15, "c1": 33, "r2": 17, "c2": 34, "val": "A2-35", "type": "rack"}, {"r1": 15, "c1": 35, "r2": 17, "c2": 36, "val": "A2-36", "type": "rack"}, {"r1": 15, "c1": 37, "r2": 17, "c2": 38, "val": "A2-37", "type": "rack"}, {"r1": 15, "c1": 39, "r2": 17, "c2": 40, "val": "A2-38", "type": "rack"}, {"r1": 15, "c1": 41, "r2": 17, "c2": 42, "val": "A2-39", "type": "rack"}, {"r1": 18, "c1": 13, "r2": 20, "c2": 14, "val": "A2-26", "type": "rack"}, {"r1": 18, "c1": 15, "r2": 20, "c2": 16, "val": "A2-25", "type": "rack"}, {"r1": 18, "c1": 17, "r2": 20, "c2": 18, "val": "A2-24", "type": "rack"}, {"r1": 18, "c1": 23, "r2": 20, "c2": 24, "val": "A2-23", "type": "rack"}, {"r1": 18, "c1": 25, "r2": 20, "c2": 26, "val": "A2-22", "type": "rack"}, {"r1": 18, "c1": 27, "r2": 20, "c2": 28, "val": "A2-21", "type": "rack"}, {"r1": 18, "c1": 29, "r2": 20, "c2": 30, "val": "A2-20", "type": "rack"}, {"r1": 18, "c1": 31, "r2": 20, "c2": 32, "val": "A2-19", "type": "rack"}, {"r1": 18, "c1": 33, "r2": 20, "c2": 34, "val": "A2-18", "type": "rack"}, {"r1": 18, "c1": 35, "r2": 20, "c2": 36, "val": "A2-17", "type": "rack"}, {"r1": 18, "c1": 37, "r2": 20, "c2": 38, "val": "A2-16", "type": "rack"}, {"r1": 18, "c1": 39, "r2": 20, "c2": 40, "val": "A2-15", "type": "rack"}, {"r1": 18, "c1": 41, "r2": 20, "c2": 42, "val": "A2-14", "type": "rack"}, {"r1": 20, "c1": 5, "r2": 21, "c2": 11, "val": "1ST", "type": "void"}, {"r1": 22, "c1": 5, "r2": 30, "c2": 11, "val": "STAFF ROOM (3ST)", "type": "zone"}, {"r1": 23, "c1": 13, "r2": 28, "c2": 14, "val": "A2-01", "type": "rack"}, {"r1": 23, "c1": 15, "r2": 28, "c2": 16, "val": "A2-02", "type": "rack"}, {"r1": 23, "c1": 17, "r2": 28, "c2": 18, "val": "A2-03", "type": "rack"}, {"r1": 23, "c1": 23, "r2": 28, "c2": 24, "val": "A2-04", "type": "rack"}, {"r1": 23, "c1": 25, "r2": 28, "c2": 26, "val": "A2-05", "type": "rack"}, {"r1": 23, "c1": 27, "r2": 28, "c2": 28, "val": "A2-06", "type": "rack"}, {"r1": 23, "c1": 29, "r2": 28, "c2": 30, "val": "A2-07", "type": "rack"}, {"r1": 23, "c1": 31, "r2": 28, "c2": 32, "val": "A2-08", "type": "rack"}, {"r1": 23, "c1": 33, "r2": 28, "c2": 34, "val": "A2-09", "type": "rack"}, {"r1": 23, "c1": 35, "r2": 28, "c2": 36, "val": "A2-10", "type": "rack"}, {"r1": 23, "c1": 37, "r2": 28, "c2": 38, "val": "A2-11", "type": "rack"}, {"r1": 23, "c1": 39, "r2": 28, "c2": 40, "val": "A2-12", "type": "rack"}, {"r1": 23, "c1": 41, "r2": 28, "c2": 42, "val": "A2-13", "type": "rack"}, {"r1": 26, "c1": 19, "r2": 28, "c2": 22, "val": "Cargo Lift", "type": "lift"}];
+
+        function rackHtml(loc){
+            return `<div class="rack-box" id="box-${loc.val}"
+                style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1};">${loc.val}</div>`;
+        }
+        function otherHtml(loc, idx, prefix){
+            const cls = loc.type === 'lift' ? 'lift-box' : loc.type === 'toilet' ? 'toilet-box' : loc.type === 'void' ? 'void-box' : 'zone-box';
+            const icon = loc.type === 'lift' ? '<i class="fa-solid fa-elevator" style="font-size:11px;margin-bottom:1px;"></i>' :
+                         loc.type === 'toilet' ? '<i class="fa-solid fa-restroom" style="font-size:10px;margin-right:2px;"></i>' : '';
+            return `<div class="${cls}" style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1};">${icon}<span>${loc.val}</span></div>`;
+        }
+
+        function renderFloor(containerId, data, floorLabel, floorColorClass, prefix){
             const el = document.getElementById(containerId);
-            if(el) el.innerHTML = items.map(i => rackBox(typeof i === 'string' ? i : i.id, typeof i === 'string' ? i : i.label, css)).join('');
+            let html = `<div class="floor-tag ${floorColorClass}">${floorLabel}</div>`;
+            // side label column (1-4, spans all rows) — reserved & empty in the excel sheet
+            html += `<div class="floor-side-label" style="grid-column:1 / 5; grid-row:1 / -1;">${floorLabel}</div>`;
+            data.forEach((loc, i) => {
+                html += loc.type === 'rack' ? rackHtml(loc) : otherHtml(loc, i, prefix);
+            });
+            el.innerHTML = html;
         }
 
         function initLayout() {
-            renderBoxes('f1-racks-top', ['A1-11','A1-12','A1-13'], 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f1-col-1', ['A1-09','A1-08','A1-07','A1-06','A1-05','A1-04','A1-03','A1-02','A1-01'], 'flex-1 border-b border-slate-600 last:border-b-0');
-            renderBoxes('f1-col-2', ['A1-14',{id:'A1-15-B',label:'A1-15'},'A1-17','A1-18','A1-19','A1-20','A1-21'], 'flex-1 border-b border-slate-600 last:border-b-0');
-            renderBoxes('f1-col-3', ['A1-22','A1-23','A1-24','A1-25','A1-26','A1-27','A1-28','A1-29'], 'flex-1 border-b border-slate-600 last:border-b-0');
-
-            renderBoxes('f2-r1', ['A2-63','A2-64','A2-65'], 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f2-r2', [{id:'A2-62-B',label:'A2-62'}, {id:'A2-61',label:'A2-61'}], 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f2-top-horiz', ['54','53','52','51','50','49','48','47','46','45','44','43','42','41','40'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            renderBoxes('f2-mid-l-horiz', ['A2-60','A2-59','A2-58','A2-57','A2-56','A2-55'], 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            
-            renderBoxes('f2-mid-rack-l1', ['27','28','29'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f2-mid-rack-l2', ['26','25','24'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f2-mid-rack-r1', ['30','31','32','33','34','35','36','37','38','39'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            renderBoxes('f2-mid-rack-r2', ['23','22','21','20','19','18','17','16','15','14'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
-            
-            renderBoxes('f2-bot-rack-l', ['A2-01','A2-02','A2-03'], 'flex-1 border-r border-slate-600 last:border-r-0');
-            renderBoxes('f2-bot-rack-r', ['04','05','06','07','08','09','10','11','12','13'].map(n=>'A2-'+n), 'flex-1 border-r border-slate-600 last:border-r-0 text-[10px]');
+            renderFloor('floor1-layer', FLOOR1_DATA, '1ST FLOOR', 'bg-sky-900 text-sky-300 border border-sky-500', 'f1');
+            renderFloor('floor2-layer', FLOOR2_DATA, '2ND FLOOR', 'bg-amber-900 text-amber-300 border border-amber-500', 'f2');
         }
 
-        // ระบบ Auto Scale หดภาพให้เข้ากับหน้าจอ (ใช้สูตรเรียบง่ายและเสถียรที่สุด)
+        // ระบบ Auto Scale หดภาพให้เข้ากับหน้าจอ
         function resize3D() {
             const wrapper = document.getElementById('scale-wrapper');
+            const cell = 22;
+            const totalWidth = cell * 51;
             const w = window.innerWidth;
-            const targetScale = (w - 40) / 1100;
-            // บังคับไม่ให้ภาพหดเล็กกว่า 0.5 (50%) เพื่อให้อ่านตัวหนังสือออก
-            wrapper.style.transform = `scale(${Math.min(1.2, Math.max(targetScale, 0.5))})`;
+            const targetScale = (w - 24) / totalWidth;
+            wrapper.style.transform = `scale(${Math.min(1.3, Math.max(targetScale, 0.42))})`;
         }
         window.addEventListener('resize', resize3D);
 
@@ -251,9 +245,6 @@
                 document.getElementById('btn-'+m).className = `text-xs font-bold px-4 py-2 rounded-lg shadow transition-all ${mode===m ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-400'}`;
             });
             b.classList.add('state-'+mode);
-            
-            // ปิดเปิดเสา 3D
-            document.querySelectorAll('.elevator-shaft').forEach(s => s.style.opacity = mode === '3d' ? "0.7" : "0");
         }
 
         // Supabase DB
@@ -267,21 +258,15 @@
             if(error) return;
             data.forEach(loc => {
                 locationData[loc.location_id] = loc;
-                let tIds = ["box-" + loc.location_id];
-                if(loc.location_id === 'A1-15') tIds.push("box-A1-15-B");
-                if(loc.location_id === 'A2-62') tIds.push("box-A2-62-B");
-
-                tIds.forEach(id => {
-                    const box = document.getElementById(id);
-                    if(box) {
-                        box.onclick = () => openModal(loc.location_id);
-                        box.className = "rack-box"; 
-                        if(loc.status === 'Empty') box.classList.add('status-empty');
-                        else if(loc.status === 'Partial') box.classList.add('status-partial');
-                        else if(loc.status === 'Full') box.classList.add('status-full');
-                        else box.classList.add('status-unknown');
-                    }
-                });
+                const box = document.getElementById("box-" + loc.location_id);
+                if(box) {
+                    box.onclick = () => openModal(loc.location_id);
+                    box.className = "rack-box";
+                    if(loc.status === 'Empty') box.classList.add('status-empty');
+                    else if(loc.status === 'Partial') box.classList.add('status-partial');
+                    else if(loc.status === 'Full') box.classList.add('status-full');
+                    else box.classList.add('status-unknown');
+                }
             });
         }
 
@@ -291,10 +276,8 @@
             if(!term) return;
             for(const [locId, data] of Object.entries(locationData)) {
                 if(locId.includes(term) || (data.items_list||"").toUpperCase().includes(term) || (data.part_names||"").toUpperCase().includes(term)) {
-                    let tIds = ["box-" + locId];
-                    if(locId === 'A1-15') tIds.push("box-A1-15-B");
-                    if(locId === 'A2-62') tIds.push("box-A2-62-B");
-                    tIds.forEach(id => { const b = document.getElementById(id); if(b) b.classList.add('highlight-blink'); });
+                    const b = document.getElementById("box-" + locId);
+                    if(b) b.classList.add('highlight-blink');
                 }
             }
         });
@@ -305,11 +288,11 @@
             const badge = document.getElementById('modalStatusBadge');
             badge.innerText = data.status === 'Empty' ? 'ว่าง (Empty)' : data.status === 'Partial' ? 'กลาง (Partial)' : data.status === 'Full' ? 'เต็ม (Full)' : 'ไม่มีข้อมูล';
             badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase border " + (data.status === 'Empty' ? "bg-green-950 text-green-400 border-green-800" : data.status === 'Partial' ? "bg-yellow-950 text-yellow-400 border-yellow-800" : data.status === 'Full' ? "bg-red-950 text-red-400 border-red-800" : "bg-slate-800 text-slate-400 border-slate-700");
-            
+
             let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
             let pArr = (data.part_names || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
-            
-            document.getElementById('modalBodyContent').innerHTML = iArr.length === 0 
+
+            document.getElementById('modalBodyContent').innerHTML = iArr.length === 0
                 ? `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-box-open text-3xl mb-2 block text-slate-600"></i> ไม่มีสินค้าในช่องนี้</div>`
                 : '<div class="space-y-2.5 max-h-[250px] overflow-y-auto pr-1 hide-scroll">' + iArr.map((item, i) => `<div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex items-start gap-3 shadow-md"><div class="bg-sky-950 text-sky-400 rounded-md p-2 mt-0.5 border border-sky-900/50"><i class="fa-solid fa-box text-xs"></i></div><div class="flex-1 min-w-0"><div class="text-[9px] text-slate-400 font-bold uppercase tracking-wide"><i class="fa-solid fa-barcode"></i> ${item||'-'}</div><div class="text-xs font-bold text-white break-words mt-0.5">${pArr[i]||'-'}</div></div></div>`).join('') + '</div>';
             document.getElementById('infoModal').classList.add('active');

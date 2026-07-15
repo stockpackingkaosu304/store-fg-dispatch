@@ -10,14 +10,14 @@
     <style>
         :root{
             --cell: 22px;      /* grid unit, matches 1 excel column/row */
-            --cols: 51;
+            --cols: 47;
             --rows: 30;
         }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
 
-        /* ===== Rack boxes (A1-xx / A2-xx) — interactive, clickable ===== */
+        /* ===== Interactive boxes (A1-xx / A2-xx racks, Lift, Roll Container) — white, clickable ===== */
         .rack-box {
-            display: flex; align-items: center; justify-content: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-size: 10px; line-height: 1.05; text-align: center;
             font-weight: 800; color: #0f172a;
             cursor: pointer; background-color: #ffffff;
@@ -26,6 +26,16 @@
             padding: 1px; overflow: hidden;
         }
         .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
+        .rack-box.narrow-vert span { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 0.02em; }
+        .rack-box .box-icon { font-size: 12px; margin-bottom: 2px; }
+
+        /* Cargo lift boxes — distinct color from plain white rack boxes */
+        .rack-box.type-lift {
+            background-color: #c4b5fd; color: #312e81; border-color: #7c3aed;
+        }
+        .rack-box.type-lift:hover { background-color: #a78bfa; color: white; box-shadow: 0 0 10px #7c3aed; }
+        .rack-box.type-lift .box-icon { color: #4c1d95; font-size: 14px; }
+        .rack-box.type-lift:hover .box-icon { color: white; }
 
         .status-empty { background-color: #4ade80 !important; color: #042f1a; }
         .status-partial { background-color: #facc15 !important; color: #422006; }
@@ -46,12 +56,6 @@
             background: rgba(51,65,85,0.55); border: 1px dashed #475569;
             box-sizing:border-box; padding:2px; overflow:hidden; border-radius:2px;
         }
-        .lift-box {
-            display:flex; flex-direction:column; align-items:center; justify-content:center;
-            font-size: 9px; font-weight:800; color:#5eead4;
-            background: repeating-linear-gradient(45deg, rgba(20,184,166,0.18), rgba(20,184,166,0.18) 8px, rgba(15,23,42,0.4) 8px, rgba(15,23,42,0.4) 16px);
-            border: 2px dashed #0d9488; box-sizing:border-box; border-radius:2px;
-        }
         .toilet-box {
             display:flex; align-items:center; justify-content:center;
             font-size: 8.5px; font-weight:700; color:#94a3b8;
@@ -63,20 +67,21 @@
             background: repeating-linear-gradient(45deg, rgba(51,65,85,0.15), rgba(51,65,85,0.15) 10px, transparent 10px, transparent 20px);
             border: 1px dashed #334155; box-sizing:border-box; border-radius:2px;
         }
-        .floor-side-label{
-            writing-mode: vertical-rl; text-orientation: mixed;
-            display:flex; align-items:center; justify-content:center;
-            font-weight:900; letter-spacing:0.15em; font-size:15px; color:#38bdf8;
-            background: rgba(14,116,144,0.12); border: 1px solid #0e7490; border-radius:6px;
+        /* floor badge — sits OUTSIDE the plan frame entirely, above the top-left corner, clear of the Cargo Lift */
+        .building-position-wrapper{ position: relative; }
+        .floor-badge-outside{
+            position:absolute; left:2px; top:-30px; z-index:25;
+            padding: 4px 12px; font-size:11px; font-weight:900; border-radius:8px;
+            letter-spacing:.05em; white-space:nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.5);
         }
 
         /* ===== 3D scene scaffolding ===== */
         .scene-container {
-            perspective: 1900px;
-            perspective-origin: 50% 30%;
-            width: 100%; min-height: 78vh;
+            perspective: 2300px;
+            perspective-origin: 50% 50%;
+            width: 100%; min-height: 74vh;
             display: flex; align-items: center; justify-content: center;
-            padding: 1.5rem 0.5rem; overflow: hidden;
+            padding: 2.75rem 0.5rem 1.5rem; overflow: hidden;
         }
         #scale-wrapper {
             transition: transform 0.3s ease; transform-origin: center center;
@@ -109,14 +114,10 @@
             content: ''; position: absolute; top: -3px; bottom: -3px; right: -20px; width: 20px;
             background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b;
         }
-        .floor-tag{
-            position:absolute; left:6px; top:6px; z-index:20;
-            padding: 3px 10px; font-size:11px; font-weight:900; border-radius:8px; letter-spacing:.05em;
-        }
 
-        .state-3d { transform: rotateX(55deg) rotateZ(-25deg) translateZ(80px); }
-        .state-3d #floor1-layer { transform: translateZ(0px); opacity: 1; }
-        .state-3d #floor2-layer { transform: translateZ(340px); opacity: 1; }
+        .state-3d { transform: rotateX(42deg) rotateZ(-16deg) translateZ(0px) translateY(-20px); }
+        .state-3d #floor1-layer { transform: translateZ(-110px); opacity: 1; }
+        .state-3d #floor2-layer { transform: translateZ(200px); opacity: 1; }
 
         .state-f1 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
         .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
@@ -165,15 +166,20 @@
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-400 shadow"></span> ว่าง (Empty)</div>
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-400 shadow"></span> มีบางส่วน (Partial)</div>
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-400 shadow"></span> เต็ม (Full)</div>
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-white border border-slate-500"></span> จุดวางสินค้า: A1/A2/Roll Container (คลิกได้)</div>
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm" style="background:#c4b5fd;border:1px solid #7c3aed;"></span> ลิฟต์ขนของ (คลิกได้)</div>
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-slate-600 border border-dashed border-slate-400"></span> พื้นที่/เครื่องจักร (อ้างอิงจากผัง)</div>
     </div>
 
     <div class="flex-1 overflow-hidden w-full bg-slate-950 flex items-center justify-center">
         <div class="scene-container">
             <div id="scale-wrapper">
-                <div id="building" class="building-3d state-3d">
-                    <div id="floor1-layer" class="floor-layer"></div>
-                    <div id="floor2-layer" class="floor-layer"></div>
+                <div class="building-position-wrapper">
+                    <div id="floorBadge" class="floor-badge-outside bg-sky-900 text-sky-300 border border-sky-500">ภาพรวม 3 มิติ (ชั้น 1-2)</div>
+                    <div id="building" class="building-3d state-3d">
+                        <div id="floor1-layer" class="floor-layer"></div>
+                        <div id="floor2-layer" class="floor-layer"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -192,51 +198,78 @@
 
     <script>
         // ==========================================================================
-        // ข้อมูลตำแหน่งช่อง/โซน ดึงมาจากไฟล์ Excel "Layout_Map.xlsx" ชีต Layout
-        // r1,c1,r2,c2 คือพิกัดแถว/คอลัมน์ในตารางกริด (1 หน่วย = 1 แถว/คอลัมน์ในเอ็กเซล)
-        // type: rack = ช่องวางสินค้า A1-xx / A2-xx (คลิกได้), lift = ลิฟต์/ทางขนของ,
-        //       toilet = ห้องน้ำ, void = พื้นที่โล่ง (มองทะลุอีกชั้น), zone = ห้อง/พื้นที่/เครื่องจักรอื่นๆ
+        // ข้อมูลตำแหน่งช่อง/โซน ดึงมาจากไฟล์ Excel "Layout_Map.xlsx" ชีต Layout (100% ตาม merge cell จริง)
+        // r1,c1,r2,c2 คือพิกัดแถว/คอลัมน์ในตารางกริด (1 หน่วย = 1 แถว/คอลัมน์ในเอ็กเซล, offset ตัดคอลัมน์ label ซ้ายออกแล้ว)
+        // type: rack = ช่อง A1-xx/A2-xx, lift = ลิฟต์ขนของ, roll = จุดวาง Roll Container,
+        //       toilet = ห้องน้ำ, void = พื้นที่โล่ง/มองทะลุอีกชั้น, zone = ห้อง/พื้นที่/เครื่องจักรอื่นๆ
+        // rack/lift/roll = จุดวางสินค้าจริง -> แสดงเป็นกล่องสีขาว คลิกได้ ผูกกับสถานะใน Supabase (field "id")
+        // หมายเหตุ: ต้นฉบับ Excel มีป้าย "A1-15" ซ้ำ 2 ช่อง (M15 กับ M16) — ปรับช่องที่ 2 เป็น "A1-16" ให้ตรงลำดับ ถ้าไม่ถูกต้องแจ้งได้ครับ
         // ==========================================================================
-        const FLOOR1_DATA = [{"r1": 1, "c1": 5, "r2": 3, "c2": 6, "val": "Cargo Lift", "type": "lift"}, {"r1": 1, "c1": 7, "r2": 3, "c2": 11, "val": "Shipping Office", "type": "zone"}, {"r1": 1, "c1": 12, "r2": 5, "c2": 15, "val": "EPP Silo", "type": "zone"}, {"r1": 1, "c1": 33, "r2": 5, "c2": 34, "val": "MC20", "type": "zone"}, {"r1": 1, "c1": 35, "r2": 5, "c2": 36, "val": "MC19", "type": "zone"}, {"r1": 1, "c1": 37, "r2": 5, "c2": 38, "val": "MC18", "type": "zone"}, {"r1": 1, "c1": 39, "r2": 5, "c2": 40, "val": "MC17", "type": "zone"}, {"r1": 1, "c1": 41, "r2": 5, "c2": 42, "val": "MC16", "type": "zone"}, {"r1": 1, "c1": 43, "r2": 5, "c2": 44, "val": "MC15", "type": "zone"}, {"r1": 1, "c1": 45, "r2": 5, "c2": 46, "val": "MC14", "type": "zone"}, {"r1": 1, "c1": 48, "r2": 28, "c2": 48, "val": "In-line Packing Area", "type": "zone"}, {"r1": 1, "c1": 49, "r2": 3, "c2": 51, "val": "MC13", "type": "zone"}, {"r1": 4, "c1": 8, "r2": 5, "c2": 9, "val": "QA Area", "type": "zone"}, {"r1": 4, "c1": 10, "r2": 8, "c2": 11, "val": "A1-13", "type": "rack"}, {"r1": 4, "c1": 49, "r2": 6, "c2": 51, "val": "MC12", "type": "zone"}, {"r1": 6, "c1": 8, "r2": 8, "c2": 8, "val": "A1-11", "type": "rack"}, {"r1": 6, "c1": 9, "r2": 8, "c2": 9, "val": "A1-12", "type": "rack"}, {"r1": 6, "c1": 32, "r2": 8, "c2": 46, "val": "In-line Packing Area", "type": "zone"}, {"r1": 7, "c1": 49, "r2": 8, "c2": 51, "val": "MC11", "type": "zone"}, {"r1": 9, "c1": 49, "r2": 10, "c2": 51, "val": "MC10", "type": "zone"}, {"r1": 10, "c1": 8, "r2": 10, "c2": 11, "val": "A1-09", "type": "rack"}, {"r1": 10, "c1": 13, "r2": 10, "c2": 17, "val": "A1-14", "type": "rack"}, {"r1": 10, "c1": 21, "r2": 18, "c2": 24, "val": "Pending Labeling Area", "type": "zone"}, {"r1": 10, "c1": 27, "r2": 11, "c2": 30, "val": "Film M/C 2", "type": "zone"}, {"r1": 10, "c1": 32, "r2": 18, "c2": 42, "val": "WIP Area\n (Pending Packaging)", "type": "zone"}, {"r1": 10, "c1": 44, "r2": 12, "c2": 46, "val": "Oven 08", "type": "zone"}, {"r1": 11, "c1": 8, "r2": 11, "c2": 11, "val": "A1-08", "type": "rack"}, {"r1": 11, "c1": 13, "r2": 12, "c2": 17, "val": "A1-15", "type": "rack"}, {"r1": 11, "c1": 49, "r2": 12, "c2": 51, "val": "MC09", "type": "zone"}, {"r1": 12, "c1": 8, "r2": 12, "c2": 11, "val": "A1-07", "type": "rack"}, {"r1": 13, "c1": 8, "r2": 13, "c2": 11, "val": "A1-06", "type": "rack"}, {"r1": 13, "c1": 13, "r2": 13, "c2": 17, "val": "A1-17", "type": "rack"}, {"r1": 13, "c1": 27, "r2": 14, "c2": 30, "val": "Film M/C 1", "type": "zone"}, {"r1": 13, "c1": 44, "r2": 14, "c2": 46, "val": "Oven 07", "type": "zone"}, {"r1": 13, "c1": 49, "r2": 14, "c2": 51, "val": "MC08", "type": "zone"}, {"r1": 14, "c1": 8, "r2": 14, "c2": 11, "val": "A1-05", "type": "rack"}, {"r1": 14, "c1": 13, "r2": 14, "c2": 17, "val": "A1-18", "type": "rack"}, {"r1": 15, "c1": 8, "r2": 15, "c2": 11, "val": "A1-04", "type": "rack"}, {"r1": 15, "c1": 13, "r2": 15, "c2": 17, "val": "A1-19", "type": "rack"}, {"r1": 15, "c1": 44, "r2": 16, "c2": 46, "val": "Oven 06", "type": "zone"}, {"r1": 15, "c1": 49, "r2": 16, "c2": 51, "val": "MC07", "type": "zone"}, {"r1": 16, "c1": 8, "r2": 16, "c2": 11, "val": "A1-03", "type": "rack"}, {"r1": 16, "c1": 13, "r2": 16, "c2": 17, "val": "A1-20", "type": "rack"}, {"r1": 16, "c1": 18, "r2": 18, "c2": 19, "val": "Wrapping Machine", "type": "zone"}, {"r1": 16, "c1": 26, "r2": 16, "c2": 30, "val": "AUTO 4", "type": "zone"}, {"r1": 17, "c1": 8, "r2": 17, "c2": 11, "val": "A1-02", "type": "rack"}, {"r1": 17, "c1": 13, "r2": 18, "c2": 17, "val": "A1-21", "type": "rack"}, {"r1": 17, "c1": 44, "r2": 18, "c2": 46, "val": "Oven 05", "type": "zone"}, {"r1": 17, "c1": 49, "r2": 18, "c2": 51, "val": "MC06", "type": "zone"}, {"r1": 18, "c1": 8, "r2": 18, "c2": 11, "val": "A1-01", "type": "rack"}, {"r1": 18, "c1": 26, "r2": 18, "c2": 30, "val": "AUTO 3", "type": "zone"}, {"r1": 19, "c1": 49, "r2": 20, "c2": 51, "val": "MC05", "type": "zone"}, {"r1": 20, "c1": 5, "r2": 28, "c2": 11, "val": "office", "type": "zone"}, {"r1": 20, "c1": 13, "r2": 21, "c2": 17, "val": "A1-22", "type": "rack"}, {"r1": 20, "c1": 19, "r2": 25, "c2": 24, "val": "Pending Labeling Area", "type": "zone"}, {"r1": 20, "c1": 26, "r2": 20, "c2": 30, "val": "AUTO 2", "type": "zone"}, {"r1": 20, "c1": 32, "r2": 28, "c2": 42, "val": "WIP Area\n (Pending Packaging)", "type": "zone"}, {"r1": 20, "c1": 44, "r2": 21, "c2": 46, "val": "Oven 04", "type": "zone"}, {"r1": 21, "c1": 49, "r2": 22, "c2": 51, "val": "MC04", "type": "zone"}, {"r1": 22, "c1": 13, "r2": 22, "c2": 17, "val": "A1-23", "type": "rack"}, {"r1": 22, "c1": 26, "r2": 22, "c2": 30, "val": "AUTO 1", "type": "zone"}, {"r1": 22, "c1": 44, "r2": 23, "c2": 46, "val": "Oven 03", "type": "zone"}, {"r1": 23, "c1": 13, "r2": 23, "c2": 17, "val": "A1-24", "type": "rack"}, {"r1": 23, "c1": 49, "r2": 24, "c2": 51, "val": "MC03", "type": "zone"}, {"r1": 24, "c1": 13, "r2": 24, "c2": 17, "val": "A1-25", "type": "rack"}, {"r1": 24, "c1": 26, "r2": 25, "c2": 27, "val": "Wrapping Machine", "type": "zone"}, {"r1": 24, "c1": 44, "r2": 25, "c2": 46, "val": "Oven 02", "type": "zone"}, {"r1": 25, "c1": 13, "r2": 25, "c2": 17, "val": "A1-26", "type": "rack"}, {"r1": 25, "c1": 49, "r2": 26, "c2": 51, "val": "MC02", "type": "zone"}, {"r1": 26, "c1": 13, "r2": 26, "c2": 17, "val": "A1-27", "type": "rack"}, {"r1": 26, "c1": 19, "r2": 28, "c2": 22, "val": "Cargo Lift", "type": "lift"}, {"r1": 26, "c1": 23, "r2": 28, "c2": 24, "val": "Packing & Store Office", "type": "zone"}, {"r1": 26, "c1": 26, "r2": 28, "c2": 30, "val": "Assembly Area", "type": "zone"}, {"r1": 26, "c1": 44, "r2": 27, "c2": 46, "val": "Oven 01", "type": "zone"}, {"r1": 27, "c1": 13, "r2": 27, "c2": 17, "val": "A1-28", "type": "rack"}, {"r1": 27, "c1": 49, "r2": 28, "c2": 51, "val": "MC01", "type": "zone"}, {"r1": 28, "c1": 13, "r2": 28, "c2": 17, "val": "A1-29", "type": "rack"}, {"r1": 28, "c1": 44, "r2": 28, "c2": 46, "val": "QC Area", "type": "zone"}, {"r1": 30, "c1": 7, "r2": 30, "c2": 8, "val": "Toilet", "type": "toilet"}, {"r1": 30, "c1": 10, "r2": 30, "c2": 11, "val": "Toilet", "type": "toilet"}];
-        const FLOOR2_DATA = [{"r1": 1, "c1": 5, "r2": 3, "c2": 6, "val": "Cargo Lift", "type": "lift"}, {"r1": 1, "c1": 7, "r2": 3, "c2": 8, "val": "A2-63", "type": "rack"}, {"r1": 1, "c1": 9, "r2": 3, "c2": 10, "val": "A2-64", "type": "rack"}, {"r1": 1, "c1": 11, "r2": 3, "c2": 12, "val": "A2-65", "type": "rack"}, {"r1": 1, "c1": 13, "r2": 8, "c2": 51, "val": "1ST", "type": "void"}, {"r1": 5, "c1": 7, "r2": 8, "c2": 11, "val": "A2-62", "type": "rack"}, {"r1": 9, "c1": 7, "r2": 12, "c2": 11, "val": "A2-61", "type": "rack"}, {"r1": 9, "c1": 13, "r2": 12, "c2": 16, "val": "A2-54", "type": "rack"}, {"r1": 9, "c1": 17, "r2": 12, "c2": 20, "val": "A2-52", "type": "rack"}, {"r1": 9, "c1": 21, "r2": 12, "c2": 22, "val": "A2-50", "type": "rack"}, {"r1": 9, "c1": 23, "r2": 12, "c2": 24, "val": "A2-49", "type": "rack"}, {"r1": 9, "c1": 25, "r2": 12, "c2": 26, "val": "A2-48", "type": "rack"}, {"r1": 9, "c1": 27, "r2": 12, "c2": 28, "val": "A2-47", "type": "rack"}, {"r1": 9, "c1": 29, "r2": 12, "c2": 30, "val": "A2-46", "type": "rack"}, {"r1": 9, "c1": 31, "r2": 12, "c2": 32, "val": "A2-45", "type": "rack"}, {"r1": 9, "c1": 33, "r2": 12, "c2": 34, "val": "A2-44", "type": "rack"}, {"r1": 9, "c1": 35, "r2": 12, "c2": 36, "val": "A2-43", "type": "rack"}, {"r1": 9, "c1": 37, "r2": 12, "c2": 38, "val": "A2-42", "type": "rack"}, {"r1": 9, "c1": 39, "r2": 12, "c2": 40, "val": "A2-41", "type": "rack"}, {"r1": 9, "c1": 41, "r2": 12, "c2": 42, "val": "A2-40", "type": "rack"}, {"r1": 9, "c1": 43, "r2": 28, "c2": 51, "val": "1ST", "type": "void"}, {"r1": 15, "c1": 5, "r2": 19, "c2": 6, "val": "A2-60", "type": "rack"}, {"r1": 15, "c1": 7, "r2": 19, "c2": 7, "val": "A2-59", "type": "rack"}, {"r1": 15, "c1": 8, "r2": 19, "c2": 8, "val": "A2-58", "type": "rack"}, {"r1": 15, "c1": 9, "r2": 19, "c2": 9, "val": "A2-57", "type": "rack"}, {"r1": 15, "c1": 10, "r2": 19, "c2": 10, "val": "A2-56", "type": "rack"}, {"r1": 15, "c1": 11, "r2": 19, "c2": 11, "val": "A2-55", "type": "rack"}, {"r1": 15, "c1": 13, "r2": 17, "c2": 14, "val": "A2-27", "type": "rack"}, {"r1": 15, "c1": 15, "r2": 17, "c2": 16, "val": "A2-28", "type": "rack"}, {"r1": 15, "c1": 17, "r2": 17, "c2": 18, "val": "A2-29", "type": "rack"}, {"r1": 15, "c1": 23, "r2": 17, "c2": 24, "val": "A2-30", "type": "rack"}, {"r1": 15, "c1": 25, "r2": 17, "c2": 26, "val": "A2-31", "type": "rack"}, {"r1": 15, "c1": 27, "r2": 17, "c2": 28, "val": "A2-32", "type": "rack"}, {"r1": 15, "c1": 29, "r2": 17, "c2": 30, "val": "A2-33", "type": "rack"}, {"r1": 15, "c1": 31, "r2": 17, "c2": 32, "val": "A2-34", "type": "rack"}, {"r1": 15, "c1": 33, "r2": 17, "c2": 34, "val": "A2-35", "type": "rack"}, {"r1": 15, "c1": 35, "r2": 17, "c2": 36, "val": "A2-36", "type": "rack"}, {"r1": 15, "c1": 37, "r2": 17, "c2": 38, "val": "A2-37", "type": "rack"}, {"r1": 15, "c1": 39, "r2": 17, "c2": 40, "val": "A2-38", "type": "rack"}, {"r1": 15, "c1": 41, "r2": 17, "c2": 42, "val": "A2-39", "type": "rack"}, {"r1": 18, "c1": 13, "r2": 20, "c2": 14, "val": "A2-26", "type": "rack"}, {"r1": 18, "c1": 15, "r2": 20, "c2": 16, "val": "A2-25", "type": "rack"}, {"r1": 18, "c1": 17, "r2": 20, "c2": 18, "val": "A2-24", "type": "rack"}, {"r1": 18, "c1": 23, "r2": 20, "c2": 24, "val": "A2-23", "type": "rack"}, {"r1": 18, "c1": 25, "r2": 20, "c2": 26, "val": "A2-22", "type": "rack"}, {"r1": 18, "c1": 27, "r2": 20, "c2": 28, "val": "A2-21", "type": "rack"}, {"r1": 18, "c1": 29, "r2": 20, "c2": 30, "val": "A2-20", "type": "rack"}, {"r1": 18, "c1": 31, "r2": 20, "c2": 32, "val": "A2-19", "type": "rack"}, {"r1": 18, "c1": 33, "r2": 20, "c2": 34, "val": "A2-18", "type": "rack"}, {"r1": 18, "c1": 35, "r2": 20, "c2": 36, "val": "A2-17", "type": "rack"}, {"r1": 18, "c1": 37, "r2": 20, "c2": 38, "val": "A2-16", "type": "rack"}, {"r1": 18, "c1": 39, "r2": 20, "c2": 40, "val": "A2-15", "type": "rack"}, {"r1": 18, "c1": 41, "r2": 20, "c2": 42, "val": "A2-14", "type": "rack"}, {"r1": 20, "c1": 5, "r2": 21, "c2": 11, "val": "1ST", "type": "void"}, {"r1": 22, "c1": 5, "r2": 30, "c2": 11, "val": "STAFF ROOM (3ST)", "type": "zone"}, {"r1": 23, "c1": 13, "r2": 28, "c2": 14, "val": "A2-01", "type": "rack"}, {"r1": 23, "c1": 15, "r2": 28, "c2": 16, "val": "A2-02", "type": "rack"}, {"r1": 23, "c1": 17, "r2": 28, "c2": 18, "val": "A2-03", "type": "rack"}, {"r1": 23, "c1": 23, "r2": 28, "c2": 24, "val": "A2-04", "type": "rack"}, {"r1": 23, "c1": 25, "r2": 28, "c2": 26, "val": "A2-05", "type": "rack"}, {"r1": 23, "c1": 27, "r2": 28, "c2": 28, "val": "A2-06", "type": "rack"}, {"r1": 23, "c1": 29, "r2": 28, "c2": 30, "val": "A2-07", "type": "rack"}, {"r1": 23, "c1": 31, "r2": 28, "c2": 32, "val": "A2-08", "type": "rack"}, {"r1": 23, "c1": 33, "r2": 28, "c2": 34, "val": "A2-09", "type": "rack"}, {"r1": 23, "c1": 35, "r2": 28, "c2": 36, "val": "A2-10", "type": "rack"}, {"r1": 23, "c1": 37, "r2": 28, "c2": 38, "val": "A2-11", "type": "rack"}, {"r1": 23, "c1": 39, "r2": 28, "c2": 40, "val": "A2-12", "type": "rack"}, {"r1": 23, "c1": 41, "r2": 28, "c2": 42, "val": "A2-13", "type": "rack"}, {"r1": 26, "c1": 19, "r2": 28, "c2": 22, "val": "Cargo Lift", "type": "lift"}];
+        const FLOOR1_DATA = [{"r1":1,"c1":1,"r2":3,"c2":2,"val":"Cargo Lift","type":"lift","id":"LIFT-FRONT-F1"},{"r1":1,"c1":3,"r2":3,"c2":7,"val":"Shipping Office","type":"zone"},{"r1":1,"c1":8,"r2":5,"c2":11,"val":"EPP Silo","type":"zone"},{"r1":1,"c1":12,"r2":8,"c2":23,"val":"Roll Container","type":"roll","id":"ROLL-CONTAINER-F1"},{"r1":1,"c1":29,"r2":5,"c2":30,"val":"MC20","type":"zone"},{"r1":1,"c1":31,"r2":5,"c2":32,"val":"MC19","type":"zone"},{"r1":1,"c1":33,"r2":5,"c2":34,"val":"MC18","type":"zone"},{"r1":1,"c1":35,"r2":5,"c2":36,"val":"MC17","type":"zone"},{"r1":1,"c1":37,"r2":5,"c2":38,"val":"MC16","type":"zone"},{"r1":1,"c1":39,"r2":5,"c2":40,"val":"MC15","type":"zone"},{"r1":1,"c1":41,"r2":5,"c2":42,"val":"MC14","type":"zone"},{"r1":1,"c1":44,"r2":28,"c2":44,"val":"In-line Packing Area","type":"zone"},{"r1":1,"c1":45,"r2":3,"c2":47,"val":"MC13","type":"zone"},{"r1":4,"c1":4,"r2":5,"c2":5,"val":"QA Area","type":"zone"},{"r1":4,"c1":6,"r2":8,"c2":7,"val":"A1-13","type":"rack","id":"A1-13"},{"r1":4,"c1":45,"r2":6,"c2":47,"val":"MC12","type":"zone"},{"r1":6,"c1":4,"r2":8,"c2":4,"val":"A1-11","type":"rack","id":"A1-11"},{"r1":6,"c1":5,"r2":8,"c2":5,"val":"A1-12","type":"rack","id":"A1-12"},{"r1":6,"c1":28,"r2":8,"c2":42,"val":"In-line Packing Area","type":"zone"},{"r1":7,"c1":45,"r2":8,"c2":47,"val":"MC11","type":"zone"},{"r1":9,"c1":45,"r2":10,"c2":47,"val":"MC10","type":"zone"},{"r1":10,"c1":4,"r2":10,"c2":7,"val":"A1-09","type":"rack","id":"A1-09"},{"r1":10,"c1":9,"r2":10,"c2":13,"val":"A1-14","type":"rack","id":"A1-14"},{"r1":10,"c1":17,"r2":18,"c2":20,"val":"Pending Labeling Area","type":"zone"},{"r1":10,"c1":23,"r2":11,"c2":26,"val":"Film M/C 2","type":"zone"},{"r1":10,"c1":28,"r2":18,"c2":38,"val":"WIP Area  (Pending Packaging)","type":"zone"},{"r1":10,"c1":40,"r2":12,"c2":42,"val":"Oven 08","type":"zone"},{"r1":11,"c1":4,"r2":11,"c2":7,"val":"A1-08","type":"rack","id":"A1-08"},{"r1":11,"c1":9,"r2":11,"c2":13,"val":"A1-15","type":"rack","id":"A1-15"},{"r1":11,"c1":45,"r2":12,"c2":47,"val":"MC09","type":"zone"},{"r1":12,"c1":4,"r2":12,"c2":7,"val":"A1-07","type":"rack","id":"A1-07"},{"r1":12,"c1":9,"r2":12,"c2":13,"val":"A1-16","type":"rack","id":"A1-16"},{"r1":13,"c1":4,"r2":13,"c2":7,"val":"A1-06","type":"rack","id":"A1-06"},{"r1":13,"c1":9,"r2":13,"c2":13,"val":"A1-17","type":"rack","id":"A1-17"},{"r1":13,"c1":23,"r2":14,"c2":26,"val":"Film M/C 1","type":"zone"},{"r1":13,"c1":40,"r2":14,"c2":42,"val":"Oven 07","type":"zone"},{"r1":13,"c1":45,"r2":14,"c2":47,"val":"MC08","type":"zone"},{"r1":14,"c1":4,"r2":14,"c2":7,"val":"A1-05","type":"rack","id":"A1-05"},{"r1":14,"c1":9,"r2":14,"c2":13,"val":"A1-18","type":"rack","id":"A1-18"},{"r1":15,"c1":4,"r2":15,"c2":7,"val":"A1-04","type":"rack","id":"A1-04"},{"r1":15,"c1":9,"r2":15,"c2":13,"val":"A1-19","type":"rack","id":"A1-19"},{"r1":15,"c1":40,"r2":16,"c2":42,"val":"Oven 06","type":"zone"},{"r1":15,"c1":45,"r2":16,"c2":47,"val":"MC07","type":"zone"},{"r1":16,"c1":4,"r2":16,"c2":7,"val":"A1-03","type":"rack","id":"A1-03"},{"r1":16,"c1":9,"r2":16,"c2":13,"val":"A1-20","type":"rack","id":"A1-20"},{"r1":16,"c1":14,"r2":18,"c2":15,"val":"Wrapping Machine","type":"zone"},{"r1":16,"c1":22,"r2":16,"c2":26,"val":"AUTO 4","type":"zone"},{"r1":17,"c1":4,"r2":17,"c2":7,"val":"A1-02","type":"rack","id":"A1-02"},{"r1":17,"c1":9,"r2":18,"c2":13,"val":"A1-21","type":"rack","id":"A1-21"},{"r1":17,"c1":40,"r2":18,"c2":42,"val":"Oven 05","type":"zone"},{"r1":17,"c1":45,"r2":18,"c2":47,"val":"MC06","type":"zone"},{"r1":18,"c1":4,"r2":18,"c2":7,"val":"A1-01","type":"rack","id":"A1-01"},{"r1":18,"c1":22,"r2":18,"c2":26,"val":"AUTO 3","type":"zone"},{"r1":19,"c1":45,"r2":20,"c2":47,"val":"MC05","type":"zone"},{"r1":20,"c1":1,"r2":28,"c2":7,"val":"office","type":"zone"},{"r1":20,"c1":9,"r2":21,"c2":13,"val":"A1-22","type":"rack","id":"A1-22"},{"r1":20,"c1":15,"r2":25,"c2":20,"val":"Pending Labeling Area","type":"zone"},{"r1":20,"c1":22,"r2":20,"c2":26,"val":"AUTO 2","type":"zone"},{"r1":20,"c1":28,"r2":28,"c2":38,"val":"WIP Area  (Pending Packaging)","type":"zone"},{"r1":20,"c1":40,"r2":21,"c2":42,"val":"Oven 04","type":"zone"},{"r1":21,"c1":45,"r2":22,"c2":47,"val":"MC04","type":"zone"},{"r1":22,"c1":9,"r2":22,"c2":13,"val":"A1-23","type":"rack","id":"A1-23"},{"r1":22,"c1":22,"r2":22,"c2":26,"val":"AUTO 1","type":"zone"},{"r1":22,"c1":40,"r2":23,"c2":42,"val":"Oven 03","type":"zone"},{"r1":23,"c1":9,"r2":23,"c2":13,"val":"A1-24","type":"rack","id":"A1-24"},{"r1":23,"c1":45,"r2":24,"c2":47,"val":"MC03","type":"zone"},{"r1":24,"c1":9,"r2":24,"c2":13,"val":"A1-25","type":"rack","id":"A1-25"},{"r1":24,"c1":22,"r2":25,"c2":23,"val":"Wrapping Machine","type":"zone"},{"r1":24,"c1":40,"r2":25,"c2":42,"val":"Oven 02","type":"zone"},{"r1":25,"c1":9,"r2":25,"c2":13,"val":"A1-26","type":"rack","id":"A1-26"},{"r1":25,"c1":45,"r2":26,"c2":47,"val":"MC02","type":"zone"},{"r1":26,"c1":9,"r2":26,"c2":13,"val":"A1-27","type":"rack","id":"A1-27"},{"r1":26,"c1":15,"r2":28,"c2":18,"val":"Cargo Lift","type":"lift","id":"LIFT-SOUTH-F1"},{"r1":26,"c1":19,"r2":28,"c2":20,"val":"Packing & Store Office","type":"zone"},{"r1":26,"c1":22,"r2":28,"c2":26,"val":"Assembly Area","type":"zone"},{"r1":26,"c1":40,"r2":27,"c2":42,"val":"Oven 01","type":"zone"},{"r1":27,"c1":9,"r2":27,"c2":13,"val":"A1-28","type":"rack","id":"A1-28"},{"r1":27,"c1":45,"r2":28,"c2":47,"val":"MC01","type":"zone"},{"r1":28,"c1":9,"r2":28,"c2":13,"val":"A1-29","type":"rack","id":"A1-29"},{"r1":28,"c1":40,"r2":28,"c2":42,"val":"QC Area","type":"zone"},{"r1":30,"c1":3,"r2":30,"c2":4,"val":"Toilet","type":"toilet"},{"r1":30,"c1":6,"r2":30,"c2":7,"val":"Toilet","type":"toilet"}];
+        const FLOOR2_DATA = [{"r1":1,"c1":1,"r2":3,"c2":2,"val":"Cargo Lift","type":"lift","id":"LIFT-FRONT-F2"},{"r1":1,"c1":3,"r2":3,"c2":4,"val":"A2-63","type":"rack","id":"A2-63"},{"r1":1,"c1":5,"r2":3,"c2":6,"val":"A2-64","type":"rack","id":"A2-64"},{"r1":1,"c1":7,"r2":3,"c2":8,"val":"A2-65","type":"rack","id":"A2-65"},{"r1":1,"c1":9,"r2":8,"c2":47,"val":"1ST","type":"void"},{"r1":5,"c1":3,"r2":8,"c2":7,"val":"A2-62","type":"rack","id":"A2-62"},{"r1":9,"c1":3,"r2":12,"c2":7,"val":"A2-61","type":"rack","id":"A2-61"},{"r1":9,"c1":9,"r2":12,"c2":10,"val":"A2-54","type":"rack","id":"A2-54"},{"r1":9,"c1":11,"r2":12,"c2":12,"val":"A2-53","type":"rack","id":"A2-53"},{"r1":9,"c1":13,"r2":12,"c2":14,"val":"A2-52","type":"rack","id":"A2-52"},{"r1":9,"c1":15,"r2":12,"c2":16,"val":"A2-51","type":"rack","id":"A2-51"},{"r1":9,"c1":17,"r2":12,"c2":18,"val":"A2-50","type":"rack","id":"A2-50"},{"r1":9,"c1":19,"r2":12,"c2":20,"val":"A2-49","type":"rack","id":"A2-49"},{"r1":9,"c1":21,"r2":12,"c2":22,"val":"A2-48","type":"rack","id":"A2-48"},{"r1":9,"c1":23,"r2":12,"c2":24,"val":"A2-47","type":"rack","id":"A2-47"},{"r1":9,"c1":25,"r2":12,"c2":26,"val":"A2-46","type":"rack","id":"A2-46"},{"r1":9,"c1":27,"r2":12,"c2":28,"val":"A2-45","type":"rack","id":"A2-45"},{"r1":9,"c1":29,"r2":12,"c2":30,"val":"A2-44","type":"rack","id":"A2-44"},{"r1":9,"c1":31,"r2":12,"c2":32,"val":"A2-43","type":"rack","id":"A2-43"},{"r1":9,"c1":33,"r2":12,"c2":34,"val":"A2-42","type":"rack","id":"A2-42"},{"r1":9,"c1":35,"r2":12,"c2":36,"val":"A2-41","type":"rack","id":"A2-41"},{"r1":9,"c1":37,"r2":12,"c2":38,"val":"A2-40","type":"rack","id":"A2-40"},{"r1":9,"c1":39,"r2":28,"c2":47,"val":"1ST","type":"void"},{"r1":15,"c1":1,"r2":19,"c2":7,"type":"rackgroup","items":[{"val":"A2-60","id":"A2-60"},{"val":"A2-59","id":"A2-59"},{"val":"A2-58","id":"A2-58"},{"val":"A2-57","id":"A2-57"},{"val":"A2-56","id":"A2-56"},{"val":"A2-55","id":"A2-55"}]},{"r1":15,"c1":9,"r2":17,"c2":10,"val":"A2-27","type":"rack","id":"A2-27"},{"r1":15,"c1":11,"r2":17,"c2":12,"val":"A2-28","type":"rack","id":"A2-28"},{"r1":15,"c1":13,"r2":17,"c2":14,"val":"A2-29","type":"rack","id":"A2-29"},{"r1":15,"c1":19,"r2":17,"c2":20,"val":"A2-30","type":"rack","id":"A2-30"},{"r1":15,"c1":21,"r2":17,"c2":22,"val":"A2-31","type":"rack","id":"A2-31"},{"r1":15,"c1":23,"r2":17,"c2":24,"val":"A2-32","type":"rack","id":"A2-32"},{"r1":15,"c1":25,"r2":17,"c2":26,"val":"A2-33","type":"rack","id":"A2-33"},{"r1":15,"c1":27,"r2":17,"c2":28,"val":"A2-34","type":"rack","id":"A2-34"},{"r1":15,"c1":29,"r2":17,"c2":30,"val":"A2-35","type":"rack","id":"A2-35"},{"r1":15,"c1":31,"r2":17,"c2":32,"val":"A2-36","type":"rack","id":"A2-36"},{"r1":15,"c1":33,"r2":17,"c2":34,"val":"A2-37","type":"rack","id":"A2-37"},{"r1":15,"c1":35,"r2":17,"c2":36,"val":"A2-38","type":"rack","id":"A2-38"},{"r1":15,"c1":37,"r2":17,"c2":38,"val":"A2-39","type":"rack","id":"A2-39"},{"r1":18,"c1":9,"r2":20,"c2":10,"val":"A2-26","type":"rack","id":"A2-26"},{"r1":18,"c1":11,"r2":20,"c2":12,"val":"A2-25","type":"rack","id":"A2-25"},{"r1":18,"c1":13,"r2":20,"c2":14,"val":"A2-24","type":"rack","id":"A2-24"},{"r1":18,"c1":19,"r2":20,"c2":20,"val":"A2-23","type":"rack","id":"A2-23"},{"r1":18,"c1":21,"r2":20,"c2":22,"val":"A2-22","type":"rack","id":"A2-22"},{"r1":18,"c1":23,"r2":20,"c2":24,"val":"A2-21","type":"rack","id":"A2-21"},{"r1":18,"c1":25,"r2":20,"c2":26,"val":"A2-20","type":"rack","id":"A2-20"},{"r1":18,"c1":27,"r2":20,"c2":28,"val":"A2-19","type":"rack","id":"A2-19"},{"r1":18,"c1":29,"r2":20,"c2":30,"val":"A2-18","type":"rack","id":"A2-18"},{"r1":18,"c1":31,"r2":20,"c2":32,"val":"A2-17","type":"rack","id":"A2-17"},{"r1":18,"c1":33,"r2":20,"c2":34,"val":"A2-16","type":"rack","id":"A2-16"},{"r1":18,"c1":35,"r2":20,"c2":36,"val":"A2-15","type":"rack","id":"A2-15"},{"r1":18,"c1":37,"r2":20,"c2":38,"val":"A2-14","type":"rack","id":"A2-14"},{"r1":20,"c1":1,"r2":21,"c2":7,"val":"1ST","type":"void"},{"r1":22,"c1":1,"r2":30,"c2":7,"val":"STAFF ROOM (3ST)","type":"zone"},{"r1":23,"c1":9,"r2":28,"c2":10,"val":"A2-01","type":"rack","id":"A2-01"},{"r1":23,"c1":11,"r2":28,"c2":12,"val":"A2-02","type":"rack","id":"A2-02"},{"r1":23,"c1":13,"r2":28,"c2":14,"val":"A2-03","type":"rack","id":"A2-03"},{"r1":23,"c1":19,"r2":28,"c2":20,"val":"A2-04","type":"rack","id":"A2-04"},{"r1":23,"c1":21,"r2":28,"c2":22,"val":"A2-05","type":"rack","id":"A2-05"},{"r1":23,"c1":23,"r2":28,"c2":24,"val":"A2-06","type":"rack","id":"A2-06"},{"r1":23,"c1":25,"r2":28,"c2":26,"val":"A2-07","type":"rack","id":"A2-07"},{"r1":23,"c1":27,"r2":28,"c2":28,"val":"A2-08","type":"rack","id":"A2-08"},{"r1":23,"c1":29,"r2":28,"c2":30,"val":"A2-09","type":"rack","id":"A2-09"},{"r1":23,"c1":31,"r2":28,"c2":32,"val":"A2-10","type":"rack","id":"A2-10"},{"r1":23,"c1":33,"r2":28,"c2":34,"val":"A2-11","type":"rack","id":"A2-11"},{"r1":23,"c1":35,"r2":28,"c2":36,"val":"A2-12","type":"rack","id":"A2-12"},{"r1":23,"c1":37,"r2":28,"c2":38,"val":"A2-13","type":"rack","id":"A2-13"},{"r1":26,"c1":15,"r2":28,"c2":18,"val":"Cargo Lift","type":"lift","id":"LIFT-SOUTH-F2"}];
+
+        function iconFor(type){
+            if(type === 'lift') return '<i class="fa-solid fa-truck-ramp-box box-icon"></i>';
+            if(type === 'roll') return '<i class="fa-solid fa-dolly box-icon"></i>';
+            return '';
+        }
 
         function rackHtml(loc){
-            return `<div class="rack-box" id="box-${loc.val}"
-                style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1};">${loc.val}</div>`;
+            const id = loc.id || loc.val;
+            const widthCols = loc.c2 - loc.c1 + 1;
+            const narrow = widthCols === 1 && loc.val.length >= 4;
+            const typeClass = loc.type === 'lift' ? ' type-lift' : '';
+            return `<div class="rack-box${narrow ? ' narrow-vert' : ''}${typeClass}" id="box-${id}"
+                style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1};">${iconFor(loc.type)}<span>${loc.val}</span></div>`;
         }
-        function otherHtml(loc, idx, prefix){
-            const cls = loc.type === 'lift' ? 'lift-box' : loc.type === 'toilet' ? 'toilet-box' : loc.type === 'void' ? 'void-box' : 'zone-box';
-            const icon = loc.type === 'lift' ? '<i class="fa-solid fa-elevator" style="font-size:11px;margin-bottom:1px;"></i>' :
-                         loc.type === 'toilet' ? '<i class="fa-solid fa-restroom" style="font-size:10px;margin-right:2px;"></i>' : '';
+        function otherHtml(loc){
+            const cls = loc.type === 'toilet' ? 'toilet-box' : loc.type === 'void' ? 'void-box' : 'zone-box';
+            const icon = loc.type === 'toilet' ? '<i class="fa-solid fa-restroom" style="font-size:10px;margin-right:2px;"></i>' : '';
             return `<div class="${cls}" style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1};">${icon}<span>${loc.val}</span></div>`;
         }
+        // rackgroup: evenly divides an exact column span into N equal racks (used where the real
+        // room width doesn't divide evenly into whole Excel columns, e.g. A2-55..A2-60 on floor 2 —
+        // this keeps every box the same size while A2-55's right edge still lines up with the
+        // STAFFROOM/1ST void's right edge below it).
+        function rackGroupHtml(loc){
+            const inner = loc.items.map(it => {
+                const narrow = it.val.length >= 4;
+                return `<div class="rack-box${narrow ? ' narrow-vert' : ''}" id="box-${it.id}"><span>${it.val}</span></div>`;
+            }).join('');
+            return `<div style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1}; display:grid; grid-template-columns:repeat(${loc.items.length}, 1fr);">${inner}</div>`;
+        }
 
-        function renderFloor(containerId, data, floorLabel, floorColorClass, prefix){
+        function renderFloor(containerId, data, floorLabel, floorColorClass){
             const el = document.getElementById(containerId);
-            let html = `<div class="floor-tag ${floorColorClass}">${floorLabel}</div>`;
-            // side label column (1-4, spans all rows) — reserved & empty in the excel sheet
-            html += `<div class="floor-side-label" style="grid-column:1 / 5; grid-row:1 / -1;">${floorLabel}</div>`;
-            data.forEach((loc, i) => {
-                html += loc.type === 'rack' ? rackHtml(loc) : otherHtml(loc, i, prefix);
+            let html = '';
+            data.forEach(loc => {
+                if(loc.type === 'rackgroup') html += rackGroupHtml(loc);
+                else html += (loc.type === 'rack' || loc.type === 'lift' || loc.type === 'roll') ? rackHtml(loc) : otherHtml(loc);
             });
             el.innerHTML = html;
         }
 
         function initLayout() {
-            renderFloor('floor1-layer', FLOOR1_DATA, '1ST FLOOR', 'bg-sky-900 text-sky-300 border border-sky-500', 'f1');
-            renderFloor('floor2-layer', FLOOR2_DATA, '2ND FLOOR', 'bg-amber-900 text-amber-300 border border-amber-500', 'f2');
+            renderFloor('floor1-layer', FLOOR1_DATA, '1ST FLOOR', 'bg-sky-900 text-sky-300 border border-sky-500');
+            renderFloor('floor2-layer', FLOOR2_DATA, '2ND FLOOR', 'bg-amber-900 text-amber-300 border border-amber-500');
         }
 
         // ระบบ Auto Scale หดภาพให้เข้ากับหน้าจอ
         function resize3D() {
             const wrapper = document.getElementById('scale-wrapper');
             const cell = 22;
-            const totalWidth = cell * 51;
+            const totalWidth = cell * 47;
             const w = window.innerWidth;
             const targetScale = (w - 24) / totalWidth;
-            wrapper.style.transform = `scale(${Math.min(1.3, Math.max(targetScale, 0.42))})`;
+            wrapper.style.transform = `scale(${Math.min(1.3, Math.max(targetScale, 0.48))})`;
         }
         window.addEventListener('resize', resize3D);
+
+        const FLOOR_BADGE_CONFIG = {
+            '3d': { text: 'ภาพรวม 3 มิติ (ชั้น 1-2)', cls: 'bg-sky-900 text-sky-300 border border-sky-500' },
+            'f1': { text: '1ST FLOOR',                 cls: 'bg-sky-900 text-sky-300 border border-sky-500' },
+            'f2': { text: '2ND FLOOR',                 cls: 'bg-amber-900 text-amber-300 border border-amber-500' }
+        };
 
         function changeView(mode) {
             const b = document.getElementById('building');
@@ -245,6 +278,11 @@
                 document.getElementById('btn-'+m).className = `text-xs font-bold px-4 py-2 rounded-lg shadow transition-all ${mode===m ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-400'}`;
             });
             b.classList.add('state-'+mode);
+
+            const cfg = FLOOR_BADGE_CONFIG[mode];
+            const badge = document.getElementById('floorBadge');
+            badge.textContent = cfg.text;
+            badge.className = 'floor-badge-outside ' + cfg.cls;
         }
 
         // Supabase DB
@@ -261,11 +299,17 @@
                 const box = document.getElementById("box-" + loc.location_id);
                 if(box) {
                     box.onclick = () => openModal(loc.location_id);
-                    box.className = "rack-box";
                     if(loc.status === 'Empty') box.classList.add('status-empty');
                     else if(loc.status === 'Partial') box.classList.add('status-partial');
                     else if(loc.status === 'Full') box.classList.add('status-full');
                     else box.classList.add('status-unknown');
+                }
+            });
+            // จุดที่ยังไม่มีข้อมูลใน Supabase (เช่น ลิฟต์/Roll Container ที่ยังไม่เคยบันทึก) ให้คลิกดูได้เช่นกัน (แสดงว่า "ไม่มีข้อมูล")
+            document.querySelectorAll('.rack-box').forEach(box => {
+                if(!box.onclick){
+                    const id = box.id.replace('box-','');
+                    box.onclick = () => openModal(id);
                 }
             });
         }

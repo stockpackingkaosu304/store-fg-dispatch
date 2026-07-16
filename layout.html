@@ -202,9 +202,18 @@
             <button onclick="closeModal(event)" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-95">ปิดหน้าต่าง</button>
         </div>
     </div>
-
-   <script>
-        // ข้อมูลโครงสร้างตึก (ปล่อยของเดิมไว้ได้เลย ผมย่อให้ดูสั้นๆ เพื่อความสะอาดตา)
+<div id="searchResultsPanel" class="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:top-24 md:bottom-auto md:w-80 max-h-[45vh] md:max-h-[60vh] bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
+        <div class="bg-slate-800 text-white text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-slate-700 flex justify-between items-center shadow-sm">
+            <span id="searchPanelTitle" class="text-sky-400"><i class="fa-solid fa-list-ul mr-1.5"></i> สรุปผลการค้นหา</span>
+            <button onclick="document.getElementById('searchResultsPanel').classList.add('hidden')" class="text-slate-400 hover:text-white transition-colors p-1"><i class="fa-solid fa-xmark text-base"></i></button>
+        </div>
+        <div id="searchResultsContent" class="flex-1 overflow-y-auto p-2 space-y-2 custom-scroll">
+            </div>
+    </div>
+  <script>
+        // ==========================================================================
+        // ข้อมูลตำแหน่งช่อง/โซน (คงเดิมจาก v1.1.2)
+        // ==========================================================================
         const FLOOR1_DATA = [{"r1":1,"c1":1,"r2":3,"c2":2,"val":"Cargo Lift","type":"lift","id":"LIFT-FRONT-F1"},{"r1":1,"c1":3,"r2":3,"c2":7,"val":"Shipping Office","type":"zone"},{"r1":1,"c1":8,"r2":5,"c2":11,"val":"EPP Silo","type":"zone"},{"r1":1,"c1":12,"r2":8,"c2":23,"val":"Roll Container","type":"roll","id":"ROLL-CONTAINER-F1"},{"r1":1,"c1":29,"r2":5,"c2":30,"val":"MC20","type":"zone"},{"r1":1,"c1":31,"r2":5,"c2":32,"val":"MC19","type":"zone"},{"r1":1,"c1":33,"r2":5,"c2":34,"val":"MC18","type":"zone"},{"r1":1,"c1":35,"r2":5,"c2":36,"val":"MC17","type":"zone"},{"r1":1,"c1":37,"r2":5,"c2":38,"val":"MC16","type":"zone"},{"r1":1,"c1":39,"r2":5,"c2":40,"val":"MC15","type":"zone"},{"r1":1,"c1":41,"r2":5,"c2":42,"val":"MC14","type":"zone"},{"r1":1,"c1":44,"r2":28,"c2":44,"val":"In-line Packing Area","type":"zone"},{"r1":1,"c1":45,"r2":3,"c2":47,"val":"MC13","type":"zone"},{"r1":4,"c1":4,"r2":5,"c2":5,"val":"QA Area","type":"zone"},{"r1":4,"c1":6,"r2":8,"c2":7,"val":"A1-13","type":"rack","id":"A1-13"},{"r1":4,"c1":45,"r2":6,"c2":47,"val":"MC12","type":"zone"},{"r1":6,"c1":4,"r2":8,"c2":4,"val":"A1-11","type":"rack","id":"A1-11"},{"r1":6,"c1":5,"r2":8,"c2":5,"val":"A1-12","type":"rack","id":"A1-12"},{"r1":6,"c1":28,"r2":8,"c2":42,"val":"In-line Packing Area","type":"zone"},{"r1":7,"c1":45,"r2":8,"c2":47,"val":"MC11","type":"zone"},{"r1":9,"c1":45,"r2":10,"c2":47,"val":"MC10","type":"zone"},{"r1":10,"c1":4,"r2":10,"c2":7,"val":"A1-09","type":"rack","id":"A1-09"},{"r1":10,"c1":9,"r2":10,"c2":13,"val":"A1-14","type":"rack","id":"A1-14"},{"r1":10,"c1":17,"r2":18,"c2":20,"val":"Pending Labeling Area","type":"zone"},{"r1":10,"c1":23,"r2":11,"c2":26,"val":"Film M/C 2","type":"zone"},{"r1":10,"c1":28,"r2":18,"c2":38,"val":"WIP Area  (Pending Packaging)","type":"zone"},{"r1":10,"c1":40,"r2":12,"c2":42,"val":"Oven 08","type":"zone"},{"r1":11,"c1":4,"r2":11,"c2":7,"val":"A1-08","type":"rack","id":"A1-08"},{"r1":11,"c1":9,"r2":11,"c2":13,"val":"A1-15","type":"rack","id":"A1-15"},{"r1":11,"c1":45,"r2":12,"c2":47,"val":"MC09","type":"zone"},{"r1":12,"c1":4,"r2":12,"c2":7,"val":"A1-07","type":"rack","id":"A1-07"},{"r1":12,"c1":9,"r2":12,"c2":13,"val":"A1-16","type":"rack","id":"A1-16"},{"r1":13,"c1":4,"r2":13,"c2":7,"val":"A1-06","type":"rack","id":"A1-06"},{"r1":13,"c1":9,"r2":13,"c2":13,"val":"A1-17","type":"rack","id":"A1-17"},{"r1":13,"c1":23,"r2":14,"c2":26,"val":"Film M/C 1","type":"zone"},{"r1":13,"c1":40,"r2":14,"c2":42,"val":"Oven 07","type":"zone"},{"r1":13,"c1":45,"r2":14,"c2":47,"val":"MC08","type":"zone"},{"r1":14,"c1":4,"r2":14,"c2":7,"val":"A1-05","type":"rack","id":"A1-05"},{"r1":14,"c1":9,"r2":14,"c2":13,"val":"A1-18","type":"rack","id":"A1-18"},{"r1":15,"c1":4,"r2":15,"c2":7,"val":"A1-04","type":"rack","id":"A1-04"},{"r1":15,"c1":9,"r2":15,"c2":13,"val":"A1-19","type":"rack","id":"A1-19"},{"r1":15,"c1":40,"r2":16,"c2":42,"val":"Oven 06","type":"zone"},{"r1":15,"c1":45,"r2":16,"c2":47,"val":"MC07","type":"zone"},{"r1":16,"c1":4,"r2":16,"c2":7,"val":"A1-03","type":"rack","id":"A1-03"},{"r1":16,"c1":9,"r2":16,"c2":13,"val":"A1-20","type":"rack","id":"A1-20"},{"r1":16,"c1":14,"r2":18,"c2":15,"val":"Wrapping Machine","type":"zone"},{"r1":16,"c1":22,"r2":16,"c2":26,"val":"AUTO 4","type":"zone"},{"r1":17,"c1":4,"r2":17,"c2":7,"val":"A1-02","type":"rack","id":"A1-02"},{"r1":17,"c1":9,"r2":18,"c2":13,"val":"A1-21","type":"rack","id":"A1-21"},{"r1":17,"c1":40,"r2":18,"c2":42,"val":"Oven 05","type":"zone"},{"r1":17,"c1":45,"r2":18,"c2":47,"val":"MC06","type":"zone"},{"r1":18,"c1":4,"r2":18,"c2":7,"val":"A1-01","type":"rack","id":"A1-01"},{"r1":18,"c1":22,"r2":18,"c2":26,"val":"AUTO 3","type":"zone"},{"r1":19,"c1":45,"r2":20,"c2":47,"val":"MC05","type":"zone"},{"r1":20,"c1":1,"r2":28,"c2":7,"val":"office","type":"zone"},{"r1":20,"c1":9,"r2":21,"c2":13,"val":"A1-22","type":"rack","id":"A1-22"},{"r1":20,"c1":15,"r2":25,"c2":20,"val":"Pending Labeling Area","type":"zone"},{"r1":20,"c1":22,"r2":20,"c2":26,"val":"AUTO 2","type":"zone"},{"r1":20,"c1":28,"r2":28,"c2":38,"val":"WIP Area  (Pending Packaging)","type":"zone"},{"r1":20,"c1":40,"r2":21,"c2":42,"val":"Oven 04","type":"zone"},{"r1":21,"c1":45,"r2":22,"c2":47,"val":"MC04","type":"zone"},{"r1":22,"c1":9,"r2":22,"c2":13,"val":"A1-23","type":"rack","id":"A1-23"},{"r1":22,"c1":22,"r2":22,"c2":26,"val":"AUTO 1","type":"zone"},{"r1":22,"c1":40,"r2":23,"c2":42,"val":"Oven 03","type":"zone"},{"r1":23,"c1":9,"r2":23,"c2":13,"val":"A1-24","type":"rack","id":"A1-24"},{"r1":23,"c1":45,"r2":24,"c2":47,"val":"MC03","type":"zone"},{"r1":24,"c1":9,"r2":24,"c2":13,"val":"A1-25","type":"rack","id":"A1-25"},{"r1":24,"c1":22,"r2":25,"c2":23,"val":"Wrapping Machine","type":"zone"},{"r1":24,"c1":40,"r2":25,"c2":42,"val":"Oven 02","type":"zone"},{"r1":25,"c1":9,"r2":25,"c2":13,"val":"A1-26","type":"rack","id":"A1-26"},{"r1":25,"c1":45,"r2":26,"c2":47,"val":"MC02","type":"zone"},{"r1":26,"c1":9,"r2":26,"c2":13,"val":"A1-27","type":"rack","id":"A1-27"},{"r1":26,"c1":15,"r2":28,"c2":18,"val":"Cargo Lift","type":"lift","id":"LIFT-SOUTH-F1"},{"r1":26,"c1":19,"r2":28,"c2":20,"val":"Packing & Store Office","type":"zone"},{"r1":26,"c1":22,"r2":28,"c2":26,"val":"Assembly Area","type":"zone"},{"r1":26,"c1":40,"r2":27,"c2":42,"val":"Oven 01","type":"zone"},{"r1":27,"c1":9,"r2":27,"c2":13,"val":"A1-28","type":"rack","id":"A1-28"},{"r1":27,"c1":45,"r2":28,"c2":47,"val":"MC01","type":"zone"},{"r1":28,"c1":9,"r2":28,"c2":13,"val":"A1-29","type":"rack","id":"A1-29"},{"r1":28,"c1":40,"r2":28,"c2":42,"val":"QC Area","type":"zone"},{"r1":30,"c1":3,"r2":30,"c2":4,"val":"Toilet","type":"toilet"},{"r1":30,"c1":6,"r2":30,"c2":7,"val":"Toilet","type":"toilet"}];
         const FLOOR2_DATA = [{"r1":1,"c1":1,"r2":3,"c2":2,"val":"Cargo Lift","type":"lift","id":"LIFT-FRONT-F2"},{"r1":1,"c1":3,"r2":3,"c2":4,"val":"A2-63","type":"rack","id":"A2-63"},{"r1":1,"c1":5,"r2":3,"c2":6,"val":"A2-64","type":"rack","id":"A2-64"},{"r1":1,"c1":7,"r2":3,"c2":8,"val":"A2-65","type":"rack","id":"A2-65"},{"r1":1,"c1":9,"r2":8,"c2":47,"val":"1ST","type":"void"},{"r1":5,"c1":3,"r2":8,"c2":7,"val":"A2-62","type":"rack","id":"A2-62"},{"r1":9,"c1":3,"r2":12,"c2":7,"val":"A2-61","type":"rack","id":"A2-61"},{"r1":9,"c1":9,"r2":12,"c2":10,"val":"A2-54","type":"rack","id":"A2-54"},{"r1":9,"c1":11,"r2":12,"c2":12,"val":"A2-53","type":"rack","id":"A2-53"},{"r1":9,"c1":13,"r2":12,"c2":14,"val":"A2-52","type":"rack","id":"A2-52"},{"r1":9,"c1":15,"r2":12,"c2":16,"val":"A2-51","type":"rack","id":"A2-51"},{"r1":9,"c1":17,"r2":12,"c2":18,"val":"A2-50","type":"rack","id":"A2-50"},{"r1":9,"c1":19,"r2":12,"c2":20,"val":"A2-49","type":"rack","id":"A2-49"},{"r1":9,"c1":21,"r2":12,"c2":22,"val":"A2-48","type":"rack","id":"A2-48"},{"r1":9,"c1":23,"r2":12,"c2":24,"val":"A2-47","type":"rack","id":"A2-47"},{"r1":9,"c1":25,"r2":12,"c2":26,"val":"A2-46","type":"rack","id":"A2-46"},{"r1":9,"c1":27,"r2":12,"c2":28,"val":"A2-45","type":"rack","id":"A2-45"},{"r1":9,"c1":29,"r2":12,"c2":30,"val":"A2-44","type":"rack","id":"A2-44"},{"r1":9,"c1":31,"r2":12,"c2":32,"val":"A2-43","type":"rack","id":"A2-43"},{"r1":9,"c1":33,"r2":12,"c2":34,"val":"A2-42","type":"rack","id":"A2-42"},{"r1":9,"c1":35,"r2":12,"c2":36,"val":"A2-41","type":"rack","id":"A2-41"},{"r1":9,"c1":37,"r2":12,"c2":38,"val":"A2-40","type":"rack","id":"A2-40"},{"r1":9,"c1":39,"r2":28,"c2":47,"val":"1ST","type":"void"},{"r1":15,"c1":1,"r2":19,"c2":7,"type":"rackgroup","items":[{"val":"A2-60","id":"A2-60"},{"val":"A2-59","id":"A2-59"},{"val":"A2-58","id":"A2-58"},{"val":"A2-57","id":"A2-57"},{"val":"A2-56","id":"A2-56"},{"val":"A2-55","id":"A2-55"}]},{"r1":15,"c1":9,"r2":17,"c2":10,"val":"A2-27","type":"rack","id":"A2-27"},{"r1":15,"c1":11,"r2":17,"c2":12,"val":"A2-28","type":"rack","id":"A2-28"},{"r1":15,"c1":13,"r2":17,"c2":14,"val":"A2-29","type":"rack","id":"A2-29"},{"r1":15,"c1":19,"r2":17,"c2":20,"val":"A2-30","type":"rack","id":"A2-30"},{"r1":15,"c1":21,"r2":17,"c2":22,"val":"A2-31","type":"rack","id":"A2-31"},{"r1":15,"c1":23,"r2":17,"c2":24,"val":"A2-32","type":"rack","id":"A2-32"},{"r1":15,"c1":25,"r2":17,"c2":26,"val":"A2-33","type":"rack","id":"A2-33"},{"r1":15,"c1":27,"r2":17,"c2":28,"val":"A2-34","type":"rack","id":"A2-34"},{"r1":15,"c1":29,"r2":17,"c2":30,"val":"A2-35","type":"rack","id":"A2-35"},{"r1":15,"c1":31,"r2":17,"c2":32,"val":"A2-36","type":"rack","id":"A2-36"},{"r1":15,"c1":33,"r2":17,"c2":34,"val":"A2-37","type":"rack","id":"A2-37"},{"r1":15,"c1":35,"r2":17,"c2":38,"val":"A2-38","type":"rack","id":"A2-38"},{"r1":18,"c1":9,"r2":20,"c2":10,"val":"A2-26","type":"rack","id":"A2-26"},{"r1":18,"c1":11,"r2":20,"c2":12,"val":"A2-25","type":"rack","id":"A2-25"},{"r1":18,"c1":13,"r2":20,"c2":14,"val":"A2-24","type":"rack","id":"A2-24"},{"r1":18,"c1":19,"r2":20,"c2":20,"val":"A2-23","type":"rack","id":"A2-23"},{"r1":18,"c1":21,"r2":20,"c2":22,"val":"A2-22","type":"rack","id":"A2-22"},{"r1":18,"c1":23,"r2":20,"c2":24,"val":"A2-21","type":"rack","id":"A2-21"},{"r1":18,"c1":25,"r2":20,"c2":26,"val":"A2-20","type":"rack","id":"A2-20"},{"r1":18,"c1":27,"r2":20,"c2":28,"val":"A2-19","type":"rack","id":"A2-19"},{"r1":18,"c1":29,"r2":20,"c2":30,"val":"A2-18","type":"rack","id":"A2-18"},{"r1":18,"c1":31,"r2":20,"c2":32,"val":"A2-17","type":"rack","id":"A2-17"},{"r1":18,"c1":33,"r2":20,"c2":34,"val":"A2-16","type":"rack","id":"A2-16"},{"r1":18,"c1":35,"r2":20,"c2":38,"val":"A2-15","type":"rack","id":"A2-15"},{"r1":22,"c1":1,"r2":30,"c2":7,"val":"STAFF ROOM (3ST)","type":"zone"},{"r1":23,"c1":9,"r2":28,"c2":10,"val":"A2-01","type":"rack","id":"A2-01"},{"r1":23,"c1":11,"r2":28,"c2":12,"val":"A2-02","type":"rack","id":"A2-02"},{"r1":23,"c1":13,"r2":28,"c2":14,"val":"A2-03","type":"rack","id":"A2-03"},{"r1":23,"c1":19,"r2":28,"c2":20,"val":"A2-04","type":"rack","id":"A2-04"},{"r1":23,"c1":21,"r2":28,"c2":22,"val":"A2-05","type":"rack","id":"A2-05"},{"r1":23,"c1":23,"r2":28,"c2":24,"val":"A2-06","type":"rack","id":"A2-06"},{"r1":23,"c1":25,"r2":28,"c2":26,"val":"A2-07","type":"rack","id":"A2-07"},{"r1":23,"c1":27,"r2":28,"c2":28,"val":"A2-08","type":"rack","id":"A2-08"},{"r1":23,"c1":29,"r2":28,"c2":30,"val":"A2-09","type":"rack","id":"A2-09"},{"r1":23,"c1":31,"r2":28,"c2":32,"val":"A2-10","type":"rack","id":"A2-10"},{"r1":23,"c1":33,"r2":28,"c2":34,"val":"A2-11","type":"rack","id":"A2-11"},{"r1":23,"c1":35,"r2":28,"c2":38,"val":"A2-12","type":"rack","id":"A2-12"},{"r1":26,"c1":15,"r2":28,"c2":18,"val":"Cargo Lift","type":"lift","id":"LIFT-SOUTH-F2"}];
 
@@ -250,7 +259,6 @@
             renderFloor('floor2-layer', FLOOR2_DATA);
         }
 
-        // ระบบ Auto Scale ปรับขนาดตึกตามหน้าจอ
         function resize3D() {
             const wrapper = document.getElementById('scale-wrapper');
             const spacer = document.getElementById('spacer');
@@ -279,12 +287,6 @@
         }
         window.addEventListener('resize', resize3D);
 
-        const FLOOR_BADGE_CONFIG = {
-            '3d': { text: 'ภาพรวม 3 มิติ (ชั้น 1-2)', cls: 'bg-sky-900 text-sky-300 border border-sky-500' },
-            'f1': { text: '1ST FLOOR',                 cls: 'bg-sky-900 text-sky-300 border border-sky-500' },
-            'f2': { text: '2ND FLOOR',                 cls: 'bg-amber-900 text-amber-300 border border-amber-500' }
-        };
-
         function changeView(mode) {
             const b = document.getElementById('building');
             b.className = "building-3d";
@@ -292,18 +294,17 @@
                 document.getElementById('btn-'+m).className = `text-xs font-bold px-4 py-2 rounded-lg shadow transition-all ${mode===m ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-400'}`;
             });
             b.classList.add('state-'+mode);
-
-            const cfg = FLOOR_BADGE_CONFIG[mode];
+            
             const badge = document.getElementById('floorBadge');
-            badge.textContent = cfg.text;
-            badge.className = 'floor-badge-outside ' + cfg.cls;
+            if (mode === '3d') { badge.textContent = 'ภาพรวม 3 มิติ (ชั้น 1-2)'; badge.className = 'floor-badge-outside bg-sky-900 text-sky-300 border border-sky-500'; }
+            if (mode === 'f1') { badge.textContent = '1ST FLOOR'; badge.className = 'floor-badge-outside bg-sky-900 text-sky-300 border border-sky-500'; }
+            if (mode === 'f2') { badge.textContent = '2ND FLOOR'; badge.className = 'floor-badge-outside bg-amber-900 text-amber-300 border border-amber-500'; }
         }
 
         // ==========================================================================
-        // 🚀 PATCH v1.2: ระบบ Supabase & Advanced Search (ดึงข้อมูล 6 คอลัมน์)
+        // ระบบ Supabase & Advanced Search + Auto Customer Extraction
         // ==========================================================================
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
-        // ⚠️ อย่าลืมเช็กว่า Key นี้ยังใช้งานได้ปกตินะครับ
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
         
@@ -319,13 +320,24 @@
             });
             return ids;
         }
+        
+        // 🛠️ สูตรสกัดรหัสลูกค้าอัจฉริยะ (เช่น FGP-L177-08800 -> FGP-L177)
+        function extractCustomerCode(itemString) {
+            if(!itemString) return '-';
+            let items = itemString.split(',').map(s => s.trim());
+            let customers = items.map(item => {
+                let parts = item.split('-');
+                // ตัดเอาแค่ตัวอักษร 2 ท่อนแรกมาต่อกัน (ทิ้งตัวเลขด้านหลังสุดไป)
+                if(parts.length >= 2) return parts[0] + '-' + parts[1];
+                return item;
+            });
+            // กรองเอาเฉพาะชื่อที่ไม่ซ้ำกัน
+            return [...new Set(customers)].join(', ');
+        }
 
         async function fetchLocations() {
             const { data, error } = await sbClient.from("locations").select("*");
-            if(error) {
-                console.error("Error fetching data:", error);
-                return;
-            }
+            if(error) return;
             
             data.forEach(loc => {
                 locationData[loc.location_id] = loc;
@@ -342,7 +354,6 @@
                 });
             });
             
-            // ทำให้แร็คที่ยังไม่มีข้อมูลใน DB กดคลิกดู Modal ได้เช่นกัน
             document.querySelectorAll('.rack-box').forEach(box => {
                 if(!box.onclick){
                     let id = box.id.replace('box-','');
@@ -352,37 +363,87 @@
             });
         }
 
-        // --- ระบบค้นหาอัจฉริยะ (Fuzzy Search) ตามที่คุณรีเควส ---
+        // --- ระบบค้นหา & แผงสรุปผล (Floating Panel) ---
         document.getElementById('searchInput').addEventListener('input', e => {
             const term = e.target.value.trim().toUpperCase();
-            
-            // เคลียร์ไฟกะพริบเก่าออกทั้งหมด
             document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
             
-            if(!term) return; // ถ้าช่องค้นหาว่าง ให้หยุดทันที
+            const panel = document.getElementById('searchResultsPanel');
+            const content = document.getElementById('searchResultsContent');
+            const panelTitle = document.getElementById('searchPanelTitle');
             
-            // กวาดหาข้อมูลที่ตรงกับคำที่พิมพ์ (หาจาก รหัสช่อง, โซน, รหัสสินค้า, ชื่อชิ้นงาน, ชื่อลูกค้า)
+            if(!term) {
+                panel.classList.add('hidden'); // ซ่อนแผงทันทีถ้าไม่ได้พิมพ์อะไร
+                return; 
+            }
+            
+            let html = '';
+            let foundCount = 0;
+            
             for(const [locId, data] of Object.entries(locationData)) {
+                // สกัดชื่อลูกค้าอัตโนมัติจาก items_list
+                const autoCustomer = extractCustomerCode(data.items_list);
+                
                 const matchLoc  = locId.toUpperCase().includes(term);
                 const matchZone = (data.zone || "").toUpperCase().includes(term);
                 const matchItem = (data.items_list || "").toUpperCase().includes(term);
                 const matchPart = (data.part_names || "").toUpperCase().includes(term);
-                const matchCust = (data.customers || "").toUpperCase().includes(term); // ค้นหาจากลูกค้าได้แล้ว!
+                const matchCust = autoCustomer.toUpperCase().includes(term);
 
                 if(matchLoc || matchZone || matchItem || matchPart || matchCust) {
-                    // ถ้าเจอ ให้สั่งกะพริบแร็คทุกจุดที่มีสินค้านั้น
+                    // 1. สั่งให้ตึกกะพริบไฟ
                     boxIdsFor(locId).forEach(id => { 
                         const b = document.getElementById(id); 
                         if(b) b.classList.add('highlight-blink'); 
                     });
+                    
+                    // 2. ดึงข้อมูลมาสร้างเป็นการ์ดใน Floating Panel
+                    let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
+                    let pArr = (data.part_names || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
+                    
+                    html += `
+                    <div class="bg-slate-950 p-2.5 rounded border border-slate-700 hover:border-sky-500 cursor-pointer transition-colors shadow-md" onclick="openModal('${locId}')">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sky-400 font-black text-xs tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
+                            <span class="text-[9px] text-slate-300 font-bold bg-slate-800 border border-slate-600 px-1.5 py-0.5 rounded shadow">โซน: ${data.zone || '-'}</span>
+                        </div>`;
+                    
+                    // วนลูปโชว์ข้อมูลทีละไอเทมในกล่องนั้น
+                    iArr.forEach((item, idx) => {
+                        html += `
+                        <div class="mb-1.5 pl-2 border-l-2 border-slate-700">
+                            <div class="text-[10px] text-slate-300 truncate"><span class="text-slate-500 font-bold">Item:</span> ${item}</div>
+                            <div class="text-[10px] text-slate-300 truncate"><span class="text-slate-500 font-bold">Part:</span> ${pArr[idx] || '-'}</div>
+                        </div>`;
+                    });
+
+                    // ใส่ชื่อลูกค้าที่สกัดมาได้ปิดท้าย
+                    html += `
+                        <div class="text-[10px] text-amber-400 font-bold mt-2 pt-1.5 border-t border-slate-800">
+                            <i class="fa-solid fa-user-tag mr-1"></i> ลูกค้า: ${autoCustomer}
+                        </div>
+                    </div>`;
+                    
+                    foundCount++;
                 }
+            }
+            
+            // นำโค้ด HTML ที่ประกอบเสร็จแล้วไปยัดใส่กล่อง Panel
+            if(foundCount > 0) {
+                content.innerHTML = html;
+                panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> พบ ${foundCount} จุดหมาย`;
+                panel.classList.remove('hidden'); // โชว์กล่อง
+            } else {
+                content.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs"><i class="fa-solid fa-magnifying-glass-minus text-xl mb-2 block"></i>ไม่พบข้อมูลที่ค้นหา</div>`;
+                panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ไม่พบรายการ`;
+                panel.classList.remove('hidden');
             }
         });
 
-        // --- อัปเกรดหน้าต่าง Modal แสดงชื่อลูกค้า ---
+        // --- อัปเกรดหน้าต่าง Modal (ตอนคลิก) ให้สกัดชื่อลูกค้าโชว์ด้วย ---
         function openModal(locId) {
             document.getElementById('modalTitle').innerText = locId;
-            const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '', part_names: '', customers: '' };
+            const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '', part_names: '' };
             const badge = document.getElementById('modalStatusBadge');
             
             badge.innerText = data.status === 'Empty' ? 'ว่าง (Empty)' : data.status === 'Partial' ? 'กลาง (Partial)' : data.status === 'Full' ? 'เต็ม (Full)' : 'ไม่มีข้อมูล';
@@ -394,21 +455,23 @@
 
             let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
             let pArr = (data.part_names || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
-            let cArr = (data.customers || "").split(',').map(s=>s.trim());
 
             if (iArr.length === 0) {
                 document.getElementById('modalBodyContent').innerHTML = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-box-open text-3xl mb-2 block text-slate-600"></i> ไม่มีสินค้าในช่องนี้</div>`;
             } else {
                 let html = '<div class="space-y-2.5 max-h-[250px] overflow-y-auto pr-1 hide-scroll">';
                 for (let i = 0; i < iArr.length; i++) {
-                    const custName = cArr[i] || '-';
+                    // ใช้ระบบตัดข้อความสกัดชื่อลูกค้า
+                    let parts = iArr[i].split('-');
+                    let custName = parts.length >= 2 ? (parts[0] + '-' + parts[1]) : '-';
+                    
                     html += `
                     <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex items-start gap-3 shadow-md">
                         <div class="bg-sky-950 text-sky-400 rounded-md p-2 mt-0.5 border border-sky-900/50"><i class="fa-solid fa-box text-xs"></i></div>
                         <div class="flex-1 min-w-0">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wide flex justify-between">
                                 <span><i class="fa-solid fa-barcode"></i> ${iArr[i]}</span>
-                                <span class="text-sky-300 truncate max-w-[80px] text-right"><i class="fa-solid fa-user"></i> ${custName}</span>
+                                <span class="text-amber-400 truncate max-w-[80px] text-right"><i class="fa-solid fa-user"></i> ${custName}</span>
                             </div>
                             <div class="text-xs font-bold text-white break-words mt-0.5">${pArr[i]||'-'}</div>
                         </div>

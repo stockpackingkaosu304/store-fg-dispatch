@@ -67,18 +67,33 @@
                 </button>
             </div>
             
-            <p class="text-sm text-slate-500 mb-4">กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน</p>
+            <p id="loginModalDesc" class="text-sm text-slate-500 mb-4">กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน</p>
             
-            <input type="text" id="staffIdInput" placeholder="เช่น EMP001" class="w-full border border-gray-300 rounded-xl p-3 text-center text-lg uppercase tracking-widest font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none mb-4">
-            
-            <button onclick="confirmLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition-colors">
-                เข้าสู่ระบบจ่ายงาน
+            <input type="text" id="staffIdInput" placeholder="เช่น EMP001" class="w-full border border-gray-300 rounded-xl p-3 text-center text-lg uppercase tracking-widest font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none mb-2">
+
+            <p id="loginError" class="hidden text-xs text-red-500 font-semibold mb-3 text-center"></p>
+
+            <button id="loginConfirmBtn" onclick="confirmLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                <span id="loginConfirmBtnText">เข้าสู่ระบบจ่ายงาน</span>
             </button>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         let targetPage = ""; // ตัวแปรเก็บว่าพนักงานกดไปหน้าไหน
+
+        /* =============================================================
+           SUPABASE INIT
+        ============================================================= */
+        var sbClient = null;
+        try {
+            var SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
+            var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
+            sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+        } catch(e) {
+            console.error("Supabase init error:", e);
+        }
 
         function goToLayout() {
             // ไปที่หน้า layout.html (เข้าได้เลยไม่ต้องใส่รหัส)
@@ -87,8 +102,18 @@
 
         function openLoginModal(page) {
             targetPage = page; // จำไว้ว่าผู้ใช้จะไปหน้าไหน
+
+            // ปรับข้อความในโมดัลตามหน้าที่จะเข้า
+            var desc = document.getElementById('loginModalDesc');
+            if (page === 'report.html') {
+                desc.textContent = "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณากรอกรหัสพนักงานของท่าน";
+            } else {
+                desc.textContent = "กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน";
+            }
+
+            hideLoginError();
             document.getElementById('loginModal').classList.add('active');
-            
+
             // เช็คว่าเคยกรอกไว้ไหม ถ้าเคยให้ดึงมาโชว์เลย
             const savedStaffId = localStorage.getItem("savedStaffId");
             if(savedStaffId) {
@@ -99,19 +124,75 @@
 
         function closeLoginModal() {
             document.getElementById('loginModal').classList.remove('active');
+            hideLoginError();
         }
 
-        function confirmLogin() {
+        function showLoginError(msg) {
+            var el = document.getElementById('loginError');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        function hideLoginError() {
+            document.getElementById('loginError').classList.add('hidden');
+        }
+
+        function setLoginLoading(loading) {
+            var btn     = document.getElementById('loginConfirmBtn');
+            var btnText = document.getElementById('loginConfirmBtnText');
+            btn.disabled = loading;
+            btnText.textContent = loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบจ่ายงาน";
+        }
+
+        async function confirmLogin() {
+            hideLoginError();
             const staffId = document.getElementById('staffIdInput').value.trim().toUpperCase();
             if(!staffId) {
-                alert("กรุณากรอกรหัสพนักงานครับ!");
+                showLoginError("กรุณากรอกรหัสพนักงานครับ!");
                 return;
             }
-            // บันทึก Staff ID ลงในเบราว์เซอร์
-            localStorage.setItem("savedStaffId", staffId);
-            
-            // ส่งไปที่หน้าที่พนักงานกดเลือกมา (index.html หรือ report.html)
-            window.location.href = targetPage;
+
+            if (!sbClient) {
+                showLoginError("ระบบตรวจสอบไม่พร้อมใช้งาน กรุณาลองใหม่");
+                return;
+            }
+
+            setLoginLoading(true);
+
+            try {
+                const { data, error } = await sbClient
+                    .from('staff')
+                    .select('staff_id, role, active')
+                    .eq('staff_id', staffId)
+                    .maybeSingle();
+
+                if (error) {
+                    console.error(error);
+                    showLoginError("เกิดข้อผิดพลาดในการตรวจสอบ กรุณาลองใหม่");
+                    return;
+                }
+
+                if (!data || !data.active) {
+                    showLoginError("รหัสพนักงานไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน");
+                    return;
+                }
+
+                // หน้ารายงาน อนุญาตเฉพาะ role = supervisor เท่านั้น
+                if (targetPage === 'report.html' && data.role !== 'supervisor') {
+                    showLoginError("หน้ารายงานสำหรับหัวหน้างานเท่านั้น");
+                    return;
+                }
+
+                // ผ่านการตรวจสอบ -> บันทึกและไปหน้าเป้าหมาย
+                localStorage.setItem("savedStaffId", staffId);
+                window.location.href = targetPage;
+
+            } catch (err) {
+                console.error(err);
+                showLoginError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+            } finally {
+                setLoginLoading(false);
+            }
         }
 
         // กด Enter ในช่องกรอกรหัสพนักงานได้เลย

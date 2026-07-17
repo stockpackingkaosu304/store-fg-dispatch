@@ -25,10 +25,9 @@
 
 <div class="max-w-6xl mx-auto space-y-4">
 
- <!-- Header -->
-    <div class="bg-slate-800 text-white p-4 rounded-2xl relative">   
-        
-        <!-- 🟢 วางปุ่มสลับภาษาตรงนี้ (ใส่กลับมาให้แล้วครับ) -->
+    <!-- Header -->
+    <div class="bg-slate-800 text-white p-4 rounded-2xl relative">
+        <!-- 🟢 ปุ่มสลับภาษา -->
         <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md z-[60] hover:border-sky-400 transition-colors">
             <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
             <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
@@ -40,26 +39,26 @@
             <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
         </div>
         <!-- 🟢 จบปุ่มสลับภาษา -->
-
-        <!-- 💡 เติม mt-8 และ data-i18n เพื่อให้แปลภาษาได้ -->
-        <div class="flex justify-between items-center mb-3 mt-8">
+        <div class="flex justify-between items-center mb-3 pr-20">
             <h1 class="text-xl font-bold">
                 <i class="fa-solid fa-boxes-stacked mr-2 text-sky-400"></i>
                 <span data-i18n="appTitle">STORE FG DISPATCH</span>
             </h1>
             <p class="text-slate-400 text-xs" data-i18n="appDesc">ระบบจ่ายงานคลังสินค้า</p>
         </div>
-        
         <!-- Nav -->
-        <div class="flex gap-2">
-            <a href="menu.html" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-                <i class="fa-solid fa-house"></i> <span data-i18n="menuMain">เมนูหลัก</span>
+      <div class="flex gap-2">
+            <a href="menu.html"
+                class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+                <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">เมนูหลัก</span>
             </a>
-            <a href="index.html" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-                <i class="fa-solid fa-pen-to-square"></i> <span data-i18n="menuDispatch">บันทึกข้อมูล</span>
+            <a href="index.html"
+                class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+                <i class="fa-solid fa-pen-to-square"></i> <span data-i18n="navDispatch">บันทึกข้อมูล</span>
             </a>
-            <a href="report.html" class="flex-1 bg-sky-600 text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-chart-bar"></i> <span data-i18n="menuReport">ดูรายงาน</span>
+            <a href="report.html"
+                class="flex-1 bg-sky-600 text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-chart-bar"></i> <span data-i18n="navReport">ดูรายงาน</span>
             </a>
         </div>
     </div>
@@ -67,19 +66,19 @@
     <!-- Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <p class="text-xs text-gray-500 mb-1">บิลทั้งหมด</p>
+            <p class="text-xs text-gray-500 mb-1" data-i18n="summaryBillsLabel">บิลทั้งหมด</p>
             <p id="summaryBills" class="text-2xl font-bold text-slate-800">—</p>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <p class="text-xs text-gray-500 mb-1">รายการสินค้า</p>
+            <p class="text-xs text-gray-500 mb-1" data-i18n="summaryItemsLabel">รายการสินค้า</p>
             <p id="summaryItems" class="text-2xl font-bold text-sky-600">—</p>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <p class="text-xs text-gray-500 mb-1">ยอดรวมทั้งหมด</p>
+            <p class="text-xs text-gray-500 mb-1" data-i18n="summaryTotalLabel">ยอดรวมทั้งหมด</p>
             <p id="summaryTotal" class="text-2xl font-bold text-emerald-600">—</p>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <p class="text-xs text-gray-500 mb-1">พนักงาน</p>
+            <p class="text-xs text-gray-500 mb-1" data-i18n="summaryStaffLabel">พนักงาน</p>
             <p id="summaryStaff" class="text-2xl font-bold text-purple-600">—</p>
         </div>
     </div>
@@ -87,29 +86,29 @@
     <!-- Filter Area -->
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            <i class="fa-solid fa-filter mr-1 text-sky-500"></i> ตัวกรองข้อมูล
+            <i class="fa-solid fa-filter mr-1 text-sky-500"></i> <span data-i18n="filterTitle">ตัวกรองข้อมูล</span>
         </p>
         <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div>
-                <label class="block text-xs text-gray-500 mb-1">วันที่เริ่มต้น</label>
+                <label class="block text-xs text-gray-500 mb-1" data-i18n="filterStartDate">วันที่เริ่มต้น</label>
                 <input type="date" id="startDate"
                     class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-sky-500">
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">วันที่สิ้นสุด</label>
+                <label class="block text-xs text-gray-500 mb-1" data-i18n="filterEndDate">วันที่สิ้นสุด</label>
                 <input type="date" id="endDate"
                     class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-sky-500">
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">รหัสพนักงาน</label>
-                <input type="text" id="staffFilter" placeholder="เช่น EMP001"
+                <label class="block text-xs text-gray-500 mb-1" data-i18n="filterStaffId">รหัสพนักงาน</label>
+                <input type="text" id="staffFilter" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001"
                     class="w-full border border-gray-300 rounded-lg p-2.5 text-sm uppercase focus:ring-2 focus:ring-sky-500">
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">กะ</label>
+                <label class="block text-xs text-gray-500 mb-1" data-i18n="filterShift">กะ</label>
                 <select id="shiftFilter"
                     class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-sky-500">
-                    <option value="">ทั้งหมด</option>
+                    <option value="" data-i18n="filterShiftAll">ทั้งหมด</option>
                     <option value="Shift A">Shift A</option>
                     <option value="Shift B">Shift B</option>
                 </select>
@@ -117,25 +116,25 @@
             <div class="flex flex-col justify-end">
                 <button onclick="fetchReport()"
                     class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-magnifying-glass"></i> ค้นหา
+                    <i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="btnSearch">ค้นหา</span>
                 </button>
             </div>
         </div>
         <div class="flex gap-2 mt-3">
             <button onclick="setToday()"
-                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg">
+                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg" data-i18n="quickToday">
                 วันนี้
             </button>
             <button onclick="setThisWeek()"
-                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg">
+                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg" data-i18n="quickThisWeek">
                 สัปดาห์นี้
             </button>
             <button onclick="setThisMonth()"
-                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg">
+                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg" data-i18n="quickThisMonth">
                 เดือนนี้
             </button>
             <button onclick="clearFilter()"
-                class="text-xs bg-red-50 hover:bg-red-100 text-red-500 px-3 py-1.5 rounded-lg">
+                class="text-xs bg-red-50 hover:bg-red-100 text-red-500 px-3 py-1.5 rounded-lg" data-i18n="quickClear">
                 ล้างตัวกรอง
             </button>
         </div>
@@ -146,25 +145,25 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border-b gap-3">
             <p class="text-sm font-semibold text-slate-700">
                 <i class="fa-solid fa-table mr-1 text-slate-400"></i>
-                ผลการค้นหา: <span id="resultCount" class="text-sky-600">—</span> รายการ
+                <span data-i18n="resultLabel">ผลการค้นหา:</span> <span id="resultCount" class="text-sky-600">—</span> <span data-i18n="resultUnit">รายการ</span>
             </p>
             <button onclick="exportToExcel()"
                 class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
-                <i class="fa-solid fa-file-excel"></i> Export Excel
+                <i class="fa-solid fa-file-excel"></i> <span data-i18n="btnExport">Export Excel</span>
             </button>
         </div>
 
         <!-- Loading -->
         <div id="loadingState" class="hidden p-12 text-center text-gray-400">
             <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-sky-400"></i>
-            <p class="text-sm">กำลังโหลดข้อมูล...</p>
+            <p class="text-sm" data-i18n="loadingText">กำลังโหลดข้อมูล...</p>
         </div>
 
         <!-- Empty State -->
         <div id="emptyState" class="hidden p-12 text-center text-gray-400">
             <i class="fa-solid fa-box-open text-4xl mb-3"></i>
-            <p class="text-sm font-medium">ไม่พบข้อมูลในช่วงเวลาที่เลือก</p>
-            <p class="text-xs mt-1">ลองเปลี่ยนตัวกรองแล้วค้นหาใหม่อีกครั้ง</p>
+            <p class="text-sm font-medium" data-i18n="emptyTitle">ไม่พบข้อมูลในช่วงเวลาที่เลือก</p>
+            <p class="text-xs mt-1" data-i18n="emptyDesc">ลองเปลี่ยนตัวกรองแล้วค้นหาใหม่อีกครั้ง</p>
         </div>
 
         <!-- Table -->
@@ -172,16 +171,16 @@
             <table class="w-full text-sm text-left min-w-[700px]">
                 <thead class="bg-slate-50 border-b border-gray-200">
                     <tr>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase">วันที่/เวลา</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase">รหัสพนักงาน</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase">กะ</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase">รหัสบิล</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase">รายการสินค้า</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center">ถุง</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center">บรรจุ</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center">เศษ</th>
-                        <th class="p-3 text-xs font-semibold text-emerald-600 uppercase text-center">รวม</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase">รูปภาพ</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thDateTime">วันที่/เวลา</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thStaffId">รหัสพนักงาน</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thShift">กะ</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thBillId">รหัสบิล</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thPartName">รายการสินค้า</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center" data-i18n="bag">ถุง</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center" data-i18n="pack">บรรจุ</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center" data-i18n="fraction">เศษ</th>
+                        <th class="p-3 text-xs font-semibold text-emerald-600 uppercase text-center" data-i18n="total">รวม</th>
+                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thPhotos">รูปภาพ</th>
                     </tr>
                 </thead>
                 <tbody id="reportBody" class="divide-y divide-gray-100"></tbody>
@@ -222,6 +221,7 @@ function setToday() {
     var today = formatDateInput(new Date());
     document.getElementById("startDate").value = today;
     document.getElementById("endDate").value   = today;
+    fetchReport();
 }
 
 function setThisWeek() {
@@ -231,6 +231,7 @@ function setThisWeek() {
     var sun  = new Date(mon); sun.setDate(mon.getDate() + 6);
     document.getElementById("startDate").value = formatDateInput(mon);
     document.getElementById("endDate").value   = formatDateInput(sun);
+    fetchReport();
 }
 
 function setThisMonth() {
@@ -239,6 +240,7 @@ function setThisMonth() {
     var last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     document.getElementById("startDate").value = formatDateInput(first);
     document.getElementById("endDate").value   = formatDateInput(last);
+    fetchReport();
 }
 
 function clearFilter() {
@@ -432,7 +434,6 @@ function showLoading(show) {
 ============================================================= */
 document.addEventListener("DOMContentLoaded", function() {
     setToday();
-    fetchReport();
 });
 </script>
 <!-- ========================================== -->
@@ -442,129 +443,188 @@ document.addEventListener("DOMContentLoaded", function() {
 const translations = {
     th: {
         appTitle: "STORE FG DISPATCH",
-        appDesc: "ระบบจัดการคลังสินค้าและจ่ายงาน",
-        menuLayout: "แผนผังคลังสินค้า",
-        menuLayoutDesc: "ดูตำแหน่งสินค้า และสถานะพื้นที่ว่าง (Layout)",
-        menuDispatch: "บันทึกจ่ายงาน",
-        menuDispatchDesc: "บันทึกการเบิกจ่ายสินค้า (Dispatch)",
-        menuReport: "ดูรายงาน",
-        menuReportDesc: "สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)",
-        searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง...",
-        loginTitle: "ยืนยันตัวตน",
-        loginDesc: "กรุณากรอกรหัสพนักงาน (Staff ID)",
-        btnLogin: "เข้าสู่ระบบจ่ายงาน",
-        shift: "เลือกกะ",
-        staffId: "รหัสพนักงาน / Staff ID",
-        itemList: "รายการสินค้า (ITEM CODE)",
+        appDesc: "ระบบจ่ายงานคลังสินค้า",
+        navMenu: "เมนูหลัก",
+        navDispatch: "บันทึกข้อมูล",
+        navReport: "ดูรายงาน",
+        summaryBillsLabel: "บิลทั้งหมด",
+        summaryItemsLabel: "รายการสินค้า",
+        summaryTotalLabel: "ยอดรวมทั้งหมด",
+        summaryStaffLabel: "พนักงาน",
+        filterTitle: "ตัวกรองข้อมูล",
+        filterStartDate: "วันที่เริ่มต้น",
+        filterEndDate: "วันที่สิ้นสุด",
+        filterStaffId: "รหัสพนักงาน",
+        staffIdPh: "เช่น EMP001",
+        filterShift: "กะ",
+        filterShiftAll: "ทั้งหมด",
+        btnSearch: "ค้นหา",
+        quickToday: "วันนี้",
+        quickThisWeek: "สัปดาห์นี้",
+        quickThisMonth: "เดือนนี้",
+        quickClear: "ล้างตัวกรอง",
+        resultLabel: "ผลการค้นหา:",
+        resultUnit: "รายการ",
+        btnExport: "Export Excel",
+        loadingText: "กำลังโหลดข้อมูล...",
+        emptyTitle: "ไม่พบข้อมูลในช่วงเวลาที่เลือก",
+        emptyDesc: "ลองเปลี่ยนตัวกรองแล้วค้นหาใหม่อีกครั้ง",
+        thDateTime: "วันที่/เวลา",
+        thStaffId: "รหัสพนักงาน",
+        thShift: "กะ",
+        thBillId: "รหัสบิล",
+        thPartName: "รายการสินค้า",
         bag: "ถุง",
         pack: "บรรจุ",
         fraction: "เศษ",
         total: "รวม",
-        btnAdd: "เพิ่มรายการ",
-        btnSubmit: "บันทึกข้อมูล",
-        takePhoto: "ถ่ายรูป"
+        thPhotos: "รูปภาพ"
     },
     zh: {
         appTitle: "倉庫發貨系統",
-        appDesc: "庫存管理與發貨系統",
-        menuLayout: "倉庫佈局",
-        menuLayoutDesc: "查看商品位置和可用空間狀態",
-        menuDispatch: "發貨記錄",
-        menuDispatchDesc: "記錄商品出庫",
-        menuReport: "查看報告",
-        menuReportDesc: "主管專用：查看報告",
-        searchPlaceholder: "搜尋商品代碼、名稱、儲位...",
-        loginTitle: "身份驗證",
-        loginDesc: "請輸入員工編號 (Staff ID)",
-        btnLogin: "登入系統",
-        shift: "班次",
-        staffId: "員工編號 (Staff ID)",
-        itemList: "物料明細 (ITEM CODE)",
+        appDesc: "倉庫發貨系統",
+        navMenu: "主選單",
+        navDispatch: "發貨記錄",
+        navReport: "查看報告",
+        summaryBillsLabel: "總單數",
+        summaryItemsLabel: "物料項目",
+        summaryTotalLabel: "總數量",
+        summaryStaffLabel: "員工人數",
+        filterTitle: "篩選條件",
+        filterStartDate: "開始日期",
+        filterEndDate: "結束日期",
+        filterStaffId: "員工編號",
+        staffIdPh: "例如 EMP001",
+        filterShift: "班次",
+        filterShiftAll: "全部",
+        btnSearch: "搜尋",
+        quickToday: "今天",
+        quickThisWeek: "本週",
+        quickThisMonth: "本月",
+        quickClear: "清除篩選",
+        resultLabel: "搜尋結果：",
+        resultUnit: "筆",
+        btnExport: "匯出 Excel",
+        loadingText: "資料載入中...",
+        emptyTitle: "找不到所選時間範圍的資料",
+        emptyDesc: "請嘗試調整篩選條件後再搜尋",
+        thDateTime: "日期/時間",
+        thStaffId: "員工編號",
+        thShift: "班次",
+        thBillId: "單據編號",
+        thPartName: "物料名稱",
         bag: "袋數",
         pack: "包裝",
         fraction: "零數",
         total: "總計",
-        btnAdd: "增加物料",
-        btnSubmit: "確認提交",
-        takePhoto: "拍照"
+        thPhotos: "照片"
     },
     mm: {
         appTitle: "ကုန်ထုတ်ပေးမှုစနစ်",
-        appDesc: "ကုန်လှောင်ရုံစီမံခန့်ခွဲမှု",
-        menuLayout: "ကုန်လှောင်ရုံပုံစံ",
-        menuLayoutDesc: "ကုန်ပစ္စည်းနေရာနှင့် နေရာလွတ်များကိုကြည့်ရန်",
-        menuDispatch: "ထုတ်ပေးမှုမှတ်တမ်း",
-        menuDispatchDesc: "ကုန်ပစ္စည်းထုတ်ပေးခြင်းကိုမှတ်တမ်းတင်ရန်",
-        menuReport: "အစီရင်ခံစာကြည့်ရန်",
-        menuReportDesc: "မန်နေဂျာအတွက် - အစီရင်ခံစာကြည့်ရန်",
-        searchPlaceholder: "ကုဒ်၊ အမည်၊ နေရာကိုရှာပါ...",
-        loginTitle: "အကောင့်ဝင်ရန်",
-        loginDesc: "ဝန်ထမ်းကုဒ်ထည့်ပါ (Staff ID)",
-        btnLogin: "စနစ်ထဲသို့ဝင်ရန်",
-        shift: "အဆိုင်း",
-        staffId: "ဝန်ထမ်းကုဒ်",
-        itemList: "ပစ္စည်းစာရင်း (ITEM CODE)",
+        appDesc: "ကုန်လှောင်ရုံထုတ်ပေးမှုစနစ်",
+        navMenu: "မီနူးမူ",
+        navDispatch: "ထုတ်ပေးမှုမှတ်တမ်း",
+        navReport: "အစီရင်ခံစာ",
+        summaryBillsLabel: "ဘီလ်စုစုပေါင်း",
+        summaryItemsLabel: "ပစ္စည်းစာရင်း",
+        summaryTotalLabel: "စုစုပေါင်း",
+        summaryStaffLabel: "ဝန်ထမ်းအရေအတွက်",
+        filterTitle: "စစ်ထုတ်ရန်",
+        filterStartDate: "စတင်ရက်",
+        filterEndDate: "ပြီးဆုံးရက်",
+        filterStaffId: "ဝန်ထမ်းကုဒ်",
+        staffIdPh: "ဥပမာ EMP001",
+        filterShift: "အဆိုင်း",
+        filterShiftAll: "အားလုံး",
+        btnSearch: "ရှာဖွေရန်",
+        quickToday: "ယနေ့",
+        quickThisWeek: "ဒီအပတ်",
+        quickThisMonth: "ဒီလ",
+        quickClear: "စစ်ထုတ်မှုရှင်းရန်",
+        resultLabel: "ရလဒ်:",
+        resultUnit: "ခု",
+        btnExport: "Excel ထုတ်ရန်",
+        loadingText: "ဒေတာဖွင့်နေသည်...",
+        emptyTitle: "ရွေးချယ်ထားသောကာလအတွင်း ဒေတာမတွေ့ပါ",
+        emptyDesc: "စစ်ထုတ်မှုကိုပြောင်းပြီး ထပ်ရှာကြည့်ပါ",
+        thDateTime: "ရက်စွဲ/အချိန်",
+        thStaffId: "ဝန်ထမ်းကုဒ်",
+        thShift: "အဆိုင်း",
+        thBillId: "ဘီလ်ကုဒ်",
+        thPartName: "ပစ္စည်းစာရင်း",
         bag: "အိတ်",
         pack: "ထုပ်ပိုး",
         fraction: "အပို",
         total: "စုစုပေါင်း",
-        btnAdd: "ပစ္စည်းထည့်ရန်",
-        btnSubmit: "အတည်ပြုသည်",
-        takePhoto: "ဓာတ်ပုံ ရိုက်ပါ"
+        thPhotos: "ဓာတ်ပုံများ"
     },
     en: {
         appTitle: "STORE FG DISPATCH",
-        appDesc: "Warehouse Management & Dispatch",
-        menuLayout: "Store Layout",
-        menuLayoutDesc: "View item locations and space status",
-        menuDispatch: "Dispatch Record",
-        menuDispatchDesc: "Record outbound items",
-        menuReport: "View Report",
-        menuReportDesc: "For Supervisor: View Report",
-        searchPlaceholder: "Search item code, name, location...",
-        loginTitle: "Authentication",
-        loginDesc: "Please enter your Staff ID",
-        btnLogin: "Login",
-        shift: "Select Shift",
-        staffId: "Staff ID",
-        itemList: "Item List (ITEM CODE)",
+        appDesc: "Warehouse Dispatch System",
+        navMenu: "Main Menu",
+        navDispatch: "Dispatch",
+        navReport: "Report",
+        summaryBillsLabel: "Total Bills",
+        summaryItemsLabel: "Items",
+        summaryTotalLabel: "Total Quantity",
+        summaryStaffLabel: "Staff",
+        filterTitle: "Filters",
+        filterStartDate: "Start Date",
+        filterEndDate: "End Date",
+        filterStaffId: "Staff ID",
+        staffIdPh: "e.g. EMP001",
+        filterShift: "Shift",
+        filterShiftAll: "All",
+        btnSearch: "Search",
+        quickToday: "Today",
+        quickThisWeek: "This Week",
+        quickThisMonth: "This Month",
+        quickClear: "Clear Filters",
+        resultLabel: "Results:",
+        resultUnit: "items",
+        btnExport: "Export Excel",
+        loadingText: "Loading data...",
+        emptyTitle: "No data found for the selected period",
+        emptyDesc: "Try changing the filters and search again",
+        thDateTime: "Date/Time",
+        thStaffId: "Staff ID",
+        thShift: "Shift",
+        thBillId: "Bill ID",
+        thPartName: "Item",
         bag: "Bag",
         pack: "Pack",
         fraction: "Fraction",
         total: "Total",
-        btnAdd: "Add Item",
-        btnSubmit: "Submit",
-        takePhoto: "Take Photo"
+        thPhotos: "Photos"
     }
 };
 
+let currentLang = localStorage.getItem('wms_lang') || 'th';
+
 function changeLanguage(lang) {
+    if (!translations[lang]) return;
+    currentLang = lang;
     localStorage.setItem('wms_lang', lang);
-    
-    // อัปเดตปุ่ม Dropdown ทุกตัวบนหน้าจอให้ตรงกับภาษาที่เลือก
+
     const switchers = document.querySelectorAll('#globalLangSwitcher');
     switchers.forEach(s => s.value = lang);
 
     const t = translations[lang];
     if (!t) return;
 
-    // กวาดหาข้อความบนหน้าจอและแปลภาษา
     document.querySelectorAll("[data-i18n]").forEach(el => {
         const key = el.getAttribute("data-i18n");
-        if (t[key]) {
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                el.placeholder = t[key];
-            } else {
-                el.innerText = t[key]; 
-            }
-        }
+        if (t[key] !== undefined) el.textContent = t[key];
+    });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+        const key = el.getAttribute("data-i18n-placeholder");
+        if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
     });
 }
 
 // ทำงานอัตโนมัติเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", () => {
-    const savedLang = localStorage.getItem('wms_lang') || 'th';
-    changeLanguage(savedLang);
+    changeLanguage(currentLang);
 });
 </script>
 </body>

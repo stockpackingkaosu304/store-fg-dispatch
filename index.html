@@ -18,16 +18,24 @@
 
 <div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
 
-    <div class="bg-slate-800 p-4 text-white">
+   <div class="bg-slate-800 p-4 text-white relative">
+       <!-- 🟢 วางปุ่มสลับภาษาตรงนี้ -->
+        <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md z-[60] hover:border-sky-400 transition-colors">
+            <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
+            <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
+                <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
+                <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
+                <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
+                <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+            </select>
+            <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
+        </div>
+        <!-- 🟢 จบปุ่มสลับภาษา -->
         <div class="flex justify-between items-center mb-3">
             <h1 class="text-xl font-bold tracking-wide">
                 <i class="fa-solid fa-boxes-stacked mr-2 text-sky-400"></i>
                 <span data-i18n="appTitle">STORE FG DISPATCH</span>
             </h1>
-            <select id="langSwitcher" class="bg-slate-700 text-white border border-slate-600 rounded p-1 text-xs outline-none cursor-pointer">
-                <option value="th_zh">TH / 中文</option>
-                <option value="mm">မြန်မာ</option>
-            </select>
         </div>
         <!-- Nav -->
        <div class="flex gap-2">
@@ -100,43 +108,88 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* =============================================================
-   TRANSLATIONS
-   FIX: เพิ่ม key "shift" และ "staffId" / "staffIdPh" ที่หายไป
-============================================================= */
-var translations = {
-    th_zh: {
-        appTitle:   "STORE FG DISPATCH / 发货系统",
-        shift:      "เลือกกะ / 班次",
-        staffId:    "รหัสพนักงาน / Staff ID",
-        staffIdPh:  "เช่น EMP001",
-        itemList:   "รายการสินค้า / 物料明细",
-        bag:        "ถุง / 袋数",
-        pack:       "บรรจุ / 包装",
-        fraction:   "เศษ / 零数",
-        total:      "รวม / 总计",
-        btnAdd:     "เพิ่มรายการ / 增加物料",
-        btnSubmit:  "บันทึกข้อมูล / 确认提交",
-        partNamePh: "ชื่อชิ้นงาน (Part Name) / 物料名称",
-        takePhoto:  "ถ่ายรูป / 拍照"
+// ==========================================
+// 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n)
+// ==========================================
+const translations = {
+    th: {
+        appTitle: "STORE FG DISPATCH",
+        shift: "เลือกกะ / 班次",
+        staffId: "รหัสพนักงาน / Staff ID",
+        itemList: "รายการสินค้า (ITEM CODE)",
+        bag: "ถุง",
+        pack: "บรรจุ",
+        fraction: "เศษ",
+        total: "รวม",
+        btnAdd: "เพิ่มรายการ",
+        btnSubmit: "บันทึกข้อมูล",
+        takePhoto: "ถ่ายรูป / 拍照"
+    },
+    zh: {
+        appTitle: "倉庫發貨系統",
+        shift: "班次",
+        staffId: "員工編號 (Staff ID)",
+        itemList: "物料明細 (ITEM CODE)",
+        bag: "袋數",
+        pack: "包裝",
+        fraction: "零數",
+        total: "總計",
+        btnAdd: "增加物料",
+        btnSubmit: "確認提交",
+        takePhoto: "拍照"
     },
     mm: {
-        appTitle:   "ကုန်ပစ္စည်းထုတ်ပေးမှုစနစ်",
-        shift:      "အဆိုင်းရွေးပါ",
-        staffId:    "ဝန်ထမ်းကုဒ်",
-        staffIdPh:  "ဥပမာ EMP001",
-        itemList:   "ပစ္စည်းစာရင်း",
-        bag:        "အိတ်",
-        pack:       "ထုပ်ပိုး",
-        fraction:   "အပို",
-        total:      "စုစုပေါင်း",
-        btnAdd:     "ပစ္စည်းထည့်ရန်",
-        btnSubmit:  "အတည်ပြုသည်",
-        partNamePh: "ပစ္စည်းအမည် (Part Name)",
-        takePhoto:  "ဓာတ်ပုံ ရိုက်ပါ"
+        appTitle: "ကုန်ထုတ်ပေးမှုစနစ်",
+        shift: "အဆိုင်း",
+        staffId: "ဝန်ထမ်းကုဒ်",
+        itemList: "ပစ္စည်းစာရင်း (ITEM CODE)",
+        bag: "အိတ်",
+        pack: "ထုပ်ပိုး",
+        fraction: "အပို",
+        total: "စုစုပေါင်း",
+        btnAdd: "ပစ္စည်းထည့်ရန်",
+        btnSubmit: "အတည်ပြုသည်",
+        takePhoto: "ဓာတ်ပုံ ရိုက်ပါ"
+    },
+    en: {
+        appTitle: "STORE FG DISPATCH",
+        shift: "Select Shift",
+        staffId: "Staff ID",
+        itemList: "Item List (ITEM CODE)",
+        bag: "Bag",
+        pack: "Pack",
+        fraction: "Fraction",
+        total: "Total",
+        btnAdd: "Add Item",
+        btnSubmit: "Submit",
+        takePhoto: "Take Photo"
     }
 };
 
+function changeLanguage(lang) {
+    localStorage.setItem('wms_lang', lang);
+    const switchers = document.querySelectorAll('#globalLangSwitcher');
+    switchers.forEach(s => s.value = lang);
+
+    const t = translations[lang];
+    if (!t) return;
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (t[key]) {
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = t[key];
+            } else {
+                el.innerText = t[key]; 
+            }
+        }
+    });
+}
+
+/* =============================================================
+   ROW MANAGEMENT
+============================================================= */
+// ... (โค้ดสร้างแถวของคุณเหมือนเดิม) ...
 function changeLanguage(lang) {
     var t = translations[lang];
     if (!t) return;
@@ -492,16 +545,19 @@ document.getElementById("dispatchForm").addEventListener("submit", async functio
    INIT
 ============================================================= */
 document.addEventListener("DOMContentLoaded", function() {
-    // ---------------- เพิ่ม 3 บรรทัดนี้ ----------------
+    // 1. ดึงรหัสพนักงานที่เคยกรอกไว้
     var savedStaff = localStorage.getItem("savedStaffId");
     if(savedStaff) document.getElementById("staffId").value = savedStaff;
-    // ------------------------------------------------
+    
+    // 2. ผูกปุ่มเพิ่มรายการ
     document.getElementById("btnAddRow").addEventListener("click", createRow);
-    document.getElementById("langSwitcher").addEventListener("change", function() {
-        changeLanguage(this.value);
-    });
+    
+    // 3. สร้างแถวเริ่มต้น 1 แถว
     createRow();
-    changeLanguage(document.getElementById("langSwitcher").value);
+    
+    // 4. โหลดภาษาที่ผู้ใช้เคยตั้งค่าไว้ (ดึงจาก localStorage)
+    const savedLang = localStorage.getItem('wms_lang') || 'th';
+    changeLanguage(savedLang);
 });
 </script>
 

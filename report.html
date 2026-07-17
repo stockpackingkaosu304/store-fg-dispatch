@@ -26,7 +26,8 @@
 <div class="max-w-6xl mx-auto space-y-4">
 
     <!-- Header -->
-    <div class="bg-slate-800 text-white p-4 rounded-2xl">
+    <div class="bg-slate-800 text-white p-4 rounded-2xl relative">   
+        <!-- 🟢 วางปุ่มสลับภาษาตรงนี้ (ก๊อปปี้ชุดเดียวกับด้านบนมาวางได้เลย) -->
         <div class="flex justify-between items-center mb-3">
             <h1 class="text-xl font-bold">
                 <i class="fa-solid fa-boxes-stacked mr-2 text-sky-400"></i>
@@ -422,6 +423,137 @@ document.addEventListener("DOMContentLoaded", function() {
     fetchReport();
 });
 </script>
+<!-- ========================================== -->
+<!-- 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n) -->
+<!-- ========================================== -->
+<script>
+const translations = {
+    th: {
+        appTitle: "STORE FG DISPATCH",
+        appDesc: "ระบบจัดการคลังสินค้าและจ่ายงาน",
+        menuLayout: "แผนผังคลังสินค้า",
+        menuLayoutDesc: "ดูตำแหน่งสินค้า และสถานะพื้นที่ว่าง (Layout)",
+        menuDispatch: "บันทึกจ่ายงาน",
+        menuDispatchDesc: "บันทึกการเบิกจ่ายสินค้า (Dispatch)",
+        menuReport: "ดูรายงาน",
+        menuReportDesc: "สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)",
+        searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง...",
+        loginTitle: "ยืนยันตัวตน",
+        loginDesc: "กรุณากรอกรหัสพนักงาน (Staff ID)",
+        btnLogin: "เข้าสู่ระบบจ่ายงาน",
+        shift: "เลือกกะ",
+        staffId: "รหัสพนักงาน / Staff ID",
+        itemList: "รายการสินค้า (ITEM CODE)",
+        bag: "ถุง",
+        pack: "บรรจุ",
+        fraction: "เศษ",
+        total: "รวม",
+        btnAdd: "เพิ่มรายการ",
+        btnSubmit: "บันทึกข้อมูล",
+        takePhoto: "ถ่ายรูป"
+    },
+    zh: {
+        appTitle: "倉庫發貨系統",
+        appDesc: "庫存管理與發貨系統",
+        menuLayout: "倉庫佈局",
+        menuLayoutDesc: "查看商品位置和可用空間狀態",
+        menuDispatch: "發貨記錄",
+        menuDispatchDesc: "記錄商品出庫",
+        menuReport: "查看報告",
+        menuReportDesc: "主管專用：查看報告",
+        searchPlaceholder: "搜尋商品代碼、名稱、儲位...",
+        loginTitle: "身份驗證",
+        loginDesc: "請輸入員工編號 (Staff ID)",
+        btnLogin: "登入系統",
+        shift: "班次",
+        staffId: "員工編號 (Staff ID)",
+        itemList: "物料明細 (ITEM CODE)",
+        bag: "袋數",
+        pack: "包裝",
+        fraction: "零數",
+        total: "總計",
+        btnAdd: "增加物料",
+        btnSubmit: "確認提交",
+        takePhoto: "拍照"
+    },
+    mm: {
+        appTitle: "ကုန်ထုတ်ပေးမှုစနစ်",
+        appDesc: "ကုန်လှောင်ရုံစီမံခန့်ခွဲမှု",
+        menuLayout: "ကုန်လှောင်ရုံပုံစံ",
+        menuLayoutDesc: "ကုန်ပစ္စည်းနေရာနှင့် နေရာလွတ်များကိုကြည့်ရန်",
+        menuDispatch: "ထုတ်ပေးမှုမှတ်တမ်း",
+        menuDispatchDesc: "ကုန်ပစ္စည်းထုတ်ပေးခြင်းကိုမှတ်တမ်းတင်ရန်",
+        menuReport: "အစီရင်ခံစာကြည့်ရန်",
+        menuReportDesc: "မန်နေဂျာအတွက် - အစီရင်ခံစာကြည့်ရန်",
+        searchPlaceholder: "ကုဒ်၊ အမည်၊ နေရာကိုရှာပါ...",
+        loginTitle: "အကောင့်ဝင်ရန်",
+        loginDesc: "ဝန်ထမ်းကုဒ်ထည့်ပါ (Staff ID)",
+        btnLogin: "စနစ်ထဲသို့ဝင်ရန်",
+        shift: "အဆိုင်း",
+        staffId: "ဝန်ထမ်းကုဒ်",
+        itemList: "ပစ္စည်းစာရင်း (ITEM CODE)",
+        bag: "အိတ်",
+        pack: "ထုပ်ပိုး",
+        fraction: "အပို",
+        total: "စုစုပေါင်း",
+        btnAdd: "ပစ္စည်းထည့်ရန်",
+        btnSubmit: "အတည်ပြုသည်",
+        takePhoto: "ဓာတ်ပုံ ရိုက်ပါ"
+    },
+    en: {
+        appTitle: "STORE FG DISPATCH",
+        appDesc: "Warehouse Management & Dispatch",
+        menuLayout: "Store Layout",
+        menuLayoutDesc: "View item locations and space status",
+        menuDispatch: "Dispatch Record",
+        menuDispatchDesc: "Record outbound items",
+        menuReport: "View Report",
+        menuReportDesc: "For Supervisor: View Report",
+        searchPlaceholder: "Search item code, name, location...",
+        loginTitle: "Authentication",
+        loginDesc: "Please enter your Staff ID",
+        btnLogin: "Login",
+        shift: "Select Shift",
+        staffId: "Staff ID",
+        itemList: "Item List (ITEM CODE)",
+        bag: "Bag",
+        pack: "Pack",
+        fraction: "Fraction",
+        total: "Total",
+        btnAdd: "Add Item",
+        btnSubmit: "Submit",
+        takePhoto: "Take Photo"
+    }
+};
 
+function changeLanguage(lang) {
+    localStorage.setItem('wms_lang', lang);
+    
+    // อัปเดตปุ่ม Dropdown ทุกตัวบนหน้าจอให้ตรงกับภาษาที่เลือก
+    const switchers = document.querySelectorAll('#globalLangSwitcher');
+    switchers.forEach(s => s.value = lang);
+
+    const t = translations[lang];
+    if (!t) return;
+
+    // กวาดหาข้อความบนหน้าจอและแปลภาษา
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (t[key]) {
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = t[key];
+            } else {
+                el.innerText = t[key]; 
+            }
+        }
+    });
+}
+
+// ทำงานอัตโนมัติเมื่อเปิดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", () => {
+    const savedLang = localStorage.getItem('wms_lang') || 'th';
+    changeLanguage(savedLang);
+});
+</script>
 </body>
 </html>

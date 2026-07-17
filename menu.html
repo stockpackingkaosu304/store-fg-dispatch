@@ -15,42 +15,36 @@
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden">
-        <div class="bg-slate-800 p-8 text-center text-white">
-           <!-- 🟢 ปุ่มสลับภาษา (เวอร์ชันปรับปรุง UI อ่านง่าย + ตัวย่อ) -->
-<div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md z-[60] hover:border-sky-400 transition-colors">
-    <!-- ไอคอนลูกโลก -->
-    <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
-    
-    <!-- กล่องเลือกภาษา -->
-    <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" 
-        class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
-        <!-- บังคับสีพื้นหลังของ option เป็น bg-slate-800 เพื่อให้ตอนกด Dropdown แล้วตัวหนังสือไม่กลืนหาย -->
-        <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
-        <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
-        <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
-        <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
-    </select>
-    
-    <!-- ไอคอนลูกศรชี้ลงเล็กๆ (Custom Arrow) ให้รู้ว่ากดเลือกได้ -->
-    <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
-</div>
-<!-- 🟢 จบปุ่มสลับภาษา -->
+        <div class="bg-slate-800 p-8 text-center text-white relative">
+           <!-- 🟢 ปุ่มสลับภาษา -->
+            <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md z-[60] hover:border-sky-400 transition-colors">
+                <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
+                <select id="globalLangSwitcher" onchange="changeLanguage(this.value)"
+                    class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
+                    <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
+                    <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
+                    <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
+                    <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+                </select>
+                <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
+            </div>
+            <!-- 🟢 จบปุ่มสลับภาษา -->
             <div class="inline-block bg-sky-500 p-4 rounded-full mb-4 shadow-lg shadow-sky-500/30">
                 <i class="fa-solid fa-boxes-stacked text-4xl"></i>
             </div>
-            <h1 class="text-2xl font-bold tracking-wider mb-1">STORE FG DISPATCH</h1>
-            <p class="text-slate-400 text-sm">ระบบจัดการคลังสินค้าและจ่ายงาน</p>
+            <h1 class="text-2xl font-bold tracking-wider mb-1" data-i18n="appTitle">STORE FG DISPATCH</h1>
+            <p class="text-slate-400 text-sm" data-i18n="appDesc">ระบบจัดการคลังสินค้าและจ่ายงาน</p>
         </div>
 
         <div class="p-6 space-y-4">
-            
+
             <button onclick="goToLayout()" class="w-full group relative bg-white border-2 border-slate-200 hover:border-sky-500 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md text-left">
                 <div class="bg-sky-50 group-hover:bg-sky-500 text-sky-500 group-hover:text-white w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-colors">
                     <i class="fa-solid fa-map-location-dot"></i>
                 </div>
                 <div>
-                    <h2 class="text-lg font-bold text-slate-800">แผนผังคลังสินค้า</h2>
-                    <p class="text-xs text-slate-500">ดูตำแหน่งสินค้า และสถานะพื้นที่ว่าง (Layout)</p>
+                    <h2 class="text-lg font-bold text-slate-800" data-i18n="menuLayout">แผนผังคลังสินค้า</h2>
+                    <p class="text-xs text-slate-500" data-i18n="menuLayoutDesc">ดูตำแหน่งสินค้า และสถานะพื้นที่ว่าง (Layout)</p>
                 </div>
                 <i class="fa-solid fa-chevron-right absolute right-6 text-slate-300 group-hover:text-sky-500 transition-colors"></i>
             </button>
@@ -60,15 +54,15 @@
                     <i class="fa-solid fa-pen-to-square"></i>
                 </div>
                 <div>
-                    <h2 class="text-lg font-bold text-slate-800">บันทึกจ่ายงาน</h2>
-                    <p class="text-xs text-slate-500">บันทึกการเบิกจ่ายสินค้า (Dispatch)</p>
+                    <h2 class="text-lg font-bold text-slate-800" data-i18n="menuDispatch">บันทึกจ่ายงาน</h2>
+                    <p class="text-xs text-slate-500" data-i18n="menuDispatchDesc">บันทึกการเบิกจ่ายสินค้า (Dispatch)</p>
                 </div>
                 <i class="fa-solid fa-lock absolute right-6 text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
             </button>
-            
+
             <div class="pt-4 text-center">
                 <button onclick="openLoginModal('report.html')" class="text-xs font-semibold text-slate-400 hover:text-sky-600 transition-colors cursor-pointer bg-transparent border-none">
-                    <i class="fa-solid fa-chart-pie mr-1"></i> สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)
+                    <i class="fa-solid fa-chart-pie mr-1"></i> <span data-i18n="menuReportLink">สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)</span>
                 </button>
             </div>
 
@@ -79,21 +73,21 @@
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl transform transition-all m-4">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-slate-800">
-                    <i class="fa-solid fa-id-card text-emerald-500 mr-2"></i>ยืนยันตัวตน
+                    <i class="fa-solid fa-id-card text-emerald-500 mr-2"></i><span data-i18n="loginTitle">ยืนยันตัวตน</span>
                 </h3>
                 <button onclick="closeLoginModal()" class="text-slate-400 hover:text-red-500">
                     <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
             </div>
-            
-            <p id="loginModalDesc" class="text-sm text-slate-500 mb-4">กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน</p>
-            
-            <input type="text" id="staffIdInput" placeholder="เช่น EMP001" class="w-full border border-gray-300 rounded-xl p-3 text-center text-lg uppercase tracking-widest font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none mb-2">
+
+            <p id="loginModalDesc" class="text-sm text-slate-500 mb-4" data-i18n="loginDescDispatch">กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน</p>
+
+            <input type="text" id="staffIdInput" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001" class="w-full border border-gray-300 rounded-xl p-3 text-center text-lg uppercase tracking-widest font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none mb-2">
 
             <p id="loginError" class="hidden text-xs text-red-500 font-semibold mb-3 text-center"></p>
 
             <button id="loginConfirmBtn" onclick="confirmLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-                <span id="loginConfirmBtnText">เข้าสู่ระบบจ่ายงาน</span>
+                <span id="loginConfirmBtnText" data-i18n="btnLogin">เข้าสู่ระบบจ่ายงาน</span>
             </button>
         </div>
     </div>
@@ -101,6 +95,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         let targetPage = ""; // ตัวแปรเก็บว่าพนักงานกดไปหน้าไหน
+        let modalDescKey = "loginDescDispatch"; // คีย์คำอธิบายที่ใช้ใน modal ปัจจุบัน (สำหรับสลับภาษาตอน modal เปิดอยู่)
 
         /* =============================================================
            SUPABASE INIT
@@ -115,27 +110,23 @@
         }
 
         function goToLayout() {
-            // ไปที่หน้า layout.html (เข้าได้เลยไม่ต้องใส่รหัส)
-            window.location.href = "layout.html"; 
+            window.location.href = "layout.html";
         }
 
         function openLoginModal(page) {
-            targetPage = page; // จำไว้ว่าผู้ใช้จะไปหน้าไหน
+            targetPage = page;
+            modalDescKey = (page === 'report.html') ? 'loginDescReport' : 'loginDescDispatch';
 
-            // ปรับข้อความในโมดัลตามหน้าที่จะเข้า
             var desc = document.getElementById('loginModalDesc');
-            if (page === 'report.html') {
-                desc.textContent = "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณากรอกรหัสพนักงานของท่าน";
-            } else {
-                desc.textContent = "กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน";
-            }
+            desc.setAttribute('data-i18n', modalDescKey);
+            var t = translations[currentLang] || translations.th;
+            desc.textContent = t[modalDescKey];
 
             hideLoginError();
             document.getElementById('loginModal').classList.add('active');
 
-            // เช็คว่าเคยกรอกไว้ไหม ถ้าเคยให้ดึงมาโชว์เลย
             const savedStaffId = localStorage.getItem("savedStaffId");
-            if(savedStaffId) {
+            if (savedStaffId) {
                 document.getElementById('staffIdInput').value = savedStaffId;
             }
             document.getElementById('staffIdInput').focus();
@@ -159,20 +150,22 @@
         function setLoginLoading(loading) {
             var btn     = document.getElementById('loginConfirmBtn');
             var btnText = document.getElementById('loginConfirmBtnText');
+            var t = translations[currentLang] || translations.th;
             btn.disabled = loading;
-            btnText.textContent = loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบจ่ายงาน";
+            btnText.textContent = loading ? t.btnLoginLoading : t.btnLogin;
         }
 
         async function confirmLogin() {
             hideLoginError();
+            var t = translations[currentLang] || translations.th;
             const staffId = document.getElementById('staffIdInput').value.trim().toUpperCase();
-            if(!staffId) {
-                showLoginError("กรุณากรอกรหัสพนักงานครับ!");
+            if (!staffId) {
+                showLoginError(t.errStaffRequired);
                 return;
             }
 
             if (!sbClient) {
-                showLoginError("ระบบตรวจสอบไม่พร้อมใช้งาน กรุณาลองใหม่");
+                showLoginError(t.errSystemNotReady);
                 return;
             }
 
@@ -187,40 +180,149 @@
 
                 if (error) {
                     console.error(error);
-                    showLoginError("เกิดข้อผิดพลาดในการตรวจสอบ กรุณาลองใหม่");
+                    showLoginError(t.errGeneral);
                     return;
                 }
 
                 if (!data || !data.active) {
-                    showLoginError("รหัสพนักงานไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน");
+                    showLoginError(t.errInvalid);
                     return;
                 }
 
-                // หน้ารายงาน อนุญาตเฉพาะ role = supervisor เท่านั้น
                 if (targetPage === 'report.html' && data.role !== 'supervisor') {
-                    showLoginError("หน้ารายงานสำหรับหัวหน้างานเท่านั้น");
+                    showLoginError(t.errReportOnly);
                     return;
                 }
 
-                // ผ่านการตรวจสอบ -> บันทึกและไปหน้าเป้าหมาย
                 localStorage.setItem("savedStaffId", staffId);
                 window.location.href = targetPage;
 
             } catch (err) {
                 console.error(err);
-                showLoginError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+                showLoginError(t.errGeneral);
             } finally {
                 setLoginLoading(false);
             }
         }
 
-        // กด Enter ในช่องกรอกรหัสพนักงานได้เลย
         document.getElementById("staffIdInput").addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 event.preventDefault();
                 confirmLogin();
             }
         });
+    </script>
+
+    <!-- ========================================== -->
+    <!-- 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n) -->
+    <!-- ========================================== -->
+    <script>
+    const translations = {
+        th: {
+            appTitle: "STORE FG DISPATCH",
+            appDesc: "ระบบจัดการคลังสินค้าและจ่ายงาน",
+            menuLayout: "แผนผังคลังสินค้า",
+            menuLayoutDesc: "ดูตำแหน่งสินค้า และสถานะพื้นที่ว่าง (Layout)",
+            menuDispatch: "บันทึกจ่ายงาน",
+            menuDispatchDesc: "บันทึกการเบิกจ่ายสินค้า (Dispatch)",
+            menuReportLink: "สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)",
+            loginTitle: "ยืนยันตัวตน",
+            loginDescDispatch: "กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน",
+            loginDescReport: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณากรอกรหัสพนักงานของท่าน",
+            staffIdPh: "เช่น EMP001",
+            btnLogin: "เข้าสู่ระบบจ่ายงาน",
+            btnLoginLoading: "กำลังตรวจสอบ...",
+            errStaffRequired: "กรุณากรอกรหัสพนักงานครับ!",
+            errSystemNotReady: "ระบบตรวจสอบไม่พร้อมใช้งาน กรุณาลองใหม่",
+            errInvalid: "รหัสพนักงานไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน",
+            errReportOnly: "หน้ารายงานสำหรับหัวหน้างานเท่านั้น",
+            errGeneral: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
+        },
+        zh: {
+            appTitle: "倉庫發貨系統",
+            appDesc: "庫存管理與發貨系統",
+            menuLayout: "倉庫佈局",
+            menuLayoutDesc: "查看商品位置和可用空間狀態",
+            menuDispatch: "發貨記錄",
+            menuDispatchDesc: "記錄商品出庫",
+            menuReportLink: "主管專用：查看報告",
+            loginTitle: "身份驗證",
+            loginDescDispatch: "請先輸入您的員工編號 (Staff ID) 才能使用發貨系統",
+            loginDescReport: "此頁面僅供主管使用，請輸入您的員工編號",
+            staffIdPh: "例如 EMP001",
+            btnLogin: "登入系統",
+            btnLoginLoading: "驗證中...",
+            errStaffRequired: "請輸入員工編號！",
+            errSystemNotReady: "驗證系統尚未就緒，請重試",
+            errInvalid: "員工編號錯誤或無使用權限",
+            errReportOnly: "此報告頁面僅供主管使用",
+            errGeneral: "發生錯誤，請再試一次"
+        },
+        mm: {
+            appTitle: "ကုန်ထုတ်ပေးမှုစနစ်",
+            appDesc: "ကုန်လှောင်ရုံစီမံခန့်ခွဲမှု",
+            menuLayout: "ကုန်လှောင်ရုံပုံစံ",
+            menuLayoutDesc: "ကုန်ပစ္စည်းနေရာနှင့် နေရာလွတ်များကိုကြည့်ရန်",
+            menuDispatch: "ထုတ်ပေးမှုမှတ်တမ်း",
+            menuDispatchDesc: "ကုန်ပစ္စည်းထုတ်ပေးခြင်းကိုမှတ်တမ်းတင်ရန်",
+            menuReportLink: "မန်နေဂျာအတွက် - အစီရင်ခံစာကြည့်ရန်",
+            loginTitle: "အကောင့်ဝင်ရန်",
+            loginDescDispatch: "ထုတ်ပေးမှုစနစ်ကို အသုံးမပြုမီ သင်၏ ဝန်ထမ်းကုဒ် (Staff ID) ကို ထည့်ပါ",
+            loginDescReport: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။ ဝန်ထမ်းကုဒ်ကို ထည့်ပါ",
+            staffIdPh: "ဥပမာ EMP001",
+            btnLogin: "စနစ်ထဲသို့ဝင်ရန်",
+            btnLoginLoading: "စစ်ဆေးနေသည်...",
+            errStaffRequired: "ဝန်ထမ်းကုဒ်ထည့်ပါ!",
+            errSystemNotReady: "စနစ်အဆင်သင့်မဖြစ်သေးပါ၊ ထပ်စမ်းကြည့်ပါ",
+            errInvalid: "ဝန်ထမ်းကုဒ် မှားနေသည် သို့မဟုတ် ခွင့်ပြုချက်မရှိပါ",
+            errReportOnly: "အစီရင်ခံစာစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ",
+            errGeneral: "အမှားတစ်ခုဖြစ်ပွားသည်၊ ထပ်စမ်းကြည့်ပါ"
+        },
+        en: {
+            appTitle: "STORE FG DISPATCH",
+            appDesc: "Warehouse Management & Dispatch",
+            menuLayout: "Store Layout",
+            menuLayoutDesc: "View item locations and space status",
+            menuDispatch: "Dispatch Record",
+            menuDispatchDesc: "Record outbound items",
+            menuReportLink: "For Supervisor: View Report",
+            loginTitle: "Authentication",
+            loginDescDispatch: "Please enter your Staff ID before using the dispatch system",
+            loginDescReport: "This page is for supervisors only. Please enter your Staff ID",
+            staffIdPh: "e.g. EMP001",
+            btnLogin: "Login",
+            btnLoginLoading: "Checking...",
+            errStaffRequired: "Please enter your Staff ID!",
+            errSystemNotReady: "Verification system not ready, please try again",
+            errInvalid: "Invalid Staff ID or no access permission",
+            errReportOnly: "The report page is for supervisors only",
+            errGeneral: "An error occurred, please try again"
+        }
+    };
+
+    let currentLang = localStorage.getItem('wms_lang') || 'th';
+
+    function changeLanguage(lang) {
+        if (!translations[lang]) return;
+        currentLang = lang;
+        localStorage.setItem('wms_lang', lang);
+
+        document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang);
+
+        const t = translations[lang];
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+            const key = el.getAttribute("data-i18n");
+            if (t[key] !== undefined) el.textContent = t[key];
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+            const key = el.getAttribute("data-i18n-placeholder");
+            if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        changeLanguage(currentLang);
+    });
     </script>
 </body>
 </html>

@@ -25,29 +25,41 @@
 
 <div class="max-w-6xl mx-auto space-y-4">
 
-    <!-- Header -->
+ <!-- Header -->
     <div class="bg-slate-800 text-white p-4 rounded-2xl relative">   
-        <!-- 🟢 วางปุ่มสลับภาษาตรงนี้ (ก๊อปปี้ชุดเดียวกับด้านบนมาวางได้เลย) -->
-        <div class="flex justify-between items-center mb-3">
+        
+        <!-- 🟢 วางปุ่มสลับภาษาตรงนี้ (ใส่กลับมาให้แล้วครับ) -->
+        <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md z-[60] hover:border-sky-400 transition-colors">
+            <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
+            <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
+                <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
+                <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
+                <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
+                <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+            </select>
+            <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
+        </div>
+        <!-- 🟢 จบปุ่มสลับภาษา -->
+
+        <!-- 💡 เติม mt-8 และ data-i18n เพื่อให้แปลภาษาได้ -->
+        <div class="flex justify-between items-center mb-3 mt-8">
             <h1 class="text-xl font-bold">
                 <i class="fa-solid fa-boxes-stacked mr-2 text-sky-400"></i>
-                STORE FG DISPATCH
+                <span data-i18n="appTitle">STORE FG DISPATCH</span>
             </h1>
-            <p class="text-slate-400 text-xs">ระบบจ่ายงานคลังสินค้า</p>
+            <p class="text-slate-400 text-xs" data-i18n="appDesc">ระบบจ่ายงานคลังสินค้า</p>
         </div>
+        
         <!-- Nav -->
-      <div class="flex gap-2">
-            <a href="menu.html"
-                class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-                <i class="fa-solid fa-house"></i> เมนูหลัก
+        <div class="flex gap-2">
+            <a href="menu.html" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+                <i class="fa-solid fa-house"></i> <span data-i18n="menuMain">เมนูหลัก</span>
             </a>
-            <a href="index.html"
-                class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-                <i class="fa-solid fa-pen-to-square"></i> บันทึกข้อมูล
+            <a href="index.html" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+                <i class="fa-solid fa-pen-to-square"></i> <span data-i18n="menuDispatch">บันทึกข้อมูล</span>
             </a>
-            <a href="report.html"
-                class="flex-1 bg-sky-600 text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-chart-bar"></i> ดูรายงาน
+            <a href="report.html" class="flex-1 bg-sky-600 text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-chart-bar"></i> <span data-i18n="menuReport">ดูรายงาน</span>
             </a>
         </div>
     </div>

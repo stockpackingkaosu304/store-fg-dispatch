@@ -210,7 +210,7 @@
         <div id="searchResultsContent" class="flex-1 overflow-y-auto p-2 space-y-2 custom-scroll">
             </div>
     </div>
-  <script>
+<script>
         // ==========================================================================
         // ข้อมูลตำแหน่งช่อง/โซน (คงเดิมจาก v1.1.2)
         // ==========================================================================
@@ -302,13 +302,14 @@
         }
 
         // ==========================================================================
-        // ระบบ Supabase & Advanced Search + Auto Customer Extraction
+        // 🚀 ระบบ Supabase & Smart Filter Data (Phase 2 Upgrade)
         // ==========================================================================
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
         
         let locationData = {};
+        let masterData = {}; // 🆕 เก็บข้อมูลจากตาราง part_master
 
         function boxIdsFor(locId) {
             const ids = ['box-' + locId];
@@ -320,39 +321,35 @@
             });
             return ids;
         }
-        
-        // 🛠️ สูตรสกัดรหัสลูกค้าอัจฉริยะ (เช่น FGP-L177-08800 -> FGP-L177)
-        function extractCustomerCode(itemString) {
-            if(!itemString) return '-';
-            let items = itemString.split(',').map(s => s.trim());
-            let customers = items.map(item => {
-                let parts = item.split('-');
-                // ตัดเอาแค่ตัวอักษร 2 ท่อนแรกมาต่อกัน (ทิ้งตัวเลขด้านหลังสุดไป)
-                if(parts.length >= 2) return parts[0] + '-' + parts[1];
-                return item;
-            });
-            // กรองเอาเฉพาะชื่อที่ไม่ซ้ำกัน
-            return [...new Set(customers)].join(', ');
-        }
 
-        async function fetchLocations() {
-            const { data, error } = await sbClient.from("locations").select("*");
-            if(error) return;
-            
-            data.forEach(loc => {
-                locationData[loc.location_id] = loc;
-                boxIdsFor(loc.location_id).forEach(id => {
-                    const box = document.getElementById(id);
-                    if(box) {
-                        box.onclick = () => openModal(loc.location_id);
-                        box.classList.remove('status-unknown', 'status-empty', 'status-partial', 'status-full');
-                        if(loc.status === 'Empty') box.classList.add('status-empty');
-                        else if(loc.status === 'Partial') box.classList.add('status-partial');
-                        else if(loc.status === 'Full') box.classList.add('status-full');
-                        else box.classList.add('status-unknown');
-                    }
+        // ดึงข้อมูลทั้ง Locations และ Master Data
+        async function fetchAllData() {
+            // 1. ดึง Master Data
+            const resMaster = await sbClient.from("part_master").select("*");
+            if(!resMaster.error) {
+                resMaster.data.forEach(item => {
+                    masterData[item.item_code.toUpperCase()] = item;
                 });
-            });
+            }
+
+            // 2. ดึง Location Data
+            const resLoc = await sbClient.from("locations").select("*");
+            if(!resLoc.error) {
+                resLoc.data.forEach(loc => {
+                    locationData[loc.location_id] = loc;
+                    boxIdsFor(loc.location_id).forEach(id => {
+                        const box = document.getElementById(id);
+                        if(box) {
+                            box.onclick = () => openModal(loc.location_id);
+                            box.classList.remove('status-unknown', 'status-empty', 'status-partial', 'status-full');
+                            if(loc.status === 'Empty') box.classList.add('status-empty');
+                            else if(loc.status === 'Partial') box.classList.add('status-partial');
+                            else if(loc.status === 'Full') box.classList.add('status-full');
+                            else box.classList.add('status-unknown');
+                        }
+                    });
+                });
+            }
             
             document.querySelectorAll('.rack-box').forEach(box => {
                 if(!box.onclick){
@@ -363,7 +360,7 @@
             });
         }
 
-        // --- ระบบค้นหา & แผงสรุปผล (Floating Panel) ---
+        // --- ระบบค้นหาแบบเจาะจง (Smart Filter) ---
         document.getElementById('searchInput').addEventListener('input', e => {
             const term = e.target.value.trim().toUpperCase();
             document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
@@ -373,7 +370,7 @@
             const panelTitle = document.getElementById('searchPanelTitle');
             
             if(!term) {
-                panel.classList.add('hidden'); // ซ่อนแผงทันทีถ้าไม่ได้พิมพ์อะไร
+                panel.classList.add('hidden'); 
                 return; 
             }
             
@@ -381,99 +378,106 @@
             let foundCount = 0;
             
             for(const [locId, data] of Object.entries(locationData)) {
-                // สกัดชื่อลูกค้าอัตโนมัติจาก items_list
-                const autoCustomer = extractCustomerCode(data.items_list);
+                let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
                 
-                const matchLoc  = locId.toUpperCase().includes(term);
-                const matchZone = (data.zone || "").toUpperCase().includes(term);
-                const matchItem = (data.items_list || "").toUpperCase().includes(term);
-                const matchPart = (data.part_names || "").toUpperCase().includes(term);
-                const matchCust = autoCustomer.toUpperCase().includes(term);
+                // 💡 ตรวจสอบว่าในช่องนี้ มี Item ไหนตรงกับคำค้นหาบ้าง (Filter)
+                let matchedItems = iArr.filter(itemCode => {
+                    let mData = masterData[itemCode.toUpperCase()] || {};
+                    let codeName = (mData.code_name || "").toUpperCase();
+                    let cl = (mData.cl || "").toUpperCase();
+                    
+                    return itemCode.toUpperCase().includes(term) || 
+                           codeName.includes(term) || 
+                           cl.includes(term) || 
+                           locId.toUpperCase().includes(term);
+                });
 
-                if(matchLoc || matchZone || matchItem || matchPart || matchCust) {
-                    // 1. สั่งให้ตึกกะพริบไฟ
+                // ถ้าเจออย่างน้อย 1 ชิ้น หรือค้นหาตรงกับรหัสช่อง (Location)
+                if(matchedItems.length > 0 || locId.toUpperCase().includes(term)) {
+                    
+                    // สั่งให้ช่องกะพริบ
                     boxIdsFor(locId).forEach(id => { 
                         const b = document.getElementById(id); 
                         if(b) b.classList.add('highlight-blink'); 
                     });
                     
-                    // 2. ดึงข้อมูลมาสร้างเป็นการ์ดใน Floating Panel
-                    let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
-                    let pArr = (data.part_names || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
-                    
+                    // 💡 แสดงผลเฉพาะรายการที่ตรงกับการค้นหา (เพื่อไม่ให้ตาลาย)
+                    let itemsToDisplay = matchedItems.length > 0 ? matchedItems : iArr;
+
                     html += `
-                    <div class="bg-slate-950 p-2.5 rounded border border-slate-700 hover:border-sky-500 cursor-pointer transition-colors shadow-md" onclick="openModal('${locId}')">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sky-400 font-black text-xs tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
-                            <span class="text-[9px] text-slate-300 font-bold bg-slate-800 border border-slate-600 px-1.5 py-0.5 rounded shadow">โซน: ${data.zone || '-'}</span>
+                    <div class="bg-slate-950 p-3 rounded border border-slate-700 hover:border-sky-500 cursor-pointer transition-colors shadow-md" onclick="openModal('${locId}')">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-sky-400 font-black text-sm tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
                         </div>`;
                     
-                    // วนลูปโชว์ข้อมูลทีละไอเทมในกล่องนั้น
-                    iArr.forEach((item, idx) => {
+                    itemsToDisplay.forEach((itemCode) => {
+                        let mData = masterData[itemCode.toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
+                        
                         html += `
-                        <div class="mb-1.5 pl-2 border-l-2 border-slate-700">
-                            <div class="text-[10px] text-slate-300 truncate"><span class="text-slate-500 font-bold">Item:</span> ${item}</div>
-                            <div class="text-[10px] text-slate-300 truncate"><span class="text-slate-500 font-bold">Part:</span> ${pArr[idx] || '-'}</div>
+                        <div class="mb-2 pl-3 border-l-2 border-slate-600 space-y-1">
+                            <div class="text-sm font-bold text-amber-400"><i class="fa-solid fa-tag text-xs"></i> Code: ${mData.code_name} <span class="text-xs text-slate-400 ml-1">(${mData.cl})</span></div>
+                            <div class="text-xs text-slate-300">ITEM: ${itemCode}</div>
+                            <div class="text-[11px] text-slate-400 font-medium mt-1">
+                                <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> Max Stack: <span class="text-white">${mData.max_stack}</span></span>
+                                <span><i class="fa-solid fa-box-open text-slate-500"></i> แพ็ก: <span class="text-white">${mData.pack_type} ${mData.bag_color}</span></span>
+                            </div>
                         </div>`;
                     });
 
-                    // ใส่ชื่อลูกค้าที่สกัดมาได้ปิดท้าย
-                    html += `
-                        <div class="text-[10px] text-amber-400 font-bold mt-2 pt-1.5 border-t border-slate-800">
-                            <i class="fa-solid fa-user-tag mr-1"></i> ลูกค้า: ${autoCustomer}
-                        </div>
-                    </div>`;
-                    
+                    html += `</div>`;
                     foundCount++;
                 }
             }
             
-            // นำโค้ด HTML ที่ประกอบเสร็จแล้วไปยัดใส่กล่อง Panel
             if(foundCount > 0) {
                 content.innerHTML = html;
-                panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> พบ ${foundCount} จุดหมาย`;
-                panel.classList.remove('hidden'); // โชว์กล่อง
+                panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> พบ ${foundCount} ตำแหน่ง`;
+                panel.classList.remove('hidden');
             } else {
-                content.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs"><i class="fa-solid fa-magnifying-glass-minus text-xl mb-2 block"></i>ไม่พบข้อมูลที่ค้นหา</div>`;
+                content.innerHTML = `<div class="text-center text-slate-500 py-6 text-sm"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>ไม่พบข้อมูลที่ค้นหา</div>`;
                 panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ไม่พบรายการ`;
                 panel.classList.remove('hidden');
             }
         });
 
-        // --- อัปเกรดหน้าต่าง Modal (ตอนคลิก) ให้สกัดชื่อลูกค้าโชว์ด้วย ---
+        // --- อัปเกรดหน้าต่าง Modal (ตอนคลิกแผนผัง) ---
         function openModal(locId) {
             document.getElementById('modalTitle').innerText = locId;
-            const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '', part_names: '' };
+            const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '' };
             const badge = document.getElementById('modalStatusBadge');
             
             badge.innerText = data.status === 'Empty' ? 'ว่าง (Empty)' : data.status === 'Partial' ? 'กลาง (Partial)' : data.status === 'Full' ? 'เต็ม (Full)' : 'ไม่มีข้อมูล';
-            badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase border " + 
+            badge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border " + 
                 (data.status === 'Empty' ? "bg-green-950 text-green-400 border-green-800" : 
                  data.status === 'Partial' ? "bg-yellow-950 text-yellow-400 border-yellow-800" : 
                  data.status === 'Full' ? "bg-red-950 text-red-400 border-red-800" : 
                  "bg-slate-800 text-slate-400 border-slate-700");
 
             let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
-            let pArr = (data.part_names || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
 
             if (iArr.length === 0) {
-                document.getElementById('modalBodyContent').innerHTML = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-box-open text-3xl mb-2 block text-slate-600"></i> ไม่มีสินค้าในช่องนี้</div>`;
+                document.getElementById('modalBodyContent').innerHTML = `<div class="text-center text-slate-500 py-8"><i class="fa-solid fa-box-open text-4xl mb-3 block text-slate-600"></i><span class="text-sm">ไม่มีสินค้าในช่องนี้</span></div>`;
             } else {
-                let html = '<div class="space-y-2.5 max-h-[250px] overflow-y-auto pr-1 hide-scroll">';
+                let html = '<div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 hide-scroll">';
                 for (let i = 0; i < iArr.length; i++) {
-                    // ใช้ระบบตัดข้อความสกัดชื่อลูกค้า
-                    let parts = iArr[i].split('-');
-                    let custName = parts.length >= 2 ? (parts[0] + '-' + parts[1]) : '-';
+                    let itemCode = iArr[i].toUpperCase();
+                    // 💡 ดึงข้อมูลจาก Master Data มาแสดง
+                    let mData = masterData[itemCode] || { code_name: 'ไม่พบข้อมูล', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
                     
                     html += `
-                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex items-start gap-3 shadow-md">
-                        <div class="bg-sky-950 text-sky-400 rounded-md p-2 mt-0.5 border border-sky-900/50"><i class="fa-solid fa-box text-xs"></i></div>
+                    <div class="bg-slate-900 p-3.5 rounded-lg border border-slate-700 flex items-start gap-3 shadow-md">
+                        <div class="bg-sky-950 text-sky-400 rounded-lg p-2.5 mt-1 border border-sky-900/50"><i class="fa-solid fa-box text-base"></i></div>
                         <div class="flex-1 min-w-0">
-                            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wide flex justify-between">
-                                <span><i class="fa-solid fa-barcode"></i> ${iArr[i]}</span>
-                                <span class="text-amber-400 truncate max-w-[80px] text-right"><i class="fa-solid fa-user"></i> ${custName}</span>
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-base font-black text-amber-400 truncate">${mData.code_name}</span>
+                                <span class="text-xs font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">ลูกค้า: ${mData.cl}</span>
                             </div>
-                            <div class="text-xs font-bold text-white break-words mt-0.5">${pArr[i]||'-'}</div>
+                            <div class="text-xs text-slate-300 font-mono mb-2 truncate">${itemCode}</div>
+                            
+                            <div class="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-400 bg-slate-950 p-2 rounded border border-slate-800">
+                                <div><i class="fa-solid fa-layer-group text-slate-500 mr-1"></i> Max: <span class="text-white">${mData.max_stack}</span></div>
+                                <div><i class="fa-solid fa-box-open text-slate-500 mr-1"></i> แพ็ก: <span class="text-white">${mData.pack_type} ${mData.bag_color}</span></div>
+                            </div>
                         </div>
                     </div>`;
                 }
@@ -484,7 +488,8 @@
         }
 
         function closeModal(e) { document.getElementById('infoModal').classList.remove('active'); }
-        document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchLocations(); });
+        // 💡 เปลี่ยนจาก fetchLocations เป็น fetchAllData
+        document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchAllData(); });
     </script>
 </body>
 </html>

@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 🎨 Theme Engine Variables */
         :root {
             --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
             --glass-bg: rgba(255, 255, 255, 0.7);
@@ -18,7 +17,6 @@
             --card-hover: rgba(255, 255, 255, 0.9);
             --glow-color: rgba(14, 165, 233, 0.15);
         }
-
         [data-theme="dark"] {
             --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
             --glass-bg: rgba(30, 41, 59, 0.6);
@@ -29,7 +27,6 @@
             --card-hover: rgba(51, 65, 85, 0.8);
             --glow-color: rgba(56, 189, 248, 0.15);
         }
-
         [data-theme="kaosu"] {
             --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
             --glass-bg: rgba(69, 10, 10, 0.6);
@@ -42,72 +39,43 @@
         }
 
         body {
-            background: var(--bg-gradient);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            color: var(--text-main);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            transition: all 0.5s ease;
+            background: var(--bg-gradient); background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite; color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: all 0.5s ease;
         }
-
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .photo-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
-        /* Glassmorphism Styles */
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-        .glass-input {
-            background: var(--input-bg);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
-            backdrop-filter: blur(8px);
-            transition: all 0.3s ease;
-        }
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); backdrop-filter: blur(8px); transition: all 0.3s ease; }
         .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
         
-        .mouse-glow {
-            position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%);
-            width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%);
-            pointer-events: none; z-index: 0; transition: width 0.2s, height 0.2s;
-        }
+        .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; transition: width 0.2s, height 0.2s; }
 
-        .suggestions-box {
-            position: absolute; z-index: 50; width: 100%; background: var(--glass-bg); backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border); border-radius: 0.75rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
-            max-height: 220px; overflow-y: auto; display: none; top: 100%; left: 0; margin-top: 8px;
-        }
-        .suggestion-item { padding: 10px 14px; border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; }
+        .suggestions-box { position: absolute; z-index: 50; width: 100%; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); max-height: 220px; overflow-y: auto; display: none; top: calc(100% + 4px); left: 0; }
+        .suggestion-item { padding: 12px 16px; border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; }
         .suggestion-item:hover { background: var(--card-hover); }
         .suggestion-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body class="min-h-screen p-3 md:p-6 relative" data-theme="dark">
 
-<!-- เอฟเฟกต์แสงออร่า -->
 <div class="mouse-glow"></div>
 
-<div class="max-w-md mx-auto glass-panel rounded-3xl overflow-hidden relative z-10">
-    
-    <!-- Screen Loading -->
+<div class="max-w-md mx-auto glass-panel rounded-3xl overflow-hidden relative z-10 shadow-2xl">
     <div id="masterLoading" class="absolute inset-0 bg-[var(--glass-bg)] backdrop-blur-md z-[100] flex flex-col items-center justify-center transition-opacity duration-300">
-        <i class="fa-solid fa-spinner fa-spin text-5xl text-sky-500 mb-4 drop-shadow-lg"></i>
-        <p class="text-sm font-bold text-[var(--text-main)] tracking-widest animate-pulse">CONNECTING DB...</p>
+        <div class="w-16 h-16 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin mb-4"></div>
+        <p class="text-xs font-bold text-[var(--text-main)] tracking-widest animate-pulse">CONNECTING DB...</p>
     </div>
 
-   <div class="p-6 relative border-b border-[var(--glass-border)]">
-        <!-- 🟢 ปุ่มสลับภาษา -->
+    <!-- Header Section -->
+    <div class="p-6 relative border-b border-[var(--glass-border)]">
         <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-black/20 backdrop-blur-sm border border-[var(--glass-border)] rounded-xl px-3 py-1.5 shadow-md z-[60]">
-            <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
-            <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
+            <i class="fa-solid fa-earth-asia text-sky-400 text-xs"></i>
+            <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-[10px] font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
                 <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
                 <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
                 <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
@@ -115,65 +83,70 @@
             </select>
         </div>
         
-        <div class="flex items-center gap-3 mb-5 pr-20">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-400 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/30">
-                <i class="fa-solid fa-pen-to-square text-white text-lg"></i>
+        <div class="flex items-center gap-4 mb-5 pr-20">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-400 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/30 shrink-0">
+                <i class="fa-solid fa-pen-to-square text-white text-xl"></i>
             </div>
-            <h1 class="text-xl font-black tracking-wide text-[var(--text-main)]" data-i18n="appTitle">DISPATCH FG</h1>
+            <div>
+                <h1 class="text-xl font-black tracking-wider text-[var(--text-main)]" data-i18n="appTitle">DISPATCH FG</h1>
+                <p class="text-[10px] font-semibold text-[var(--text-sub)] tracking-widest uppercase">Kaosu Logistics</p>
+            </div>
         </div>
 
-        <!-- Nav Buttons (Glass Style) -->
-       <div class="flex gap-2">
-            <a href="menu.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all">
+        <div class="flex gap-2">
+            <a href="menu.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-[11px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all">
                 <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">หน้าหลัก</span>
             </a>
-            <a href="index.html" class="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30">
+            <a href="index.html" class="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-[11px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30">
                 <i class="fa-solid fa-barcode"></i> <span data-i18n="navDispatch">จ่ายงาน</span>
             </a>
-            <a href="report.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all">
+            <a href="report.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-[11px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all">
                 <i class="fa-solid fa-chart-pie"></i> <span data-i18n="navReport">รายงาน</span>
             </a>
         </div>
     </div>
 
-    <form id="dispatchForm" class="p-5 space-y-5">
-        <!-- User Info Row -->
-        <div class="grid grid-cols-2 gap-3">
+    <form id="dispatchForm" class="p-6 space-y-5">
+        <!-- Top Info Row -->
+        <div class="grid grid-cols-2 gap-4">
             <div>
-                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 ml-1 tracking-wider" data-i18n="shift">กะ / SHIFT</label>
-                <select id="shift" class="w-full glass-input rounded-xl p-3 text-sm font-bold outline-none">
-                    <option value="A" class="text-slate-800">Shift A</option>
-                    <option value="B" class="text-slate-800">Shift B</option>
-                </select>
+                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-wider" data-i18n="shift">กะ / SHIFT</label>
+                <div class="relative">
+                    <i class="fa-solid fa-clock absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
+                    <select id="shift" class="w-full glass-input rounded-xl p-3 pl-9 text-sm font-bold outline-none appearance-none cursor-pointer">
+                        <option value="A" class="text-slate-800">Shift A</option>
+                        <option value="B" class="text-slate-800">Shift B</option>
+                    </select>
+                </div>
             </div>
             <div>
-                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 ml-1 tracking-wider" data-i18n="staffId">รหัสพนักงาน</label>
+                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-wider" data-i18n="staffId">รหัสพนักงาน</label>
                 <div class="relative">
-                    <i class="fa-solid fa-user-tag absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
+                    <i class="fa-solid fa-id-badge absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
                     <input type="text" id="staffId" class="w-full glass-input rounded-xl p-3 pl-9 text-sm font-bold uppercase tracking-widest outline-none" data-i18n-placeholder="staffIdPh" placeholder="EMP001" required>
                 </div>
             </div>
         </div>
 
-        <hr class="border-[var(--glass-border)] my-2">
+        <div class="h-px w-full bg-[var(--glass-border)] opacity-50 my-2"></div>
 
-        <!-- Item rows Container -->
         <div>
-            <div class="flex justify-between items-end mb-3">
-                <label class="block text-xs font-black text-[var(--text-main)] uppercase tracking-wider">
-                    <i class="fa-solid fa-boxes-packing mr-1 text-sky-500"></i> <span data-i18n="itemList">รายการสินค้า</span>
+            <div class="flex justify-between items-center mb-3">
+                <label class="block text-xs font-black text-[var(--text-main)] uppercase tracking-wider flex items-center gap-2">
+                    <div class="bg-sky-500/20 text-sky-500 p-1.5 rounded-lg"><i class="fa-solid fa-boxes-packing"></i></div> 
+                    <span data-i18n="itemList">รายการสินค้า</span>
                 </label>
             </div>
 
             <div id="itemsContainer" class="space-y-4"></div>
 
-            <button type="button" id="btnAddRow" class="w-full mt-4 glass-input hover:bg-[var(--card-hover)] text-sky-500 font-bold py-3 px-4 rounded-xl border border-dashed border-sky-500/50 text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+            <button type="button" id="btnAddRow" class="w-full mt-4 glass-input hover:bg-[var(--card-hover)] text-sky-500 font-bold py-3.5 px-4 rounded-xl border border-dashed border-sky-500/50 text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
                 <i class="fa-solid fa-plus-circle text-lg"></i>
                 <span data-i18n="btnAdd">เพิ่มรายการเบิกจ่าย</span>
             </button>
         </div>
 
-        <button id="submitBtn" type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-4 px-4 rounded-xl shadow-lg shadow-emerald-500/30 transition-all text-base tracking-widest mt-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-400/50">
+        <button id="submitBtn" type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-4 px-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all text-sm tracking-widest mt-4 active:scale-95 disabled:opacity-50 border border-emerald-400/50">
             <i id="submitIcon" class="fa-solid fa-cloud-arrow-up mr-2 text-lg"></i>
             <span id="submitText" data-i18n="btnSubmit">บันทึกข้อมูลเข้าระบบ</span>
         </button>
@@ -181,7 +154,6 @@
 </div>
 
 <input type="file" id="globalCameraInput" accept="image/*" capture="environment" style="display:none">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* =============================================================
@@ -189,202 +161,130 @@
 ============================================================= */
 const savedTheme = localStorage.getItem('wms_theme') || 'dark';
 document.body.setAttribute('data-theme', savedTheme);
-
-document.addEventListener('mousemove', (e) => {
-    document.documentElement.style.setProperty('--x', e.clientX + 'px');
-    document.documentElement.style.setProperty('--y', e.clientY + 'px');
-});
-document.addEventListener('touchmove', (e) => {
-    document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px');
-    document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px');
-});
+document.addEventListener('mousemove', (e) => { document.documentElement.style.setProperty('--x', e.clientX + 'px'); document.documentElement.style.setProperty('--y', e.clientY + 'px'); });
+document.addEventListener('touchmove', (e) => { document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px'); document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px'); });
 
 // ==========================================
 // 🌍 ระบบแปลภาษา 4 ชาติ
 // ==========================================
 const translations = {
-    th: {
-        appTitle: "DISPATCH FG", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน",
-        shift: "กะ / SHIFT", staffId: "รหัสพนักงาน", staffIdPh: "EMP001",
-        itemList: "รายการสินค้าเบิกจ่าย", partNamePh: "ชื่อชิ้นงานจะแสดงอัตโนมัติ", searchPh: "ค้นหารหัส ITEM (เช่น 088)",
-        bag: "ถุง", pack: "บรรจุ", fraction: "เศษ", total: "ยอดรวม", btnAdd: "เพิ่มรายการเบิกจ่าย", btnSubmit: "บันทึกข้อมูลเข้าระบบ", takePhoto: "แนบรูปถ่าย"
-    },
-    zh: {
-        appTitle: "發貨系統", navMenu: "主頁", navDispatch: "發貨", navReport: "報告",
-        shift: "班次", staffId: "員工編號", staffIdPh: "EMP001",
-        itemList: "物料清單", partNamePh: "自動顯示物料名稱", searchPh: "搜尋代碼 (如 088)",
-        bag: "袋", pack: "包裝", fraction: "零數", total: "總計", btnAdd: "新增項目", btnSubmit: "確認提交", takePhoto: "拍照"
-    },
-    mm: {
-        appTitle: "ထုတ်ပေးမှုစနစ်", navMenu: "ပင်မစာမျက်နှာ", navDispatch: "ထုတ်ပေးခြင်း", navReport: "အစီရင်ခံစာ",
-        shift: "အဆိုင်း", staffId: "ဝန်ထမ်းကုဒ်", staffIdPh: "EMP001",
-        itemList: "ပစ္စည်းစာရင်း", partNamePh: "အမည်အလိုအလျောက်ပေါ်လာမည်", searchPh: "ရှာဖွေရန် (ဥပမာ 088)",
-        bag: "အိတ်", pack: "ထုပ်ပိုး", fraction: "အပို", total: "စုစုပေါင်း", btnAdd: "ပစ္စည်းထည့်ရန်", btnSubmit: "အတည်ပြုသည်", takePhoto: "ဓာတ်ပုံရိုက်ရန်"
-    },
-    en: {
-        appTitle: "DISPATCH FG", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report",
-        shift: "SHIFT", staffId: "STAFF ID", staffIdPh: "EMP001",
-        itemList: "DISPATCH ITEMS", partNamePh: "Auto-fill part name", searchPh: "Search ITEM (e.g. 088)",
-        bag: "Bag", pack: "Pack", fraction: "Frac.", total: "TOTAL", btnAdd: "Add Item", btnSubmit: "SUBMIT DATA", takePhoto: "Take Photo"
-    }
+    th: { appTitle: "DISPATCH FG", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน", shift: "กะ / SHIFT", staffId: "รหัสพนักงาน", staffIdPh: "EMP001", itemList: "รายการสินค้า", partNamePh: "ชื่อชิ้นงานจะแสดงอัตโนมัติ", searchPh: "ค้นหารหัส ITEM (เช่น 088)", bag: "ถุง", pack: "บรรจุ", fraction: "เศษ", total: "ยอดรวม", btnAdd: "เพิ่มรายการเบิกจ่าย", btnSubmit: "บันทึกข้อมูลเข้าระบบ", takePhoto: "แนบรูปถ่าย" },
+    zh: { appTitle: "發貨系統", navMenu: "主頁", navDispatch: "發貨", navReport: "報告", shift: "班次", staffId: "員工編號", staffIdPh: "EMP001", itemList: "物料清單", partNamePh: "自動顯示名稱", searchPh: "搜尋代碼 (如 088)", bag: "袋", pack: "包裝", fraction: "零數", total: "總計", btnAdd: "新增項目", btnSubmit: "確認提交", takePhoto: "拍照" },
+    mm: { appTitle: "ထုတ်ပေးမှုစနစ်", navMenu: "ပင်မ", navDispatch: "ထုတ်ပေး", navReport: "အစီရင်ခံစာ", shift: "အဆိုင်း", staffId: "ဝန်ထမ်းကုဒ်", staffIdPh: "EMP001", itemList: "ပစ္စည်းစာရင်း", partNamePh: "အမည်အလိုအလျောက်ပေါ်လာမည်", searchPh: "ရှာဖွေရန် (ဥပမာ 088)", bag: "အိတ်", pack: "ထုပ်ပိုး", fraction: "အပို", total: "စုစုပေါင်း", btnAdd: "ပစ္စည်းထည့်ရန်", btnSubmit: "အတည်ပြုသည်", takePhoto: "ဓာတ်ပုံ" },
+    en: { appTitle: "DISPATCH FG", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report", shift: "SHIFT", staffId: "STAFF ID", staffIdPh: "EMP001", itemList: "DISPATCH ITEMS", partNamePh: "Auto-fill part name", searchPh: "Search ITEM (e.g. 088)", bag: "Bag", pack: "Pack", fraction: "Frac.", total: "TOTAL", btnAdd: "Add Item", btnSubmit: "SUBMIT DATA", takePhoto: "Photo" }
 };
-
 let currentLang = localStorage.getItem('wms_lang') || 'th';
-function t(key) { return translations[currentLang][key] || translations['th'][key]; }
-
 function changeLanguage(lang) {
-    if (!translations[lang]) return;
-    currentLang = lang;
-    localStorage.setItem('wms_lang', lang);
+    currentLang = lang; localStorage.setItem('wms_lang', lang);
     document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang);
-    const trans = translations[lang];
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-        const key = el.getAttribute("data-i18n");
-        if (trans[key] !== undefined) el.textContent = trans[key];
-    });
-    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
-        const key = el.getAttribute("data-i18n-placeholder");
-        if (trans[key] !== undefined) el.setAttribute("placeholder", trans[key]);
-    });
+    const t = translations[lang];
+    document.querySelectorAll("[data-i18n]").forEach(el => { if(t[el.getAttribute("data-i18n")]) el.textContent = t[el.getAttribute("data-i18n")]; });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => { if(t[el.getAttribute("data-i18n-placeholder")]) el.setAttribute("placeholder", t[el.getAttribute("data-i18n-placeholder")]); });
 }
 
 // ==========================================
-// 🚀 ฐานข้อมูล และ Smart Search Logic
+// 🚀 DB & Logic
 // ==========================================
-const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
-const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
-
+const sbClient = window.supabase.createClient("https://suardrnsfpdqwcgupqkb.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI");
 let masterDataList = []; 
 
 async function fetchMasterData() {
     try {
-        const { data, error } = await sbClient.from("part_master").select("*");
-        if (error) throw error;
-        masterDataList = data;
-        
+        const { data } = await sbClient.from("part_master").select("*");
+        masterDataList = data || [];
         let loader = document.getElementById('masterLoading');
         loader.classList.add('opacity-0');
         setTimeout(() => loader.classList.add('hidden'), 300);
-    } catch(err) {
-        alert("โหลดฐานข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ");
-        console.error(err);
-    }
+    } catch(err) { console.error(err); }
 }
 
 var uidCounter = 0;
-function makeUID() { return "r" + (++uidCounter); }
-
 function createRow() {
-    var uid = makeUID();
+    var uid = "r" + (++uidCounter);
     var div = document.createElement("div");
-    div.className = "item-row glass-input p-4 rounded-2xl relative pt-8 shadow-md border-[var(--glass-border)]";
+    div.className = "item-row glass-panel p-4 rounded-2xl relative pt-10 shadow-sm border border-[var(--glass-border)]";
     div.setAttribute("data-row-uid", uid);
-
+    
+    // UI ที่ถูกปรับแก้ใหม่อย่างลงตัว
     div.innerHTML = `
-        <div class="absolute top-0 left-0 right-0 bg-black/10 px-3 py-1.5 rounded-t-2xl flex justify-between items-center border-b border-[var(--glass-border)]">
+        <div class="absolute top-0 left-0 right-0 bg-black/10 px-4 py-2 rounded-t-2xl flex justify-between items-center border-b border-[var(--glass-border)]">
             <span class="text-[10px] font-black text-[var(--text-sub)] uppercase tracking-widest row-number"></span>
             <button type="button" data-action="remove-row" class="text-[var(--text-sub)] hover:text-red-400 transition-colors"><i class="fa-solid fa-xmark text-sm"></i></button>
         </div>
 
-        <!-- 🔍 ช่อง Smart Search -->
-        <div class="mb-3 mt-1 relative">
+        <div class="mb-4 relative mt-1">
             <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-sky-400"></i>
-            <input type="text" class="item-search w-full glass-input rounded-xl p-3 pl-11 text-sm font-bold focus:ring-2 focus:ring-sky-500 outline-none" data-i18n-placeholder="searchPh" placeholder="ค้นหารหัส ITEM (เช่น 088)" autocomplete="off" required>
+            <input type="text" class="item-search w-full glass-input rounded-xl p-3.5 pl-11 text-sm font-bold focus:ring-2 focus:ring-sky-500 outline-none transition-all" data-i18n-placeholder="searchPh" placeholder="ค้นหารหัส ITEM (เช่น 088)" autocomplete="off" required>
             <div class="suggestions-box custom-scroll"></div>
             <input type="hidden" class="real-item-code">
         </div>
 
-        <!-- 🔒 ชื่อสินค้า (Auto-fill) -->
-        <div class="mb-4">
-            <input type="text" class="part-name w-full bg-black/20 border border-[var(--glass-border)] rounded-xl p-3 text-xs text-[var(--text-main)] font-medium outline-none cursor-not-allowed opacity-70" data-i18n-placeholder="partNamePh" placeholder="ชื่อชิ้นงานจะแสดงอัตโนมัติ" readonly tabindex="-1">
+        <div class="mb-5">
+            <input type="text" class="part-name w-full bg-black/10 border border-[var(--glass-border)] rounded-xl p-3 text-xs text-[var(--text-main)] font-medium outline-none cursor-not-allowed opacity-80 text-center" data-i18n-placeholder="partNamePh" placeholder="ชื่อชิ้นงานจะแสดงอัตโนมัติ" readonly tabindex="-1">
         </div>
 
-        <!-- 📱 Mobile Optimized Qty Inputs -->
-        <div class="grid grid-cols-3 gap-2 mb-3">
-            <div>
-                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1 uppercase tracking-wider"><i class="fa-solid fa-bag-shopping text-amber-500 mr-1"></i> <span data-i18n="bag">ถุง</span></label>
-                <input type="number" min="0" class="bag-qty w-full glass-input rounded-xl p-2.5 text-base text-center font-black outline-none" placeholder="0">
+        <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="relative">
+                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1.5 uppercase tracking-wider"><i class="fa-solid fa-bag-shopping text-amber-500 mr-1"></i><span data-i18n="bag">ถุง</span></label>
+                <input type="number" min="0" class="bag-qty w-full glass-input rounded-xl p-3 text-base text-center font-black outline-none focus:ring-2 focus:ring-amber-400" placeholder="0">
             </div>
-            <div>
-                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1 uppercase tracking-wider"><i class="fa-solid fa-box text-blue-400 mr-1"></i> <span data-i18n="pack">บรรจุ</span></label>
-                <input type="number" min="0" class="pack-qty w-full glass-input rounded-xl p-2.5 text-base text-center font-black outline-none" placeholder="0">
+            <div class="relative">
+                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1.5 uppercase tracking-wider"><i class="fa-solid fa-box text-blue-400 mr-1"></i><span data-i18n="pack">บรรจุ</span></label>
+                <input type="number" min="0" class="pack-qty w-full glass-input rounded-xl p-3 text-base text-center font-black outline-none focus:ring-2 focus:ring-blue-400" placeholder="0">
             </div>
-            <div>
-                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1 uppercase tracking-wider"><i class="fa-solid fa-layer-group text-purple-400 mr-1"></i> <span data-i18n="fraction">เศษ</span></label>
-                <input type="number" min="0" class="fraction-qty w-full glass-input rounded-xl p-2.5 text-base text-center font-black outline-none" placeholder="0">
+            <div class="relative">
+                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1.5 uppercase tracking-wider"><i class="fa-solid fa-layer-group text-purple-400 mr-1"></i><span data-i18n="fraction">เศษ</span></label>
+                <input type="number" min="0" class="fraction-qty w-full glass-input rounded-xl p-3 text-base text-center font-black outline-none focus:ring-2 focus:ring-purple-400" placeholder="0">
             </div>
         </div>
 
-        <!-- 📱 Total Box -->
-        <div class="mb-4 bg-emerald-500/10 rounded-xl p-3 border border-emerald-500/30 flex items-center justify-between shadow-inner">
+        <div class="mb-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl p-3.5 border border-emerald-500/30 flex items-center justify-between shadow-inner">
             <label class="block text-xs font-black text-emerald-500 ml-2 uppercase tracking-widest"><span data-i18n="total">ยอดรวม</span></label>
-            <input type="number" class="total-qty w-1/2 bg-transparent text-2xl text-right font-black text-emerald-400 outline-none pr-1" readonly tabindex="-1" placeholder="0">
+            <input type="number" class="total-qty w-1/2 bg-transparent text-2xl text-right font-black text-emerald-400 outline-none pr-2" readonly tabindex="-1" placeholder="0">
         </div>
 
-        <div class="mt-2">
-            <button type="button" data-action="take-photo" class="w-full glass-input hover:bg-[var(--card-hover)] hover:text-sky-500 border border-dashed border-sky-400/50 rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-colors">
-                <i class="fa-solid fa-camera"></i> <span data-i18n="takePhoto">แนบรูปถ่าย</span>
+        <div>
+            <button type="button" data-action="take-photo" class="w-full glass-input hover:bg-[var(--card-hover)] hover:text-sky-500 border border-dashed border-sky-400/50 rounded-xl py-3 text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-camera text-base"></i> <span data-i18n="takePhoto">แนบรูปถ่าย</span>
             </button>
             <div class="photo-strip"></div>
         </div>
     `;
 
     document.getElementById("itemsContainer").appendChild(div);
-    updateRowNumbers();
-    changeLanguage(currentLang);
+    updateRowNumbers(); changeLanguage(currentLang);
 }
 
 function updateRowNumbers() {
-    document.querySelectorAll(".item-row").forEach((row, i) => {
-        row.querySelector(".row-number").textContent = "Item #" + (i + 1);
-    });
+    document.querySelectorAll(".item-row").forEach((row, i) => { row.querySelector(".row-number").textContent = "Item #" + (i + 1); });
 }
 
-/* =============================================================
-   EVENT DELEGATION
-============================================================= */
 var container = document.getElementById("itemsContainer");
-
 container.addEventListener("input", function(e) {
     if (e.target.classList.contains("item-search")) {
-        let input = e.target;
-        let val = input.value.trim().toUpperCase();
-        let row = input.closest(".item-row");
-        let box = row.querySelector(".suggestions-box");
-        let hiddenInput = row.querySelector(".real-item-code");
-        let nameInput = row.querySelector(".part-name");
-
+        let input = e.target, val = input.value.trim().toUpperCase(), row = input.closest(".item-row");
+        let box = row.querySelector(".suggestions-box"), hiddenInput = row.querySelector(".real-item-code"), nameInput = row.querySelector(".part-name");
         hiddenInput.value = ""; nameInput.value = "";
-        input.classList.remove('border-emerald-400', 'text-emerald-500');
-
+        input.classList.remove('border-emerald-400', 'text-emerald-500', 'bg-emerald-500/10');
         if (val.length < 2) { box.style.display = "none"; return; }
-
-        let matches = masterDataList.filter(item => 
-            item.item_code.toUpperCase().includes(val) || 
-            (item.code_name && item.code_name.toUpperCase().includes(val)) ||
-            (item.cl && item.cl.toUpperCase().includes(val))
-        ).slice(0, 10);
-
+        
+        let matches = masterDataList.filter(item => item.item_code.toUpperCase().includes(val) || (item.code_name && item.code_name.toUpperCase().includes(val)) || (item.cl && item.cl.toUpperCase().includes(val))).slice(0, 10);
         if (matches.length > 0) {
             box.innerHTML = matches.map(item => `
                 <div class="suggestion-item flex flex-col" data-code="${item.item_code}" data-name="${item.code_name}" data-cl="${item.cl}" data-pack="${item.pack_type}">
                     <span class="text-sm font-black text-[var(--text-main)]">${item.item_code}</span>
-                    <span class="text-[10px] font-bold text-[var(--text-sub)]">ลูกค้า: <span class="text-sky-500">${item.cl}</span> | ${item.code_name}</span>
+                    <span class="text-[10px] font-bold text-[var(--text-sub)] mt-1">ลูกค้า: <span class="text-sky-500">${item.cl}</span> | ${item.code_name}</span>
                 </div>
             `).join("");
             box.style.display = "block";
         } else {
-            box.innerHTML = `<div class="p-3 text-xs font-bold text-red-400 text-center bg-red-500/10 rounded-lg m-2">ไม่พบสินค้าในระบบ Database</div>`;
+            box.innerHTML = `<div class="p-3 text-xs font-bold text-red-400 text-center bg-red-500/10 rounded-lg m-2">ไม่พบสินค้าในระบบ</div>`;
             box.style.display = "block";
         }
     }
-
     if (e.target.classList.contains("bag-qty") || e.target.classList.contains("pack-qty") || e.target.classList.contains("fraction-qty")) {
         let row = e.target.closest(".item-row");
-        let bags = parseFloat(row.querySelector(".bag-qty").value) || 0;
-        let pack = parseFloat(row.querySelector(".pack-qty").value) || 0;
-        let frac = parseFloat(row.querySelector(".fraction-qty").value) || 0;
+        let bags = parseFloat(row.querySelector(".bag-qty").value) || 0, pack = parseFloat(row.querySelector(".pack-qty").value) || 0, frac = parseFloat(row.querySelector(".fraction-qty").value) || 0;
         row.querySelector(".total-qty").value = (bags * pack) + frac;
     }
 });
@@ -393,208 +293,113 @@ container.addEventListener("click", function(e) {
     let suggestion = e.target.closest(".suggestion-item");
     if (suggestion) {
         let row = suggestion.closest(".item-row");
-        let code = suggestion.getAttribute("data-code");
-        let name = suggestion.getAttribute("data-name");
-        let cl = suggestion.getAttribute("data-cl");
-        let pack = suggestion.getAttribute("data-pack") || "";
-
+        let code = suggestion.getAttribute("data-code"), name = suggestion.getAttribute("data-name"), cl = suggestion.getAttribute("data-cl"), pack = suggestion.getAttribute("data-pack") || "";
         let searchInput = row.querySelector(".item-search");
-        searchInput.value = code;
-        searchInput.classList.add('border-emerald-400', 'text-emerald-500'); 
+        searchInput.value = code; searchInput.classList.add('border-emerald-400', 'text-emerald-500', 'bg-emerald-500/10'); 
         row.querySelector(".real-item-code").value = code;
         row.querySelector(".part-name").value = `CL: ${cl} | ${name}`;
-        
         let packInput = row.querySelector(".pack-qty");
         if(packInput.value === "") packInput.value = pack.replace(/[^0-9]/g, '');
-
         row.querySelector(".suggestions-box").style.display = "none";
     }
-
     let btn = e.target.closest("[data-action]");
     if (btn && btn.getAttribute("data-action") === "remove-row") {
-        if (document.querySelectorAll(".item-row").length > 1) {
-            deletePendingFiles(btn.closest(".item-row").getAttribute("data-row-uid"));
-            btn.closest(".item-row").remove();
-            updateRowNumbers();
-        } else {
-            alert("ต้องมีอย่างน้อย 1 รายการ");
-        }
+        if (document.querySelectorAll(".item-row").length > 1) { btn.closest(".item-row").remove(); updateRowNumbers(); } else { alert("ต้องมีอย่างน้อย 1 รายการ"); }
     }
-    
     if (btn && btn.getAttribute("data-action") === "take-photo") {
-        activePhotoRow = btn.closest(".item-row");
-        let cam = document.getElementById("globalCameraInput");
-        cam.value = ""; cam.click();
+        activePhotoRow = btn.closest(".item-row"); document.getElementById("globalCameraInput").value = ""; document.getElementById("globalCameraInput").click();
     }
 });
 
-document.addEventListener("click", function(e) {
-    if (!e.target.closest(".relative")) {
-        document.querySelectorAll(".suggestions-box").forEach(box => box.style.display = "none");
-    }
-});
+document.addEventListener("click", function(e) { if (!e.target.closest(".relative")) document.querySelectorAll(".suggestions-box").forEach(box => box.style.display = "none"); });
 
-/* =============================================================
-   PENDING FILES STORE & CAMERA
-============================================================= */
-var pendingFiles = {};
-function getPendingFiles(uid)    { return pendingFiles[uid] || []; }
-function deletePendingFiles(uid) { delete pendingFiles[uid]; }
-function clearAllPendingFiles()  { pendingFiles = {}; }
-var activePhotoRow = null;
-
+// Upload / Camera / Submit (เหมือนเดิม)
+var pendingFiles = {}; var activePhotoRow = null;
 function compressImage(file, callback) {
     var reader = new FileReader();
     reader.onload = function(event) {
-        var img = new Image();
-        img.onload = function() {
-            var canvas = document.createElement('canvas');
-            var ctx = canvas.getContext('2d');
-            var MAX_WIDTH = 1024, MAX_HEIGHT = 1024;
+        var img = new Image(); img.onload = function() {
+            var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
             var width = img.width, height = img.height;
-            if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
-            else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
-            canvas.width = width; canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
+            if (width > height) { if (width > 1024) { height *= 1024 / width; width = 1024; } } else { if (height > 1024) { width *= 1024 / height; height = 1024; } }
+            canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
             canvas.toBlob(blob => { callback(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' })); }, 'image/jpeg', 0.7);
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+        }; img.src = event.target.result;
+    }; reader.readAsDataURL(file);
 }
 
 document.getElementById("globalCameraInput").addEventListener("change", function(e) {
-    var file = e.target.files[0];
-    if (!file || !activePhotoRow) return;
-    var uid = activePhotoRow.getAttribute("data-row-uid");
-    var capturedRow = activePhotoRow;
-    activePhotoRow = null;
-
+    var file = e.target.files[0]; if (!file || !activePhotoRow) return;
+    var uid = activePhotoRow.getAttribute("data-row-uid"), capturedRow = activePhotoRow; activePhotoRow = null;
     compressImage(file, function(compressedFile) {
-        if (!pendingFiles[uid]) pendingFiles[uid] = [];
-        pendingFiles[uid].push(compressedFile);
+        if (!pendingFiles[uid]) pendingFiles[uid] = []; pendingFiles[uid].push(compressedFile);
         var reader = new FileReader();
         reader.onload = function(ev) {
-            var img = document.createElement("img");
-            img.src = ev.target.result;
-            img.className = "photo-thumb";
+            var img = document.createElement("img"); img.src = ev.target.result; img.className = "photo-thumb";
             capturedRow.querySelector(".photo-strip").appendChild(img);
-        };
-        reader.readAsDataURL(compressedFile);
+        }; reader.readAsDataURL(compressedFile);
     });
 });
 
-async function uploadPhotos(uid, files, txnId) {
-    if (!files.length) return { urls: [], failed: [] };
-    var tasks = files.map(function(file, i) {
-        var path = txnId + "/" + uid + "_" + i + ".jpg";
-        return sbClient.storage.from("dispatch-photos").upload(path, file, { upsert: true }).then(r => {
-            if (r.error) return { ok: false, name: file.name };
-            return { ok: true, url: sbClient.storage.from("dispatch-photos").getPublicUrl(path).data.publicUrl };
-        }).catch(() => ({ ok: false, name: file.name }));
-    });
-    var results = await Promise.all(tasks);
-    return { urls: results.filter(r => r.ok).map(r => r.url), failed: results.filter(r => !r.ok).map(r => r.name) };
-}
-
-/* =============================================================
-   SUBMIT FORM
-============================================================= */
 document.getElementById("dispatchForm").addEventListener("submit", async function(event) {
     event.preventDefault();
     if (!sbClient) { alert("❌ ระบบฐานข้อมูลไม่พร้อมใช้งาน"); return; }
-
     let allValid = true;
-    let rows = document.querySelectorAll(".item-row");
-    rows.forEach(row => {
+    document.querySelectorAll(".item-row").forEach(row => {
         if (row.querySelector(".real-item-code").value === "") {
-            row.querySelector(".item-search").classList.add("border-red-500", "ring-2", "ring-red-500", "bg-red-500/10");
+            row.querySelector(".item-search").classList.add("border-red-500", "ring-2", "ring-red-500");
             allValid = false;
         }
     });
+    if(!allValid) { alert("⚠️ กรุณาเลือกรายการสินค้าจากตัวเลือกที่ค้นหาให้เท่านั้น!"); return; }
 
-    if(!allValid) {
-        alert("⚠️ กรุณาเลือกรายการสินค้าจากตัวเลือกที่ระบบค้นหาให้เท่านั้น!");
-        return;
-    }
-
-    var btn = document.getElementById("submitBtn");
-    var textEl = document.getElementById("submitText");
-    var iconEl = document.getElementById("submitIcon");
-    var origTxt = textEl.textContent;
-
-    textEl.textContent = "กำลังบันทึก...";
-    iconEl.className = "fa-solid fa-spinner fa-spin mr-2";
-    btn.disabled = true;
+    var btn = document.getElementById("submitBtn"), textEl = document.getElementById("submitText"), iconEl = document.getElementById("submitIcon"), origTxt = textEl.textContent;
+    textEl.textContent = "กำลังบันทึก..."; iconEl.className = "fa-solid fa-spinner fa-spin mr-2"; btn.disabled = true;
 
     try {
-        var now = new Date();
-        var pad = n => ("0" + n).slice(-2);
+        var now = new Date(), pad = n => ("0" + n).slice(-2);
         var txnId = "TXN-" + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + "-" + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+        var shiftText = document.getElementById("shift").value === "A" ? "Shift A" : "Shift B", staffId = document.getElementById("staffId").value.trim().toUpperCase();
 
-        var shiftText = document.getElementById("shift").value === "A" ? "Shift A" : "Shift B";
-        var staffId = document.getElementById("staffId").value.trim().toUpperCase();
-
-        textEl.textContent = "กำลังอัปโหลดรูป...";
+        var rows = document.querySelectorAll(".item-row");
         var uploadTasks = Array.from(rows).map(row => {
             var uid = row.getAttribute("data-row-uid");
-            return uploadPhotos(uid, getPendingFiles(uid), txnId).then(res => ({ uid, urls: res.urls }));
+            var files = pendingFiles[uid] || [];
+            if(!files.length) return Promise.resolve({uid, urls:[]});
+            var tasks = files.map((f,i) => sbClient.storage.from("dispatch-photos").upload(`${txnId}/${uid}_${i}.jpg`, f).then(r => r.error ? {ok:false} : {ok:true, url:sbClient.storage.from("dispatch-photos").getPublicUrl(`${txnId}/${uid}_${i}.jpg`).data.publicUrl}));
+            return Promise.all(tasks).then(res => ({uid, urls:res.filter(r=>r.ok).map(r=>r.url)}));
         });
         var uploadResults = await Promise.all(uploadTasks);
-        var photoUrlsMap = {};
-        uploadResults.forEach(res => photoUrlsMap[res.uid] = res.urls);
+        var photoUrlsMap = {}; uploadResults.forEach(res => photoUrlsMap[res.uid] = res.urls);
 
-        textEl.textContent = "กำลังบันทึกข้อมูล...";
         var r1 = await sbClient.from("bills").insert([{ bill_id: txnId, shift: shiftText, staff_id: staffId }]);
-        if (r1.error) throw new Error("bills: " + r1.error.message);
+        if (r1.error) throw new Error(r1.error.message);
 
         var items = [];
         rows.forEach(row => {
-            var uid = row.getAttribute("data-row-uid");
-            var itemCode = row.querySelector(".real-item-code").value; 
-            var name = row.querySelector(".part-name").value; 
-            var bag = Number(row.querySelector(".bag-qty").value) || 0;
-            var pack = Number(row.querySelector(".pack-qty").value) || 0;
-            var frac = Number(row.querySelector(".fraction-qty").value) || 0;
-            
             items.push({
                 bill_id: txnId,
-                part_name: `${itemCode} (${name})`, 
-                bag_qty: bag, pack_qty: pack, fraction_qty: frac,
-                photo_urls: photoUrlsMap[uid] || []
+                part_name: `${row.querySelector(".real-item-code").value} (${row.querySelector(".part-name").value})`, 
+                bag_qty: Number(row.querySelector(".bag-qty").value) || 0,
+                pack_qty: Number(row.querySelector(".pack-qty").value) || 0,
+                fraction_qty: Number(row.querySelector(".fraction-qty").value) || 0,
+                photo_urls: photoUrlsMap[row.getAttribute("data-row-uid")] || []
             });
         });
-
         var r2 = await sbClient.from("bill_items").insert(items);
-        if (r2.error) throw new Error("bill_items: " + r2.error.message);
+        if (r2.error) throw new Error(r2.error.message);
 
         alert("✅ บันทึกสำเร็จ!\nรหัสอ้างอิง: " + txnId);
-        clearAllPendingFiles();
-        document.getElementById("itemsContainer").innerHTML = "";
-        createRow();
-        document.getElementById("shift").value = "A";
-
-    } catch(err) {
-        alert("❌ " + err.message);
-        console.error(err);
-    } finally {
-        textEl.textContent = origTxt;
-        iconEl.className = "fa-solid fa-cloud-arrow-up mr-2 text-lg";
-        btn.disabled = false;
+        pendingFiles = {}; document.getElementById("itemsContainer").innerHTML = ""; createRow(); document.getElementById("shift").value = "A";
+    } catch(err) { alert("❌ " + err.message); } finally {
+        textEl.textContent = origTxt; iconEl.className = "fa-solid fa-cloud-arrow-up mr-2 text-lg"; btn.disabled = false;
     }
 });
 
-/* =============================================================
-   INIT
-============================================================= */
 document.addEventListener("DOMContentLoaded", function() {
-    var savedStaff = localStorage.getItem("savedStaffId");
-    if(savedStaff) document.getElementById("staffId").value = savedStaff;
-
+    var savedStaff = localStorage.getItem("savedStaffId"); if(savedStaff) document.getElementById("staffId").value = savedStaff;
     document.getElementById("btnAddRow").addEventListener("click", createRow);
-    changeLanguage(currentLang);
-    
-    fetchMasterData().then(() => { createRow(); });
+    changeLanguage(currentLang); fetchMasterData().then(() => createRow());
 });
 </script>
 </body>

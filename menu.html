@@ -3,120 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WMS Main Menu</title>
+    <title>WMS Main Menu - Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 🎨 Custom Styles สำหรับความ Premium -->
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 50; align-items: center; justify-content: center; }
-        .modal-overlay.active { display: flex; }
+        /* ตัวแปรสีสำหรับ Theme Engine */
+        :root {
+            --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --card-hover: rgba(255, 255, 255, 0.9);
+            --glow-color: rgba(14, 165, 233, 0.15);
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --card-hover: rgba(51, 65, 85, 0.8);
+            --glow-color: rgba(56, 189, 248, 0.15);
+        }
+
+        [data-theme="kaosu"] {
+            --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
+            --glass-bg: rgba(69, 10, 10, 0.6);
+            --glass-border: rgba(250, 204, 21, 0.2);
+            --text-main: #fef08a; /* สีทอง */
+            --text-sub: #fca5a5;
+            --card-hover: rgba(127, 29, 29, 0.8);
+            --glow-color: rgba(250, 204, 21, 0.15);
+        }
+
+        /* แอนิเมชันพื้นหลังเคลื่อนไหว */
+        body {
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.5s ease;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* เอฟเฟกต์แสงวิ่งตามเมาส์/นิ้ว */
+        .mouse-glow {
+            position: fixed;
+            top: var(--y, 50%);
+            left: var(--x, 50%);
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+            transition: width 0.2s, height 0.2s;
+        }
+
+        /* กล่องกระจกฝ้า (Glassmorphism) */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .glass-card:hover {
+            background: var(--card-hover);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4 relative" data-theme="dark">
 
-    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden">
-        <div class="bg-slate-800 p-8 text-center text-white relative">
-           <!-- 🟢 ปุ่มสลับภาษา -->
-            <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md z-[60] hover:border-sky-400 transition-colors">
-                <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
-                <select id="globalLangSwitcher" onchange="changeLanguage(this.value)"
-                    class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
-                    <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
-                    <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
-                    <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
-                    <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
-                </select>
-                <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
-            </div>
-            <!-- 🟢 จบปุ่มสลับภาษา -->
-            <div class="inline-block bg-sky-500 p-4 rounded-full mb-4 shadow-lg shadow-sky-500/30">
-                <i class="fa-solid fa-boxes-stacked text-4xl"></i>
-            </div>
-            <h1 class="text-2xl font-bold tracking-wider mb-1" data-i18n="appTitle">STORE FG DISPATCH</h1>
-            <p class="text-slate-400 text-sm" data-i18n="appDesc">ระบบจัดการคลังสินค้าและจ่ายงาน</p>
+    <!-- เอฟเฟกต์แสงออร่า -->
+    <div class="mouse-glow"></div>
+
+    <!-- 🎨 แถบเครื่องมือตั้งค่า (Theme & Language) ลอยตัวด้านบน -->
+    <div class="fixed top-4 right-4 z-50 flex gap-2">
+        <!-- Theme Switcher -->
+        <div class="glass-panel rounded-full px-3 py-1.5 flex items-center gap-2">
+            <button onclick="changeTheme('light')" class="w-6 h-6 rounded-full bg-gray-200 hover:scale-110 transition-transform shadow-inner" title="Light Theme"></button>
+            <button onclick="changeTheme('dark')" class="w-6 h-6 rounded-full bg-slate-800 hover:scale-110 transition-transform shadow-inner border border-slate-600" title="Dark Theme"></button>
+            <button onclick="changeTheme('kaosu')" class="w-6 h-6 rounded-full bg-red-800 hover:scale-110 transition-transform shadow-inner border border-red-500" title="Kaosu Theme"></button>
         </div>
 
-        <div class="p-6 space-y-4">
+        <!-- Language Switcher -->
+        <div class="glass-panel rounded-full px-3 py-1.5 flex items-center gap-1.5 hover:border-sky-400 transition-colors">
+            <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
+            <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1">
+                <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
+                <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
+                <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
+                <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+            </select>
+        </div>
+    </div>
 
-            <button onclick="goToLayout()" class="w-full group relative bg-white border-2 border-slate-200 hover:border-sky-500 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md text-left">
-                <div class="bg-sky-50 group-hover:bg-sky-500 text-sky-500 group-hover:text-white w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-colors">
+    <!-- 📱 เมนูกลาง (Main Container) -->
+    <div class="glass-panel w-full max-w-md rounded-3xl overflow-hidden relative z-10">
+        
+        <!-- Header Section -->
+        <div class="p-8 text-center relative overflow-hidden">
+            <!-- ลูกเล่นวงกลมเบลอหลังโลโก้ -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-sky-500/20 rounded-full blur-2xl"></div>
+            
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-tr from-sky-400 to-blue-600 rounded-2xl mb-5 shadow-lg shadow-sky-500/40 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                <i class="fa-solid fa-boxes-stacked text-4xl text-white"></i>
+            </div>
+            
+            <h1 class="text-3xl font-black tracking-wider mb-2 bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-emerald-400 drop-shadow-sm" data-i18n="appTitle">KAOSU WMS</h1>
+            <p class="text-[var(--text-sub)] text-sm font-medium tracking-wide" data-i18n="appDesc">Smart Warehouse & Dispatch System</p>
+        </div>
+
+        <!-- Menu Buttons Section -->
+        <div class="p-6 pt-0 space-y-4">
+            
+            <!-- Button: Layout -->
+            <button onclick="goToLayout()" class="glass-card w-full rounded-2xl p-4 flex items-center gap-5 group text-left relative overflow-hidden active:scale-95">
+                <div class="absolute inset-0 bg-gradient-to-r from-sky-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500"></div>
+                <div class="w-14 h-14 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center text-2xl group-hover:bg-sky-500 group-hover:text-white transition-all shadow-inner">
                     <i class="fa-solid fa-map-location-dot"></i>
                 </div>
-                <div>
-                    <h2 class="text-lg font-bold text-slate-800" data-i18n="menuLayout">แผนผังคลังสินค้า</h2>
-                    <p class="text-xs text-slate-500" data-i18n="menuLayoutDesc">ดูตำแหน่งสินค้า และสถานะพื้นที่ว่าง (Layout)</p>
+                <div class="flex-1">
+                    <h2 class="text-lg font-bold text-[var(--text-main)]" data-i18n="menuLayout">แผนผังคลังสินค้า</h2>
+                    <p class="text-xs text-[var(--text-sub)]" data-i18n="menuLayoutDesc">ดูสถานะพื้นที่ว่างแบบ Real-time</p>
                 </div>
-                <i class="fa-solid fa-chevron-right absolute right-6 text-slate-300 group-hover:text-sky-500 transition-colors"></i>
+                <i class="fa-solid fa-chevron-right text-[var(--text-sub)] group-hover:text-sky-500 group-hover:translate-x-1 transition-all"></i>
             </button>
 
-         <button onclick="openLoginModal('index.html')" class="w-full group relative bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md text-left">
-                <div class="bg-emerald-50 group-hover:bg-emerald-500 text-emerald-500 group-hover:text-white w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-colors">
-                    <i class="fa-solid fa-pen-to-square"></i>
+            <!-- Button: Dispatch -->
+            <button onclick="openLoginModal('index.html')" class="glass-card w-full rounded-2xl p-4 flex items-center gap-5 group text-left relative overflow-hidden active:scale-95">
+                <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500"></div>
+                <div class="w-14 h-14 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-2xl group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner">
+                    <i class="fa-solid fa-barcode"></i>
                 </div>
-                <div>
-                    <h2 class="text-lg font-bold text-slate-800" data-i18n="menuDispatch">บันทึกจ่ายงาน</h2>
-                    <p class="text-xs text-slate-500" data-i18n="menuDispatchDesc">บันทึกการเบิกจ่ายสินค้า (Dispatch)</p>
+                <div class="flex-1">
+                    <h2 class="text-lg font-bold text-[var(--text-main)]" data-i18n="menuDispatch">บันทึกจ่ายงาน</h2>
+                    <p class="text-xs text-[var(--text-sub)]" data-i18n="menuDispatchDesc">ระบบสแกนและตัดสต็อกสินค้า</p>
                 </div>
-                <i class="fa-solid fa-lock absolute right-6 text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
+                <i class="fa-solid fa-lock text-[var(--text-sub)] group-hover:text-emerald-500 group-hover:translate-x-1 transition-all"></i>
             </button>
 
-            <div class="pt-4 text-center">
-                <button onclick="openLoginModal('report.html')" class="text-xs font-semibold text-slate-400 hover:text-sky-600 transition-colors cursor-pointer bg-transparent border-none">
-                    <i class="fa-solid fa-chart-pie mr-1"></i> <span data-i18n="menuReportLink">สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)</span>
+            <!-- Button: Report (Minimal) -->
+            <div class="pt-6 pb-2 text-center">
+                <button onclick="openLoginModal('report.html')" class="group relative inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors py-2 px-4 rounded-full hover:bg-black/5">
+                    <i class="fa-solid fa-chart-pie group-hover:animate-spin"></i> 
+                    <span data-i18n="menuReportLink">สำหรับหัวหน้างาน: ดูรายงาน (Report)</span>
                 </button>
             </div>
 
         </div>
     </div>
 
+    <!-- 🔐 Login Modal (Glassmorphism) -->
     <div id="loginModal" class="modal-overlay">
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl transform transition-all m-4">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-slate-800">
-                    <i class="fa-solid fa-id-card text-emerald-500 mr-2"></i><span data-i18n="loginTitle">ยืนยันตัวตน</span>
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-8 shadow-2xl m-4 relative overflow-hidden">
+            <!-- ตกแต่งมุม -->
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl"></div>
+
+            <div class="flex justify-between items-center mb-6 relative z-10">
+                <h3 class="text-2xl font-black text-[var(--text-main)] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-fingerprint"></i>
+                    </div>
+                    <span data-i18n="loginTitle">ยืนยันตัวตน</span>
                 </h3>
-                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-red-500">
-                    <i class="fa-solid fa-xmark text-xl"></i>
+                <button onclick="closeLoginModal()" class="text-[var(--text-sub)] hover:text-red-500 hover:rotate-90 transition-all text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <p id="loginModalDesc" class="text-sm text-slate-500 mb-4" data-i18n="loginDescDispatch">กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน</p>
+            <p id="loginModalDesc" class="text-sm text-[var(--text-sub)] mb-6 font-medium relative z-10" data-i18n="loginDescDispatch">กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณเพื่อเข้าใช้งาน</p>
 
-            <input type="text" id="staffIdInput" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001" class="w-full border border-gray-300 rounded-xl p-3 text-center text-lg uppercase tracking-widest font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none mb-2">
+            <div class="relative z-10 mb-4">
+                <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="staffIdInput" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001" class="w-full bg-white/10 border border-[var(--glass-border)] rounded-2xl p-4 pl-12 text-center text-lg uppercase tracking-widest font-black text-[var(--text-main)] placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-inner backdrop-blur-sm">
+            </div>
 
-            <p id="loginError" class="hidden text-xs text-red-500 font-semibold mb-3 text-center"></p>
+            <p id="loginError" class="hidden text-xs text-red-400 font-bold mb-4 text-center bg-red-500/10 py-2 rounded-lg relative z-10"></p>
 
-            <button id="loginConfirmBtn" onclick="confirmLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-                <span id="loginConfirmBtnText" data-i18n="btnLogin">เข้าสู่ระบบจ่ายงาน</span>
+            <button id="loginConfirmBtn" onclick="confirmLogin()" class="relative z-10 w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black tracking-wide py-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span id="loginConfirmBtnText" data-i18n="btnLogin">เข้าสู่ระบบ</span>
             </button>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        let targetPage = ""; // ตัวแปรเก็บว่าพนักงานกดไปหน้าไหน
-        let modalDescKey = "loginDescDispatch"; // คีย์คำอธิบายที่ใช้ใน modal ปัจจุบัน (สำหรับสลับภาษาตอน modal เปิดอยู่)
+        /* =============================================================
+           🎨 Theme Engine & Mouse Glow
+        ============================================================= */
+        // Mouse Tracking สำหรับเอฟเฟกต์แสงบน PC และจอทัชสกรีน
+        document.addEventListener('mousemove', (e) => {
+            document.documentElement.style.setProperty('--x', e.clientX + 'px');
+            document.documentElement.style.setProperty('--y', e.clientY + 'px');
+        });
+        document.addEventListener('touchmove', (e) => {
+            document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px');
+            document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px');
+        });
+
+        // Theme Switcher
+        function changeTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            localStorage.setItem('wms_theme', themeName);
+        }
+        
+        // โหลดธีมที่เคยเลือกไว้
+        const savedTheme = localStorage.getItem('wms_theme') || 'dark'; // ให้ Dark เป็นค่าเริ่มต้นเพราะเท่สุด
+        changeTheme(savedTheme);
+
 
         /* =============================================================
-           SUPABASE INIT
+           ⚙️ Core Logic (คงเดิมจากเวอร์ชันคุณปิยนาถ)
         ============================================================= */
+        let targetPage = ""; 
+        let modalDescKey = "loginDescDispatch"; 
+
+        // Supabase Init
         var sbClient = null;
         try {
             var SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
             var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
             sbClient = window.supabase.createClient(SB_URL, SB_KEY);
-        } catch(e) {
-            console.error("Supabase init error:", e);
-        }
+        } catch(e) { console.error("Supabase init error:", e); }
 
-        function goToLayout() {
-            window.location.href = "layout.html";
-        }
+        function goToLayout() { window.location.href = "layout.html"; }
 
         function openLoginModal(page) {
             targetPage = page;
             modalDescKey = (page === 'report.html') ? 'loginDescReport' : 'loginDescDispatch';
-
             var desc = document.getElementById('loginModalDesc');
             desc.setAttribute('data-i18n', modalDescKey);
             var t = translations[currentLang] || translations.th;
@@ -126,10 +268,8 @@
             document.getElementById('loginModal').classList.add('active');
 
             const savedStaffId = localStorage.getItem("savedStaffId");
-            if (savedStaffId) {
-                document.getElementById('staffIdInput').value = savedStaffId;
-            }
-            document.getElementById('staffIdInput').focus();
+            if (savedStaffId) document.getElementById('staffIdInput').value = savedStaffId;
+            setTimeout(() => document.getElementById('staffIdInput').focus(), 100);
         }
 
         function closeLoginModal() {
@@ -139,63 +279,39 @@
 
         function showLoginError(msg) {
             var el = document.getElementById('loginError');
-            el.textContent = msg;
+            el.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> ${msg}`;
             el.classList.remove('hidden');
         }
 
-        function hideLoginError() {
-            document.getElementById('loginError').classList.add('hidden');
-        }
+        function hideLoginError() { document.getElementById('loginError').classList.add('hidden'); }
 
         function setLoginLoading(loading) {
-            var btn     = document.getElementById('loginConfirmBtn');
+            var btn = document.getElementById('loginConfirmBtn');
             var btnText = document.getElementById('loginConfirmBtnText');
             var t = translations[currentLang] || translations.th;
             btn.disabled = loading;
-            btnText.textContent = loading ? t.btnLoginLoading : t.btnLogin;
+            btnText.innerHTML = loading ? `<i class="fa-solid fa-spinner fa-spin mr-2"></i> ${t.btnLoginLoading}` : t.btnLogin;
         }
 
         async function confirmLogin() {
             hideLoginError();
             var t = translations[currentLang] || translations.th;
             const staffId = document.getElementById('staffIdInput').value.trim().toUpperCase();
-            if (!staffId) {
-                showLoginError(t.errStaffRequired);
-                return;
-            }
-
-            if (!sbClient) {
-                showLoginError(t.errSystemNotReady);
-                return;
-            }
+            if (!staffId) return showLoginError(t.errStaffRequired);
+            if (!sbClient) return showLoginError(t.errSystemNotReady);
 
             setLoginLoading(true);
-
             try {
-                const { data, error } = await sbClient
-                    .from('staff')
-                    .select('staff_id, role, active')
-                    .eq('staff_id', staffId)
-                    .maybeSingle();
-
-                if (error) {
-                    console.error(error);
-                    showLoginError(t.errGeneral);
-                    return;
-                }
-
-                if (!data || !data.active) {
-                    showLoginError(t.errInvalid);
-                    return;
-                }
-
-                if (targetPage === 'report.html' && data.role !== 'supervisor') {
-                    showLoginError(t.errReportOnly);
-                    return;
-                }
+                const { data, error } = await sbClient.from('staff').select('staff_id, role, active').eq('staff_id', staffId).maybeSingle();
+                if (error) throw error;
+                if (!data || !data.active) return showLoginError(t.errInvalid);
+                if (targetPage === 'report.html' && data.role !== 'supervisor') return showLoginError(t.errReportOnly);
 
                 localStorage.setItem("savedStaffId", staffId);
-                window.location.href = targetPage;
+                // แอนิเมชันตอนผ่าน
+                document.getElementById('loginModal').querySelector('.glass-panel').style.transform = 'scale(0.9)';
+                document.getElementById('loginModal').querySelector('.glass-panel').style.opacity = '0';
+                setTimeout(() => { window.location.href = targetPage; }, 300);
 
             } catch (err) {
                 console.error(err);
@@ -205,124 +321,77 @@
             }
         }
 
-        document.getElementById("staffIdInput").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                confirmLogin();
+        document.getElementById("staffIdInput").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") { e.preventDefault(); confirmLogin(); }
+        });
+
+        /* =============================================================
+           🌍 i18n Translation (คงเดิม)
+        ============================================================= */
+        const translations = {
+            th: {
+                appTitle: "KAOSU WMS", appDesc: "Smart Warehouse & Dispatch System",
+                menuLayout: "แผนผังคลังสินค้า", menuLayoutDesc: "ดูสถานะพื้นที่ว่างแบบ Real-time",
+                menuDispatch: "บันทึกจ่ายงาน", menuDispatchDesc: "ระบบสแกนและตัดสต็อกสินค้า",
+                menuReportLink: "สำหรับหัวหน้างาน: ดูรายงาน (Report)",
+                loginTitle: "ยืนยันตัวตน", loginDescDispatch: "กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณเพื่อเข้าใช้งาน",
+                loginDescReport: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณากรอกรหัสพนักงานของท่าน",
+                staffIdPh: "เช่น EMP001", btnLogin: "เข้าสู่ระบบ", btnLoginLoading: "ตรวจสอบข้อมูล...",
+                errStaffRequired: "กรุณากรอกรหัสพนักงานครับ!", errSystemNotReady: "ระบบไม่พร้อมใช้งาน",
+                errInvalid: "รหัสไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน", errReportOnly: "หน้ารายงานสำหรับหัวหน้างานเท่านั้น", errGeneral: "เกิดข้อผิดพลาด กรุณาลองใหม่"
+            },
+            zh: {
+                appTitle: "KAOSU 倉儲系統", appDesc: "智能庫存管理與發貨",
+                menuLayout: "倉庫佈局", menuLayoutDesc: "實時查看可用空間",
+                menuDispatch: "發貨記錄", menuDispatchDesc: "掃描並扣減庫存",
+                menuReportLink: "主管專用：查看報告",
+                loginTitle: "身份驗證", loginDescDispatch: "請輸入您的員工編號 (Staff ID)",
+                loginDescReport: "此頁面僅供主管使用，請輸入編號",
+                staffIdPh: "例如 EMP001", btnLogin: "登入系統", btnLoginLoading: "驗證中...",
+                errStaffRequired: "請輸入員工編號！", errSystemNotReady: "系統未準備就緒",
+                errInvalid: "編號錯誤或無權限", errReportOnly: "僅供主管使用", errGeneral: "發生錯誤，請重試"
+            },
+            mm: {
+                appTitle: "KAOSU WMS", appDesc: "စမတ်ကုန်လှောင်ရုံစနစ်",
+                menuLayout: "ကုန်လှောင်ရုံပုံစံ", menuLayoutDesc: "နေရာလွတ်များကို အချိန်နှင့်တပြေးညီ ကြည့်ရန်",
+                menuDispatch: "ထုတ်ပေးမှုမှတ်တမ်း", menuDispatchDesc: "ကုန်ပစ္စည်းထုတ်ပေးခြင်း မှတ်တမ်းတင်ရန်",
+                menuReportLink: "မန်နေဂျာအတွက်: အစီရင်ခံစာကြည့်ရန်",
+                loginTitle: "အကောင့်ဝင်ရန်", loginDescDispatch: "သင်၏ ဝန်ထမ်းကုဒ် (Staff ID) ကို ထည့်ပါ",
+                loginDescReport: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။",
+                staffIdPh: "ဥပမာ EMP001", btnLogin: "စနစ်ထဲသို့ဝင်ရန်", btnLoginLoading: "စစ်ဆေးနေသည်...",
+                errStaffRequired: "ဝန်ထမ်းကုဒ်ထည့်ပါ!", errSystemNotReady: "စနစ်အဆင်သင့်မဖြစ်သေးပါ",
+                errInvalid: "ကုဒ်မှားနေသည် (သို့) ခွင့်ပြုချက်မရှိပါ", errReportOnly: "မန်နေဂျာများအတွက်သာ", errGeneral: "အမှားတစ်ခုဖြစ်ပွားသည်"
+            },
+            en: {
+                appTitle: "KAOSU WMS", appDesc: "Smart Warehouse & Dispatch System",
+                menuLayout: "Store Layout", menuLayoutDesc: "View real-time space status",
+                menuDispatch: "Dispatch Record", menuDispatchDesc: "Scan and update inventory",
+                menuReportLink: "For Supervisor: View Report",
+                loginTitle: "Authentication", loginDescDispatch: "Please enter your Staff ID to continue",
+                loginDescReport: "Supervisors only. Please enter your Staff ID",
+                staffIdPh: "e.g. EMP001", btnLogin: "Login", btnLoginLoading: "Checking...",
+                errStaffRequired: "Please enter Staff ID!", errSystemNotReady: "System not ready",
+                errInvalid: "Invalid ID or permission denied", errReportOnly: "Supervisors only", errGeneral: "Error occurred, try again"
             }
-        });
-    </script>
+        };
 
-    <!-- ========================================== -->
-    <!-- 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n) -->
-    <!-- ========================================== -->
-    <script>
-    const translations = {
-        th: {
-            appTitle: "STORE FG DISPATCH",
-            appDesc: "ระบบจัดการคลังสินค้าและจ่ายงาน",
-            menuLayout: "แผนผังคลังสินค้า",
-            menuLayoutDesc: "ดูตำแหน่งสินค้า และสถานะพื้นที่ว่าง (Layout)",
-            menuDispatch: "บันทึกจ่ายงาน",
-            menuDispatchDesc: "บันทึกการเบิกจ่ายสินค้า (Dispatch)",
-            menuReportLink: "สำหรับหัวหน้างาน: เข้าสู่หน้ารายงาน (Report)",
-            loginTitle: "ยืนยันตัวตน",
-            loginDescDispatch: "กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณก่อนเข้าใช้งานระบบบันทึกจ่ายงาน",
-            loginDescReport: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณากรอกรหัสพนักงานของท่าน",
-            staffIdPh: "เช่น EMP001",
-            btnLogin: "เข้าสู่ระบบจ่ายงาน",
-            btnLoginLoading: "กำลังตรวจสอบ...",
-            errStaffRequired: "กรุณากรอกรหัสพนักงานครับ!",
-            errSystemNotReady: "ระบบตรวจสอบไม่พร้อมใช้งาน กรุณาลองใหม่",
-            errInvalid: "รหัสพนักงานไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน",
-            errReportOnly: "หน้ารายงานสำหรับหัวหน้างานเท่านั้น",
-            errGeneral: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
-        },
-        zh: {
-            appTitle: "倉庫發貨系統",
-            appDesc: "庫存管理與發貨系統",
-            menuLayout: "倉庫佈局",
-            menuLayoutDesc: "查看商品位置和可用空間狀態",
-            menuDispatch: "發貨記錄",
-            menuDispatchDesc: "記錄商品出庫",
-            menuReportLink: "主管專用：查看報告",
-            loginTitle: "身份驗證",
-            loginDescDispatch: "請先輸入您的員工編號 (Staff ID) 才能使用發貨系統",
-            loginDescReport: "此頁面僅供主管使用，請輸入您的員工編號",
-            staffIdPh: "例如 EMP001",
-            btnLogin: "登入系統",
-            btnLoginLoading: "驗證中...",
-            errStaffRequired: "請輸入員工編號！",
-            errSystemNotReady: "驗證系統尚未就緒，請重試",
-            errInvalid: "員工編號錯誤或無使用權限",
-            errReportOnly: "此報告頁面僅供主管使用",
-            errGeneral: "發生錯誤，請再試一次"
-        },
-        mm: {
-            appTitle: "ကုန်ထုတ်ပေးမှုစနစ်",
-            appDesc: "ကုန်လှောင်ရုံစီမံခန့်ခွဲမှု",
-            menuLayout: "ကုန်လှောင်ရုံပုံစံ",
-            menuLayoutDesc: "ကုန်ပစ္စည်းနေရာနှင့် နေရာလွတ်များကိုကြည့်ရန်",
-            menuDispatch: "ထုတ်ပေးမှုမှတ်တမ်း",
-            menuDispatchDesc: "ကုန်ပစ္စည်းထုတ်ပေးခြင်းကိုမှတ်တမ်းတင်ရန်",
-            menuReportLink: "မန်နေဂျာအတွက် - အစီရင်ခံစာကြည့်ရန်",
-            loginTitle: "အကောင့်ဝင်ရန်",
-            loginDescDispatch: "ထုတ်ပေးမှုစနစ်ကို အသုံးမပြုမီ သင်၏ ဝန်ထမ်းကုဒ် (Staff ID) ကို ထည့်ပါ",
-            loginDescReport: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။ ဝန်ထမ်းကုဒ်ကို ထည့်ပါ",
-            staffIdPh: "ဥပမာ EMP001",
-            btnLogin: "စနစ်ထဲသို့ဝင်ရန်",
-            btnLoginLoading: "စစ်ဆေးနေသည်...",
-            errStaffRequired: "ဝန်ထမ်းကုဒ်ထည့်ပါ!",
-            errSystemNotReady: "စနစ်အဆင်သင့်မဖြစ်သေးပါ၊ ထပ်စမ်းကြည့်ပါ",
-            errInvalid: "ဝန်ထမ်းကုဒ် မှားနေသည် သို့မဟုတ် ခွင့်ပြုချက်မရှိပါ",
-            errReportOnly: "အစီရင်ခံစာစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ",
-            errGeneral: "အမှားတစ်ခုဖြစ်ပွားသည်၊ ထပ်စမ်းကြည့်ပါ"
-        },
-        en: {
-            appTitle: "STORE FG DISPATCH",
-            appDesc: "Warehouse Management & Dispatch",
-            menuLayout: "Store Layout",
-            menuLayoutDesc: "View item locations and space status",
-            menuDispatch: "Dispatch Record",
-            menuDispatchDesc: "Record outbound items",
-            menuReportLink: "For Supervisor: View Report",
-            loginTitle: "Authentication",
-            loginDescDispatch: "Please enter your Staff ID before using the dispatch system",
-            loginDescReport: "This page is for supervisors only. Please enter your Staff ID",
-            staffIdPh: "e.g. EMP001",
-            btnLogin: "Login",
-            btnLoginLoading: "Checking...",
-            errStaffRequired: "Please enter your Staff ID!",
-            errSystemNotReady: "Verification system not ready, please try again",
-            errInvalid: "Invalid Staff ID or no access permission",
-            errReportOnly: "The report page is for supervisors only",
-            errGeneral: "An error occurred, please try again"
+        let currentLang = localStorage.getItem('wms_lang') || 'th';
+        function changeLanguage(lang) {
+            if (!translations[lang]) return;
+            currentLang = lang;
+            localStorage.setItem('wms_lang', lang);
+            document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang);
+            const t = translations[lang];
+            document.querySelectorAll("[data-i18n]").forEach(el => {
+                const key = el.getAttribute("data-i18n");
+                if (t[key] !== undefined) el.textContent = t[key];
+            });
+            document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+                const key = el.getAttribute("data-i18n-placeholder");
+                if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
+            });
         }
-    };
-
-    let currentLang = localStorage.getItem('wms_lang') || 'th';
-
-    function changeLanguage(lang) {
-        if (!translations[lang]) return;
-        currentLang = lang;
-        localStorage.setItem('wms_lang', lang);
-
-        document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang);
-
-        const t = translations[lang];
-        document.querySelectorAll("[data-i18n]").forEach(el => {
-            const key = el.getAttribute("data-i18n");
-            if (t[key] !== undefined) el.textContent = t[key];
-        });
-        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
-            const key = el.getAttribute("data-i18n-placeholder");
-            if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
-        });
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        changeLanguage(currentLang);
-    });
+        document.addEventListener("DOMContentLoaded", () => changeLanguage(currentLang));
     </script>
 </body>
 </html>

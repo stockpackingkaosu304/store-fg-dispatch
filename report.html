@@ -3,187 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WMS Report Dashboard</title>
+    <title>WMS Report Dashboard - Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid #e5e7eb; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; }
-        .modal-overlay.active { display: flex; }
-        .modal-img { max-width: 90vw; max-height: 90vh; border-radius: 12px; }
+        /* 🎨 Theme Engine Variables (ซิงค์กับหน้า Index/Menu) */
+        :root {
+            --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --input-bg: rgba(255, 255, 255, 0.6);
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --glow-color: rgba(14, 165, 233, 0.15);
+            --card-hover: rgba(255,255,255,0.9);
+            --table-hover: rgba(14, 165, 233, 0.05);
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(15, 23, 42, 0.4);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --glow-color: rgba(56, 189, 248, 0.15);
+            --card-hover: rgba(51, 65, 85, 0.8);
+            --table-hover: rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="kaosu"] {
+            --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
+            --glass-bg: rgba(69, 10, 10, 0.6);
+            --glass-border: rgba(250, 204, 21, 0.2);
+            --input-bg: rgba(0, 0, 0, 0.2);
+            --text-main: #fef08a; 
+            --text-sub: #fca5a5;
+            --glow-color: rgba(250, 204, 21, 0.15);
+            --card-hover: rgba(127, 29, 29, 0.8);
+            --table-hover: rgba(250, 204, 21, 0.05);
+        }
+
+        body {
+            background: var(--bg-gradient); background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite; color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: all 0.5s ease;
+        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        /* Custom Scrollbar สำหรับตารางแนวนอนบน PC */
+        .custom-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
+
+        /* Glassmorphism Styles */
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); backdrop-filter: blur(8px); transition: all 0.3s ease; }
+        .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+        
+        .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; transition: width 0.2s, height 0.2s; }
+
+        .photo-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid var(--glass-border); transition: 0.2s; }
+        .photo-thumb:hover { transform: scale(1.15) translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); z-index: 10; position: relative; }
+        
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from{opacity:0; transform:scale(0.95)} to{opacity:1; transform:scale(1)} }
+
+        /* ปรับแต่ง Table UI ให้ดูแพง */
+        table { border-collapse: separate; border-spacing: 0; }
+        th { background: var(--input-bg); backdrop-filter: blur(10px); }
+        tr { border-bottom: 1px solid var(--glass-border); transition: all 0.2s ease; }
+        tr:hover td { background: var(--table-hover); }
+        td { border-bottom: 1px solid var(--glass-border); }
+        tr:last-child td { border-bottom: none; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-3 md:p-6">
+<body class="min-h-screen p-3 md:p-6 relative" data-theme="dark">
+
+<div class="mouse-glow"></div>
 
 <!-- Image Modal -->
 <div id="imgModal" class="modal-overlay" onclick="closeModal()">
-    <img id="modalImg" class="modal-img" src="" alt="photo">
+    <img id="modalImg" class="max-w-[90vw] max-h-[90vh] rounded-2xl shadow-2xl border border-[var(--glass-border)]" src="" alt="photo">
 </div>
 
-<div class="max-w-6xl mx-auto space-y-4">
+<!-- Floating Top Controls -->
+<div class="fixed top-4 right-4 z-[60] flex gap-2">
+    <!-- Language Switcher -->
+    <div class="glass-panel rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-md">
+        <i class="fa-solid fa-earth-asia text-sky-400 text-xs"></i>
+        <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-[11px] font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
+            <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
+            <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
+            <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
+            <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+        </select>
+    </div>
+</div>
 
-    <!-- Header -->
-    <div class="bg-slate-800 text-white p-4 rounded-2xl relative">
-        <!-- 🟢 ปุ่มสลับภาษา -->
-        <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md z-[60] hover:border-sky-400 transition-colors">
-            <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
-            <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
-                <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
-                <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
-                <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
-                <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
-            </select>
-            <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
+<div class="max-w-7xl mx-auto space-y-6 relative z-10 pt-10 md:pt-0">
+
+    <!-- Header Glass -->
+    <div class="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden shadow-xl">
+        <!-- Decoration Blur -->
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-400 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/30 shrink-0">
+                <i class="fa-solid fa-chart-pie text-white text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-black text-[var(--text-main)] tracking-wider" data-i18n="appTitle">DISPATCH REPORT</h1>
+                <p class="text-xs font-bold text-[var(--text-sub)] tracking-widest uppercase mt-1" data-i18n="appDesc">Analytics Dashboard</p>
+            </div>
         </div>
-        <!-- 🟢 จบปุ่มสลับภาษา -->
-        <div class="flex justify-between items-center mb-3 pr-20">
-            <h1 class="text-xl font-bold">
-                <i class="fa-solid fa-boxes-stacked mr-2 text-sky-400"></i>
-                <span data-i18n="appTitle">STORE FG DISPATCH</span>
-            </h1>
-            <p class="text-slate-400 text-xs" data-i18n="appDesc">ระบบจ่ายงานคลังสินค้า</p>
-        </div>
-        <!-- Nav -->
-      <div class="flex gap-2">
-            <a href="menu.html"
-                class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-                <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">เมนูหลัก</span>
-            </a>
-            <a href="index.html"
-                class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-                <i class="fa-solid fa-pen-to-square"></i> <span data-i18n="navDispatch">บันทึกข้อมูล</span>
-            </a>
-            <a href="report.html"
-                class="flex-1 bg-sky-600 text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-chart-bar"></i> <span data-i18n="navReport">ดูรายงาน</span>
-            </a>
+
+        <div class="flex gap-3 mt-2">
+            <a href="menu.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-center text-[11px] md:text-xs font-bold py-3 rounded-xl transition-all"><i class="fa-solid fa-house mr-1"></i> <span data-i18n="navMenu">หน้าหลัก</span></a>
+            <a href="index.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-center text-[11px] md:text-xs font-bold py-3 rounded-xl transition-all"><i class="fa-solid fa-barcode mr-1"></i> <span data-i18n="navDispatch">จ่ายงาน</span></a>
+            <a href="report.html" class="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-center text-[11px] md:text-xs font-bold py-3 rounded-xl shadow-lg shadow-sky-500/30 transition-all"><i class="fa-solid fa-chart-pie mr-1"></i> <span data-i18n="navReport">รายงาน</span></a>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <p class="text-xs text-gray-500 mb-1" data-i18n="summaryBillsLabel">บิลทั้งหมด</p>
-            <p id="summaryBills" class="text-2xl font-bold text-slate-800">—</p>
+    <!-- Summary Cards (Premium Layout) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass-panel rounded-3xl p-5 relative overflow-hidden group">
+            <i class="fa-solid fa-file-invoice absolute -right-4 -bottom-4 text-6xl text-[var(--text-main)] opacity-5 group-hover:scale-110 transition-transform"></i>
+            <p class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-widest mb-1 relative z-10" data-i18n="summaryBillsLabel">บิลทั้งหมด</p>
+            <p id="summaryBills" class="text-3xl font-black text-sky-400 drop-shadow-md relative z-10">—</p>
         </div>
-        <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <p class="text-xs text-gray-500 mb-1" data-i18n="summaryItemsLabel">รายการสินค้า</p>
-            <p id="summaryItems" class="text-2xl font-bold text-sky-600">—</p>
+        <div class="glass-panel rounded-3xl p-5 relative overflow-hidden group">
+            <i class="fa-solid fa-boxes-packing absolute -right-4 -bottom-4 text-6xl text-[var(--text-main)] opacity-5 group-hover:scale-110 transition-transform"></i>
+            <p class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-widest mb-1 relative z-10" data-i18n="summaryItemsLabel">รายการสินค้า</p>
+            <p id="summaryItems" class="text-3xl font-black text-emerald-400 drop-shadow-md relative z-10">—</p>
         </div>
-        <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <p class="text-xs text-gray-500 mb-1" data-i18n="summaryTotalLabel">ยอดรวมทั้งหมด</p>
-            <p id="summaryTotal" class="text-2xl font-bold text-emerald-600">—</p>
+        <div class="glass-panel rounded-3xl p-5 relative overflow-hidden group">
+            <i class="fa-solid fa-cubes absolute -right-4 -bottom-4 text-6xl text-[var(--text-main)] opacity-5 group-hover:scale-110 transition-transform"></i>
+            <p class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-widest mb-1 relative z-10" data-i18n="summaryTotalLabel">ยอดรวมทั้งหมด</p>
+            <p id="summaryTotal" class="text-3xl font-black text-amber-400 drop-shadow-md relative z-10">—</p>
         </div>
-        <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <p class="text-xs text-gray-500 mb-1" data-i18n="summaryStaffLabel">พนักงาน</p>
-            <p id="summaryStaff" class="text-2xl font-bold text-purple-600">—</p>
+        <div class="glass-panel rounded-3xl p-5 relative overflow-hidden group">
+            <i class="fa-solid fa-users absolute -right-4 -bottom-4 text-6xl text-[var(--text-main)] opacity-5 group-hover:scale-110 transition-transform"></i>
+            <p class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-widest mb-1 relative z-10" data-i18n="summaryStaffLabel">พนักงาน</p>
+            <p id="summaryStaff" class="text-3xl font-black text-purple-400 drop-shadow-md relative z-10">—</p>
         </div>
     </div>
 
-    <!-- Filter Area -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            <i class="fa-solid fa-filter mr-1 text-sky-500"></i> <span data-i18n="filterTitle">ตัวกรองข้อมูล</span>
-        </p>
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-            <div>
-                <label class="block text-xs text-gray-500 mb-1" data-i18n="filterStartDate">วันที่เริ่มต้น</label>
-                <input type="date" id="startDate"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-sky-500">
+    <!-- Filter & Tools Glass -->
+    <div class="glass-panel rounded-3xl p-6 shadow-md">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <h3 class="text-sm font-black text-[var(--text-main)] uppercase tracking-wider flex items-center gap-2">
+                <div class="bg-sky-500/20 text-sky-400 p-2 rounded-xl"><i class="fa-solid fa-filter"></i></div>
+                <span data-i18n="filterTitle">ตัวกรองข้อมูล</span>
+            </h3>
+            <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                <button onclick="clearFilter()" class="flex-1 md:flex-none glass-input hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/50 text-xs px-5 py-2.5 rounded-xl font-bold transition-all active:scale-95"><i class="fa-solid fa-rotate-right mr-1"></i><span data-i18n="quickClear">ล้าง</span></button>
+                <button onclick="exportToExcel()" class="flex-1 md:flex-none bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"><i class="fa-solid fa-file-excel"></i> <span data-i18n="btnExport">Export</span></button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+            <div class="col-span-2 md:col-span-1">
+                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-2 ml-1 tracking-widest" data-i18n="filterStartDate">เริ่มต้น</label>
+                <input type="date" id="startDate" class="w-full glass-input rounded-xl p-3 text-sm outline-none font-medium">
+            </div>
+            <div class="col-span-2 md:col-span-1">
+                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-2 ml-1 tracking-widest" data-i18n="filterEndDate">สิ้นสุด</label>
+                <input type="date" id="endDate" class="w-full glass-input rounded-xl p-3 text-sm outline-none font-medium">
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1" data-i18n="filterEndDate">วันที่สิ้นสุด</label>
-                <input type="date" id="endDate"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-sky-500">
+                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-2 ml-1 tracking-widest" data-i18n="filterStaffId">รหัสพนักงาน</label>
+                <div class="relative">
+                    <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
+                    <input type="text" id="staffFilter" class="w-full glass-input rounded-xl p-3 pl-8 text-sm outline-none uppercase font-bold" placeholder="EMP001">
+                </div>
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1" data-i18n="filterStaffId">รหัสพนักงาน</label>
-                <input type="text" id="staffFilter" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 text-sm uppercase focus:ring-2 focus:ring-sky-500">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-500 mb-1" data-i18n="filterShift">กะ</label>
-                <select id="shiftFilter"
-                    class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-sky-500">
-                    <option value="" data-i18n="filterShiftAll">ทั้งหมด</option>
-                    <option value="Shift A">Shift A</option>
-                    <option value="Shift B">Shift B</option>
+                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-2 ml-1 tracking-widest" data-i18n="filterShift">กะ</label>
+                <select id="shiftFilter" class="w-full glass-input rounded-xl p-3 text-sm font-bold outline-none cursor-pointer">
+                    <option value="" class="text-slate-800" data-i18n="filterShiftAll">ทั้งหมด</option>
+                    <option value="Shift A" class="text-slate-800">Shift A</option>
+                    <option value="Shift B" class="text-slate-800">Shift B</option>
                 </select>
             </div>
-            <div class="flex flex-col justify-end">
-                <button onclick="fetchReport()"
-                    class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="btnSearch">ค้นหา</span>
-                </button>
+            <div class="col-span-2 md:col-span-1 flex items-end">
+                <button onclick="fetchReport()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-xl text-sm shadow-md shadow-sky-500/20 transition-all active:scale-95"><i class="fa-solid fa-magnifying-glass mr-1"></i> <span data-i18n="btnSearch">ค้นหา</span></button>
             </div>
-        </div>
-        <div class="flex gap-2 mt-3">
-            <button onclick="setToday()"
-                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg" data-i18n="quickToday">
-                วันนี้
-            </button>
-            <button onclick="setThisWeek()"
-                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg" data-i18n="quickThisWeek">
-                สัปดาห์นี้
-            </button>
-            <button onclick="setThisMonth()"
-                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg" data-i18n="quickThisMonth">
-                เดือนนี้
-            </button>
-            <button onclick="clearFilter()"
-                class="text-xs bg-red-50 hover:bg-red-100 text-red-500 px-3 py-1.5 rounded-lg" data-i18n="quickClear">
-                ล้างตัวกรอง
-            </button>
         </div>
     </div>
 
-    <!-- Table Area -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border-b gap-3">
-            <p class="text-sm font-semibold text-slate-700">
-                <i class="fa-solid fa-table mr-1 text-slate-400"></i>
-                <span data-i18n="resultLabel">ผลการค้นหา:</span> <span id="resultCount" class="text-sky-600">—</span> <span data-i18n="resultUnit">รายการ</span>
-            </p>
-            <button onclick="exportToExcel()"
-                class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
-                <i class="fa-solid fa-file-excel"></i> <span data-i18n="btnExport">Export Excel</span>
-            </button>
+    <!-- Data Table Glass -->
+    <div class="glass-panel rounded-3xl overflow-hidden shadow-lg relative min-h-[200px]">
+        
+        <!-- Loading State -->
+        <div id="loadingState" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[var(--glass-bg)] backdrop-blur-sm hidden">
+            <i class="fa-solid fa-spinner fa-spin text-4xl text-sky-400 mb-3"></i>
+            <p class="text-xs font-bold text-[var(--text-sub)] tracking-widest" data-i18n="loadingText">LOADING DATA...</p>
         </div>
 
-        <!-- Loading -->
-        <div id="loadingState" class="hidden p-12 text-center text-gray-400">
-            <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-sky-400"></i>
-            <p class="text-sm" data-i18n="loadingText">กำลังโหลดข้อมูล...</p>
-        </div>
-
-        <!-- Empty State -->
-        <div id="emptyState" class="hidden p-12 text-center text-gray-400">
-            <i class="fa-solid fa-box-open text-4xl mb-3"></i>
-            <p class="text-sm font-medium" data-i18n="emptyTitle">ไม่พบข้อมูลในช่วงเวลาที่เลือก</p>
-            <p class="text-xs mt-1" data-i18n="emptyDesc">ลองเปลี่ยนตัวกรองแล้วค้นหาใหม่อีกครั้ง</p>
-        </div>
-
-        <!-- Table -->
-        <div id="tableWrapper" class="hidden overflow-x-auto">
-            <table class="w-full text-sm text-left min-w-[700px]">
-                <thead class="bg-slate-50 border-b border-gray-200">
+        <div class="overflow-x-auto custom-scroll p-1">
+            <table class="w-full text-sm text-left whitespace-nowrap min-w-[800px]">
+                <thead>
                     <tr>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thDateTime">วันที่/เวลา</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thStaffId">รหัสพนักงาน</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thShift">กะ</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thBillId">รหัสบิล</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thPartName">รายการสินค้า</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center" data-i18n="bag">ถุง</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center" data-i18n="pack">บรรจุ</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase text-center" data-i18n="fraction">เศษ</th>
-                        <th class="p-3 text-xs font-semibold text-emerald-600 uppercase text-center" data-i18n="total">รวม</th>
-                        <th class="p-3 text-xs font-semibold text-gray-500 uppercase" data-i18n="thPhotos">รูปภาพ</th>
+                        <th class="p-4 text-[10px] font-black text-[var(--text-sub)] uppercase tracking-wider rounded-tl-2xl" data-i18n="thDateTime">เวลา</th>
+                        <th class="p-4 text-[10px] font-black text-[var(--text-sub)] uppercase tracking-wider" data-i18n="thStaffId">พนักงาน</th>
+                        <th class="p-4 text-[10px] font-black text-[var(--text-sub)] uppercase tracking-wider" data-i18n="thShift">กะ</th>
+                        <th class="p-4 text-[10px] font-black text-[var(--text-sub)] uppercase tracking-wider" data-i18n="thBillId">บิล</th>
+                        <th class="p-4 text-[10px] font-black text-[var(--text-sub)] uppercase tracking-wider" data-i18n="thPartName">รายการ</th>
+                        <th class="p-4 text-[10px] font-black text-[var(--text-sub)] uppercase tracking-wider text-center" data-i18n="total">รวม</th>
+                        <th class="p-4 text-[10px] font-black text-[var(--text-sub)] uppercase tracking-wider rounded-tr-2xl" data-i18n="thPhotos">รูป</th>
                     </tr>
                 </thead>
-                <tbody id="reportBody" class="divide-y divide-gray-100"></tbody>
+                <tbody id="reportBody" class="text-[var(--text-main)]">
+                    <!-- Data injects here -->
+                </tbody>
             </table>
         </div>
     </div>
@@ -192,439 +229,144 @@
 
 <script>
 /* =============================================================
-   SUPABASE INIT
+   🎨 Theme & Glow Logic
 ============================================================= */
-var sbClient = null;
-try {
-    var SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
-    var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
-    sbClient = window.supabase.createClient(SB_URL, SB_KEY);
-} catch(e) {
-    console.error("Supabase init error:", e);
-}
+document.addEventListener('mousemove', (e) => { 
+    document.documentElement.style.setProperty('--x', e.clientX + 'px'); 
+    document.documentElement.style.setProperty('--y', e.clientY + 'px'); 
+});
+document.body.setAttribute('data-theme', localStorage.getItem('wms_theme') || 'dark');
 
-/* =============================================================
-   RAW DATA — เก็บไว้ export Excel จาก data จริง ไม่ใช่ HTML
-============================================================= */
+// ==========================================
+// 🚀 ฐานข้อมูล และ Logic
+// ==========================================
+var sbClient = window.supabase.createClient("https://suardrnsfpdqwcgupqkb.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI");
 var currentData = [];
 
-/* =============================================================
-   DATE SHORTCUTS
-============================================================= */
-function padDate(n) { return ("0" + n).slice(-2); }
-
-function formatDateInput(d) {
-    return d.getFullYear() + "-" + padDate(d.getMonth() + 1) + "-" + padDate(d.getDate());
+function showLoading(show) {
+    const el = document.getElementById("loadingState");
+    if(show) el.classList.remove("hidden");
+    else setTimeout(() => el.classList.add("hidden"), 300); // Smooth hide
 }
 
-function setToday() {
-    var today = formatDateInput(new Date());
-    document.getElementById("startDate").value = today;
-    document.getElementById("endDate").value   = today;
-    fetchReport();
-}
-
-function setThisWeek() {
-    var now  = new Date();
-    var day  = now.getDay() || 7;
-    var mon  = new Date(now); mon.setDate(now.getDate() - day + 1);
-    var sun  = new Date(mon); sun.setDate(mon.getDate() + 6);
-    document.getElementById("startDate").value = formatDateInput(mon);
-    document.getElementById("endDate").value   = formatDateInput(sun);
-    fetchReport();
-}
-
-function setThisMonth() {
-    var now = new Date();
-    var first = new Date(now.getFullYear(), now.getMonth(), 1);
-    var last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    document.getElementById("startDate").value = formatDateInput(first);
-    document.getElementById("endDate").value   = formatDateInput(last);
-    fetchReport();
-}
-
-function clearFilter() {
-    document.getElementById("startDate").value  = "";
-    document.getElementById("endDate").value    = "";
-    document.getElementById("staffFilter").value = "";
-    document.getElementById("shiftFilter").value = "";
-    fetchReport();
-}
-
-/* =============================================================
-   FETCH REPORT
-============================================================= */
 async function fetchReport() {
-    if (!sbClient) { alert("❌ ระบบฐานข้อมูลไม่พร้อม"); return; }
-
     showLoading(true);
-
+    var start = document.getElementById("startDate").value;
+    var end = document.getElementById("endDate").value;
+    var staff = document.getElementById("staffFilter").value.trim().toUpperCase();
+    var shift = document.getElementById("shiftFilter").value;
+    
+    var query = sbClient.from("full_dispatch_report").select("*");
+    if(start) query = query.gte("created_at", start + "T00:00:00"); 
+    if(end) query = query.lte("created_at", end + "T23:59:59");
+    if(staff) query = query.eq("staff_id", staff); 
+    if(shift) query = query.eq("shift", shift);
+    
     try {
-        var query = sbClient.from("full_dispatch_report").select("*");
-
-        var start = document.getElementById("startDate").value;
-        var end   = document.getElementById("endDate").value;
-        var staff = document.getElementById("staffFilter").value.trim().toUpperCase();
-        var shift = document.getElementById("shiftFilter").value;
-
-        if (start) query = query.gte("created_at", start + "T00:00:00");
-        if (end)   query = query.lte("created_at", end   + "T23:59:59");
-        if (staff) query = query.eq("staff_id", staff);
-        if (shift) query = query.eq("shift", shift);
-
-        query = query.order("created_at", { ascending: false });
-
-        var result = await query;
-
-        if (result.error) throw new Error(result.error.message);
-
-        currentData = result.data || [];
+        var res = await query.order("created_at", { ascending: false });
+        currentData = res.data || []; 
         renderTable(currentData);
-        renderSummary(currentData);
-
-    } catch(err) {
+    } catch (e) {
+        console.error(e);
+        alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
         showLoading(false);
-        alert("❌ โหลดข้อมูลไม่สำเร็จ: " + err.message);
-        console.error(err);
     }
 }
 
-/* =============================================================
-   RENDER TABLE
-============================================================= */
 function renderTable(data) {
-    showLoading(false);
-
-    var tbody   = document.getElementById("reportBody");
-    var wrapper = document.getElementById("tableWrapper");
-    var empty   = document.getElementById("emptyState");
-
+    var tbody = document.getElementById("reportBody"); 
     tbody.innerHTML = "";
-
-    if (!data.length) {
-        wrapper.classList.add("hidden");
-        empty.classList.remove("hidden");
-        document.getElementById("resultCount").textContent = "0";
-        return;
+    var bills = {}, total = 0;
+    
+    if(!data.length) { 
+        tbody.innerHTML = `<tr><td colspan="7" class="p-12 text-center text-[var(--text-sub)]"><div class="flex flex-col items-center justify-center opacity-60"><i class="fa-solid fa-box-open text-5xl mb-4"></i><span class="text-sm font-bold tracking-widest">ไม่พบข้อมูลในช่วงเวลานี้</span></div></td></tr>`; 
     }
+    
+    data.forEach(row => {
+        bills[row.bill_id] = true; 
+        total += (row.bag_qty * row.pack_qty) + row.fraction_qty;
+        var tr = document.createElement("tr"); 
+        
+        let shiftBadge = row.shift === 'Shift A' 
+            ? `<span class="bg-amber-500/20 text-amber-500 border border-amber-500/30 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">${row.shift}</span>`
+            : `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">${row.shift}</span>`;
 
-    empty.classList.add("hidden");
-    wrapper.classList.remove("hidden");
-    document.getElementById("resultCount").textContent = data.length;
-
-    data.forEach(function(row) {
-        var total = (row.bag_qty * row.pack_qty) + row.fraction_qty;
-        var dateStr = new Date(row.created_at).toLocaleString("th-TH", {
-            year: "numeric", month: "2-digit", day: "2-digit",
-            hour: "2-digit", minute: "2-digit"
-        });
-
-        /* รูปภาพ */
-        var photosHtml = "—";
-        if (row.photo_urls && row.photo_urls.length > 0) {
-            photosHtml = row.photo_urls.map(function(url) {
-                return '<img src="' + url + '" class="photo-thumb" onclick="openModal(\'' + url + '\')" title="คลิกเพื่อขยาย">';
-            }).join("");
-            photosHtml = '<div style="display:flex;gap:4px;flex-wrap:wrap;">' + photosHtml + '</div>';
-        }
-
-        var shiftBadge = row.shift === "Shift A"
-            ? '<span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">Shift A</span>'
-            : '<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">Shift B</span>';
-
-        var tr = document.createElement("tr");
-        tr.className = "hover:bg-slate-50 transition-colors";
-        tr.innerHTML =
-            '<td class="p-3 text-gray-600 text-xs whitespace-nowrap">' + dateStr + '</td>' +
-            '<td class="p-3 font-mono font-semibold text-slate-700">' + (row.staff_id || "—") + '</td>' +
-            '<td class="p-3">' + shiftBadge + '</td>' +
-            '<td class="p-3 text-xs font-mono text-gray-500">' + row.bill_id + '</td>' +
-            '<td class="p-3 text-gray-800">' + row.part_name + '</td>' +
-            '<td class="p-3 text-center text-gray-600">' + row.bag_qty + '</td>' +
-            '<td class="p-3 text-center text-gray-600">' + row.pack_qty + '</td>' +
-            '<td class="p-3 text-center text-gray-600">' + row.fraction_qty + '</td>' +
-            '<td class="p-3 text-center font-bold text-emerald-600">' + total + '</td>' +
-            '<td class="p-3">' + photosHtml + '</td>';
+        tr.innerHTML = `
+            <td class="p-4 text-[11px] font-medium text-[var(--text-sub)]">${new Date(row.created_at).toLocaleString('th-TH')}</td>
+            <td class="p-4 font-black tracking-wider text-[var(--text-main)]">${row.staff_id}</td>
+            <td class="p-4">${shiftBadge}</td>
+            <td class="p-4 font-mono text-[10px] font-bold text-[var(--text-sub)]">${row.bill_id}</td>
+            <td class="p-4 text-xs font-bold leading-relaxed text-[var(--text-main)]">${row.part_name}</td>
+            <td class="p-4 text-center font-black text-emerald-400 text-lg bg-emerald-500/5 rounded-xl border border-emerald-500/10 my-2">${(row.bag_qty * row.pack_qty) + row.fraction_qty}</td>
+            <td class="p-4">
+                ${row.photo_urls?.[0] ? `<div class="flex gap-1.5">${row.photo_urls.map(url=>`<img src="${url}" class="photo-thumb" onclick="openModal('${url}')">`).join('')}</div>` : '<span class="text-[var(--text-sub)] text-[10px] font-bold bg-black/20 px-2 py-1 rounded-md">ไม่มีรูป</span>'}
+            </td>`;
         tbody.appendChild(tr);
     });
+    
+    document.getElementById("summaryBills").textContent = Object.keys(bills).length; 
+    document.getElementById("summaryItems").textContent = data.length; 
+    document.getElementById("summaryTotal").textContent = total.toLocaleString(); 
+    document.getElementById("summaryStaff").textContent = new Set(data.map(d => d.staff_id)).size;
+    showLoading(false);
 }
 
-/* =============================================================
-   SUMMARY CARDS
-============================================================= */
-function renderSummary(data) {
-    var bills   = {};
-    var staffs  = {};
-    var total   = 0;
-
-    data.forEach(function(row) {
-        bills[row.bill_id]   = true;
-        staffs[row.staff_id] = true;
-        total += (row.bag_qty * row.pack_qty) + row.fraction_qty;
-    });
-
-    document.getElementById("summaryBills").textContent  = Object.keys(bills).length;
-    document.getElementById("summaryItems").textContent  = data.length;
-    document.getElementById("summaryTotal").textContent  = total.toLocaleString();
-    document.getElementById("summaryStaff").textContent  = Object.keys(staffs).length;
-}
-
-/* =============================================================
-   EXPORT EXCEL — จาก raw data (ไม่ใช่ HTML table)
-============================================================= */
 function exportToExcel() {
-    if (!currentData.length) { alert("ไม่มีข้อมูลสำหรับ Export"); return; }
-
-    var rows = currentData.map(function(row) {
-        return {
-            "วันที่/เวลา":   new Date(row.created_at).toLocaleString("th-TH"),
-            "รหัสบิล":       row.bill_id,
-            "รหัสพนักงาน":   row.staff_id || "",
-            "กะ":            row.shift,
-            "รายการสินค้า":  row.part_name,
-            "จำนวนถุง":      row.bag_qty,
-            "บรรจุ/ถุง":     row.pack_qty,
-            "เศษ":           row.fraction_qty,
-            "ยอดรวม":        (row.bag_qty * row.pack_qty) + row.fraction_qty,
-            "รูปภาพ (URL)":  (row.photo_urls || []).join(", ")
-        };
-    });
-
-    var ws = XLSX.utils.json_to_sheet(rows);
-
-    /* ปรับความกว้าง column */
-    ws["!cols"] = [
-        {wch:20},{wch:22},{wch:14},{wch:10},{wch:35},
-        {wch:10},{wch:10},{wch:8},{wch:10},{wch:50}
-    ];
-
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Dispatch Report");
-
-    var now    = new Date();
-    var fname  = "Report_" + now.getFullYear() +
-                 padDate(now.getMonth() + 1) + padDate(now.getDate()) + ".xlsx";
-    XLSX.writeFile(wb, fname);
+    if(currentData.length === 0) return alert("ไม่มีข้อมูลให้ Export");
+    var ws = XLSX.utils.json_to_sheet(currentData.map(r=>({
+        "วันที่/เวลา": new Date(r.created_at).toLocaleString("th-TH"),
+        "รหัสบิล": r.bill_id,
+        "รหัสพนักงาน": r.staff_id,
+        "กะ": r.shift,
+        "รายการสินค้า": r.part_name,
+        "จำนวนถุง": r.bag_qty,
+        "บรรจุ": r.pack_qty,
+        "เศษ": r.fraction_qty,
+        "ยอดรวม": (r.bag_qty*r.pack_qty)+r.fraction_qty
+    })));
+    var wb = XLSX.utils.book_new(); 
+    XLSX.utils.book_append_sheet(wb, ws, "Report"); 
+    XLSX.writeFile(wb, "Kaosu_Dispatch_Report.xlsx");
 }
 
-/* =============================================================
-   IMAGE MODAL
-============================================================= */
+function clearFilter() { 
+    document.getElementById("staffFilter").value=""; 
+    document.getElementById("shiftFilter").value=""; 
+    
+    var today = new Date(); var pad = n => ("0"+n).slice(-2); 
+    var dStr = today.getFullYear()+"-"+pad(today.getMonth()+1)+"-"+pad(today.getDate()); 
+    document.getElementById("startDate").value=dStr; 
+    document.getElementById("endDate").value=dStr; 
+
+    fetchReport(); 
+}
+
 function openModal(url) {
-    document.getElementById("modalImg").src = url;
-    document.getElementById("imgModal").classList.add("active");
+    document.getElementById('modalImg').src = url;
+    document.getElementById('imgModal').classList.add('active');
 }
-
 function closeModal() {
-    document.getElementById("imgModal").classList.remove("active");
-    document.getElementById("modalImg").src = "";
+    document.getElementById('imgModal').classList.remove('active');
+    setTimeout(() => document.getElementById('modalImg').src = "", 300);
 }
 
-/* =============================================================
-   LOADING STATE
-============================================================= */
-function showLoading(show) {
-    document.getElementById("loadingState").classList.toggle("hidden", !show);
-    document.getElementById("tableWrapper").classList.add("hidden");
-    document.getElementById("emptyState").classList.add("hidden");
-}
-
-/* =============================================================
-   INIT — โหลดข้อมูลวันนี้เป็น default
-============================================================= */
-document.addEventListener("DOMContentLoaded", function() {
-    setToday();
-});
-</script>
-<!-- ========================================== -->
-<!-- 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n) -->
-<!-- ========================================== -->
-<script>
-const translations = {
-    th: {
-        appTitle: "STORE FG DISPATCH",
-        appDesc: "ระบบจ่ายงานคลังสินค้า",
-        navMenu: "เมนูหลัก",
-        navDispatch: "บันทึกข้อมูล",
-        navReport: "ดูรายงาน",
-        summaryBillsLabel: "บิลทั้งหมด",
-        summaryItemsLabel: "รายการสินค้า",
-        summaryTotalLabel: "ยอดรวมทั้งหมด",
-        summaryStaffLabel: "พนักงาน",
-        filterTitle: "ตัวกรองข้อมูล",
-        filterStartDate: "วันที่เริ่มต้น",
-        filterEndDate: "วันที่สิ้นสุด",
-        filterStaffId: "รหัสพนักงาน",
-        staffIdPh: "เช่น EMP001",
-        filterShift: "กะ",
-        filterShiftAll: "ทั้งหมด",
-        btnSearch: "ค้นหา",
-        quickToday: "วันนี้",
-        quickThisWeek: "สัปดาห์นี้",
-        quickThisMonth: "เดือนนี้",
-        quickClear: "ล้างตัวกรอง",
-        resultLabel: "ผลการค้นหา:",
-        resultUnit: "รายการ",
-        btnExport: "Export Excel",
-        loadingText: "กำลังโหลดข้อมูล...",
-        emptyTitle: "ไม่พบข้อมูลในช่วงเวลาที่เลือก",
-        emptyDesc: "ลองเปลี่ยนตัวกรองแล้วค้นหาใหม่อีกครั้ง",
-        thDateTime: "วันที่/เวลา",
-        thStaffId: "รหัสพนักงาน",
-        thShift: "กะ",
-        thBillId: "รหัสบิล",
-        thPartName: "รายการสินค้า",
-        bag: "ถุง",
-        pack: "บรรจุ",
-        fraction: "เศษ",
-        total: "รวม",
-        thPhotos: "รูปภาพ"
-    },
-    zh: {
-        appTitle: "倉庫發貨系統",
-        appDesc: "倉庫發貨系統",
-        navMenu: "主選單",
-        navDispatch: "發貨記錄",
-        navReport: "查看報告",
-        summaryBillsLabel: "總單數",
-        summaryItemsLabel: "物料項目",
-        summaryTotalLabel: "總數量",
-        summaryStaffLabel: "員工人數",
-        filterTitle: "篩選條件",
-        filterStartDate: "開始日期",
-        filterEndDate: "結束日期",
-        filterStaffId: "員工編號",
-        staffIdPh: "例如 EMP001",
-        filterShift: "班次",
-        filterShiftAll: "全部",
-        btnSearch: "搜尋",
-        quickToday: "今天",
-        quickThisWeek: "本週",
-        quickThisMonth: "本月",
-        quickClear: "清除篩選",
-        resultLabel: "搜尋結果：",
-        resultUnit: "筆",
-        btnExport: "匯出 Excel",
-        loadingText: "資料載入中...",
-        emptyTitle: "找不到所選時間範圍的資料",
-        emptyDesc: "請嘗試調整篩選條件後再搜尋",
-        thDateTime: "日期/時間",
-        thStaffId: "員工編號",
-        thShift: "班次",
-        thBillId: "單據編號",
-        thPartName: "物料名稱",
-        bag: "袋數",
-        pack: "包裝",
-        fraction: "零數",
-        total: "總計",
-        thPhotos: "照片"
-    },
-    mm: {
-        appTitle: "ကုန်ထုတ်ပေးမှုစနစ်",
-        appDesc: "ကုန်လှောင်ရုံထုတ်ပေးမှုစနစ်",
-        navMenu: "မီနူးမူ",
-        navDispatch: "ထုတ်ပေးမှုမှတ်တမ်း",
-        navReport: "အစီရင်ခံစာ",
-        summaryBillsLabel: "ဘီလ်စုစုပေါင်း",
-        summaryItemsLabel: "ပစ္စည်းစာရင်း",
-        summaryTotalLabel: "စုစုပေါင်း",
-        summaryStaffLabel: "ဝန်ထမ်းအရေအတွက်",
-        filterTitle: "စစ်ထုတ်ရန်",
-        filterStartDate: "စတင်ရက်",
-        filterEndDate: "ပြီးဆုံးရက်",
-        filterStaffId: "ဝန်ထမ်းကုဒ်",
-        staffIdPh: "ဥပမာ EMP001",
-        filterShift: "အဆိုင်း",
-        filterShiftAll: "အားလုံး",
-        btnSearch: "ရှာဖွေရန်",
-        quickToday: "ယနေ့",
-        quickThisWeek: "ဒီအပတ်",
-        quickThisMonth: "ဒီလ",
-        quickClear: "စစ်ထုတ်မှုရှင်းရန်",
-        resultLabel: "ရလဒ်:",
-        resultUnit: "ခု",
-        btnExport: "Excel ထုတ်ရန်",
-        loadingText: "ဒေတာဖွင့်နေသည်...",
-        emptyTitle: "ရွေးချယ်ထားသောကာလအတွင်း ဒေတာမတွေ့ပါ",
-        emptyDesc: "စစ်ထုတ်မှုကိုပြောင်းပြီး ထပ်ရှာကြည့်ပါ",
-        thDateTime: "ရက်စွဲ/အချိန်",
-        thStaffId: "ဝန်ထမ်းကုဒ်",
-        thShift: "အဆိုင်း",
-        thBillId: "ဘီလ်ကုဒ်",
-        thPartName: "ပစ္စည်းစာရင်း",
-        bag: "အိတ်",
-        pack: "ထုပ်ပိုး",
-        fraction: "အပို",
-        total: "စုစုပေါင်း",
-        thPhotos: "ဓာတ်ပုံများ"
-    },
-    en: {
-        appTitle: "STORE FG DISPATCH",
-        appDesc: "Warehouse Dispatch System",
-        navMenu: "Main Menu",
-        navDispatch: "Dispatch",
-        navReport: "Report",
-        summaryBillsLabel: "Total Bills",
-        summaryItemsLabel: "Items",
-        summaryTotalLabel: "Total Quantity",
-        summaryStaffLabel: "Staff",
-        filterTitle: "Filters",
-        filterStartDate: "Start Date",
-        filterEndDate: "End Date",
-        filterStaffId: "Staff ID",
-        staffIdPh: "e.g. EMP001",
-        filterShift: "Shift",
-        filterShiftAll: "All",
-        btnSearch: "Search",
-        quickToday: "Today",
-        quickThisWeek: "This Week",
-        quickThisMonth: "This Month",
-        quickClear: "Clear Filters",
-        resultLabel: "Results:",
-        resultUnit: "items",
-        btnExport: "Export Excel",
-        loadingText: "Loading data...",
-        emptyTitle: "No data found for the selected period",
-        emptyDesc: "Try changing the filters and search again",
-        thDateTime: "Date/Time",
-        thStaffId: "Staff ID",
-        thShift: "Shift",
-        thBillId: "Bill ID",
-        thPartName: "Item",
-        bag: "Bag",
-        pack: "Pack",
-        fraction: "Fraction",
-        total: "Total",
-        thPhotos: "Photos"
-    }
+// ==========================================
+// 🌍 ระบบแปลภาษา 4 ชาติ
+// ==========================================
+const translations = { 
+    th: { appTitle: "DISPATCH REPORT", appDesc: "รายงานการจ่ายงานคลังสินค้า", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน", summaryBillsLabel: "บิลทั้งหมด", summaryItemsLabel: "รายการเบิกจ่าย", summaryTotalLabel: "ยอดรวมสินค้า", summaryStaffLabel: "พนักงาน", filterTitle: "ตัวกรองข้อมูล", filterStartDate: "เริ่มต้น", filterEndDate: "สิ้นสุด", filterStaffId: "รหัสพนักงาน", filterShift: "กะ", filterShiftAll: "ทั้งหมด", btnSearch: "ค้นหา", btnExport: "Export Excel", quickClear: "ล้างตัวกรอง", loadingText: "กำลังโหลดข้อมูล...", thDateTime: "เวลา", thStaffId: "พนักงาน", thShift: "กะ", thBillId: "บิล", thPartName: "รายการ", total: "รวม", thPhotos: "รูปภาพ" }, 
+    en: { appTitle: "DISPATCH REPORT", appDesc: "Warehouse Analytics", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report", summaryBillsLabel: "Total Bills", summaryItemsLabel: "Total Items", summaryTotalLabel: "Total Qty", summaryStaffLabel: "Active Staff", filterTitle: "Filters", filterStartDate: "Start Date", filterEndDate: "End Date", filterStaffId: "Staff ID", filterShift: "Shift", filterShiftAll: "All", btnSearch: "Search", btnExport: "Export", quickClear: "Clear", loadingText: "Loading...", thDateTime: "Time", thStaffId: "Staff", thShift: "Shift", thBillId: "Bill ID", thPartName: "Item Details", total: "Total", thPhotos: "Photo" }
 };
-
-let currentLang = localStorage.getItem('wms_lang') || 'th';
-
-function changeLanguage(lang) {
-    if (!translations[lang]) return;
-    currentLang = lang;
-    localStorage.setItem('wms_lang', lang);
-
-    const switchers = document.querySelectorAll('#globalLangSwitcher');
-    switchers.forEach(s => s.value = lang);
-
-    const t = translations[lang];
-    if (!t) return;
-
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-        const key = el.getAttribute("data-i18n");
-        if (t[key] !== undefined) el.textContent = t[key];
-    });
-    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
-        const key = el.getAttribute("data-i18n-placeholder");
-        if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
-    });
+function changeLanguage(lang) { 
+    localStorage.setItem('wms_lang', lang); 
+    document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang); 
+    const t = translations[lang]||translations['th']; 
+    document.querySelectorAll("[data-i18n]").forEach(el => { if(t[el.getAttribute("data-i18n")]) el.textContent = t[el.getAttribute("data-i18n")]; }); 
 }
 
-// ทำงานอัตโนมัติเมื่อเปิดหน้าเว็บ
-document.addEventListener("DOMContentLoaded", () => {
-    changeLanguage(currentLang);
+document.addEventListener("DOMContentLoaded", () => { 
+    clearFilter(); // Sets today's date and fetches
+    changeLanguage(localStorage.getItem('wms_lang') || 'th'); 
 });
 </script>
 </body>

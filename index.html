@@ -7,36 +7,105 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        /* 🎨 Theme Engine Variables */
+        :root {
+            --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --input-bg: rgba(255, 255, 255, 0.6);
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --card-hover: rgba(255, 255, 255, 0.9);
+            --glow-color: rgba(14, 165, 233, 0.15);
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(15, 23, 42, 0.4);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --card-hover: rgba(51, 65, 85, 0.8);
+            --glow-color: rgba(56, 189, 248, 0.15);
+        }
+
+        [data-theme="kaosu"] {
+            --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
+            --glass-bg: rgba(69, 10, 10, 0.6);
+            --glass-border: rgba(250, 204, 21, 0.2);
+            --input-bg: rgba(0, 0, 0, 0.2);
+            --text-main: #fef08a; 
+            --text-sub: #fca5a5;
+            --card-hover: rgba(127, 29, 29, 0.8);
+            --glow-color: rgba(250, 204, 21, 0.15);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.5s ease;
+        }
+
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; cursor: pointer; }
-        .photo-strip { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-        
-        /* สไตล์สำหรับกล่อง Auto-complete */
-        .suggestions-box {
-            position: absolute; z-index: 50; width: 100%; background: white; 
-            border: 1px solid #e5e7eb; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            max-height: 200px; overflow-y: auto; display: none; top: 100%; left: 0; margin-top: 4px;
+        .photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .photo-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
-        .suggestion-item { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background 0.2s; }
-        .suggestion-item:hover { background-color: #f0f9ff; }
+        .glass-input {
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+        
+        .mouse-glow {
+            position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%);
+            width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%);
+            pointer-events: none; z-index: 0; transition: width 0.2s, height 0.2s;
+        }
+
+        .suggestions-box {
+            position: absolute; z-index: 50; width: 100%; background: var(--glass-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 0.75rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            max-height: 220px; overflow-y: auto; display: none; top: 100%; left: 0; margin-top: 8px;
+        }
+        .suggestion-item { padding: 10px 14px; border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; }
+        .suggestion-item:hover { background: var(--card-hover); }
         .suggestion-item:last-child { border-bottom: none; }
     </style>
 </head>
-<body class="p-3 md:p-6">
+<body class="min-h-screen p-3 md:p-6 relative" data-theme="dark">
 
-<div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 relative">
+<!-- เอฟเฟกต์แสงออร่า -->
+<div class="mouse-glow"></div>
+
+<div class="max-w-md mx-auto glass-panel rounded-3xl overflow-hidden relative z-10">
     
-    <!-- Screen Loading ป้องกันพนักงานกดก่อนโหลดข้อมูลเสร็จ -->
-    <div id="masterLoading" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
-        <i class="fa-solid fa-spinner fa-spin text-4xl text-sky-500 mb-3"></i>
-        <p class="text-sm font-bold text-slate-600">กำลังเชื่อมต่อฐานข้อมูล...</p>
+    <!-- Screen Loading -->
+    <div id="masterLoading" class="absolute inset-0 bg-[var(--glass-bg)] backdrop-blur-md z-[100] flex flex-col items-center justify-center transition-opacity duration-300">
+        <i class="fa-solid fa-spinner fa-spin text-5xl text-sky-500 mb-4 drop-shadow-lg"></i>
+        <p class="text-sm font-bold text-[var(--text-main)] tracking-widest animate-pulse">CONNECTING DB...</p>
     </div>
 
-   <div class="bg-slate-800 p-4 text-white relative">
-       <!-- 🟢 ปุ่มสลับภาษา -->
-        <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md z-[60] hover:border-sky-400 transition-colors">
+   <div class="p-6 relative border-b border-[var(--glass-border)]">
+        <!-- 🟢 ปุ่มสลับภาษา -->
+        <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-black/20 backdrop-blur-sm border border-[var(--glass-border)] rounded-xl px-3 py-1.5 shadow-md z-[60]">
             <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
             <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
                 <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
@@ -44,69 +113,69 @@
                 <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
                 <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
             </select>
-            <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
         </div>
         
-        <div class="flex justify-between items-center mb-3 pr-20">
-            <h1 class="text-xl font-bold tracking-wide">
-                <i class="fa-solid fa-boxes-stacked mr-2 text-sky-400"></i>
-                <span data-i18n="appTitle">STORE FG DISPATCH</span>
-            </h1>
+        <div class="flex items-center gap-3 mb-5 pr-20">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-400 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/30">
+                <i class="fa-solid fa-pen-to-square text-white text-lg"></i>
+            </div>
+            <h1 class="text-xl font-black tracking-wide text-[var(--text-main)]" data-i18n="appTitle">DISPATCH FG</h1>
         </div>
-        <!-- Nav -->
+
+        <!-- Nav Buttons (Glass Style) -->
        <div class="flex gap-2">
-            <a href="menu.html" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-                <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">เมนูหลัก</span>
+            <a href="menu.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">หน้าหลัก</span>
             </a>
-            <a href="index.html" class="flex-1 bg-sky-600 text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-pen-to-square"></i> <span data-i18n="navDispatch">บันทึกข้อมูล</span>
+            <a href="index.html" class="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30">
+                <i class="fa-solid fa-barcode"></i> <span data-i18n="navDispatch">จ่ายงาน</span>
             </a>
-            <a href="report.html" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-                <i class="fa-solid fa-chart-bar"></i> <span data-i18n="navReport">ดูรายงาน</span>
+            <a href="report.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-chart-pie"></i> <span data-i18n="navReport">รายงาน</span>
             </a>
         </div>
     </div>
 
-    <form id="dispatchForm" class="p-4 space-y-4">
-        <!-- Shift -->
-        <div class="bg-slate-50 p-3 rounded-xl border border-gray-200">
-            <label class="block text-xs font-semibold text-gray-600 mb-1">
-                <i class="fa-solid fa-clock mr-1 text-slate-500"></i>
-                <span data-i18n="shift">เลือกกะ / 班次</span>
-            </label>
-            <select id="shift" class="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-sky-500 font-medium">
-                <option value="A">Shift A</option>
-                <option value="B">Shift B</option>
-            </select>
+    <form id="dispatchForm" class="p-5 space-y-5">
+        <!-- User Info Row -->
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 ml-1 tracking-wider" data-i18n="shift">กะ / SHIFT</label>
+                <select id="shift" class="w-full glass-input rounded-xl p-3 text-sm font-bold outline-none">
+                    <option value="A" class="text-slate-800">Shift A</option>
+                    <option value="B" class="text-slate-800">Shift B</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 ml-1 tracking-wider" data-i18n="staffId">รหัสพนักงาน</label>
+                <div class="relative">
+                    <i class="fa-solid fa-user-tag absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
+                    <input type="text" id="staffId" class="w-full glass-input rounded-xl p-3 pl-9 text-sm font-bold uppercase tracking-widest outline-none" data-i18n-placeholder="staffIdPh" placeholder="EMP001" required>
+                </div>
+            </div>
         </div>
 
-        <!-- Staff ID -->
-        <div class="bg-slate-50 p-3 rounded-xl border border-gray-200">
-            <label class="block text-xs font-semibold text-gray-600 mb-1">
-                <i class="fa-solid fa-id-card mr-1 text-slate-500"></i>
-                <span data-i18n="staffId">รหัสพนักงาน / Staff ID</span>
-            </label>
-            <input type="text" id="staffId" class="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-sm uppercase tracking-widest focus:ring-2 focus:ring-sky-500" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001" required>
-        </div>
+        <hr class="border-[var(--glass-border)] my-2">
 
-        <!-- Item rows -->
+        <!-- Item rows Container -->
         <div>
-            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
-                <i class="fa-solid fa-barcode mr-1 text-sky-600"></i>
-                <span data-i18n="itemList">รายการสินค้า (ITEM CODE)</span>
-            </label>
+            <div class="flex justify-between items-end mb-3">
+                <label class="block text-xs font-black text-[var(--text-main)] uppercase tracking-wider">
+                    <i class="fa-solid fa-boxes-packing mr-1 text-sky-500"></i> <span data-i18n="itemList">รายการสินค้า</span>
+                </label>
+            </div>
 
-            <div id="itemsContainer" class="space-y-3"></div>
+            <div id="itemsContainer" class="space-y-4"></div>
 
-            <button type="button" id="btnAddRow" class="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-xl border border-dashed border-slate-300 text-sm flex items-center justify-center gap-2">
-                <i class="fa-solid fa-circle-plus text-sky-600 text-base"></i>
-                <span data-i18n="btnAdd">เพิ่มรายการ</span>
+            <button type="button" id="btnAddRow" class="w-full mt-4 glass-input hover:bg-[var(--card-hover)] text-sky-500 font-bold py-3 px-4 rounded-xl border border-dashed border-sky-500/50 text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                <i class="fa-solid fa-plus-circle text-lg"></i>
+                <span data-i18n="btnAdd">เพิ่มรายการเบิกจ่าย</span>
             </button>
         </div>
 
-        <button id="submitBtn" type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all text-base tracking-wide mt-4 disabled:opacity-50 disabled:cursor-not-allowed">
-            <i id="submitIcon" class="fa-solid fa-paper-plane mr-2"></i>
-            <span id="submitText" data-i18n="btnSubmit">บันทึกข้อมูล</span>
+        <button id="submitBtn" type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-4 px-4 rounded-xl shadow-lg shadow-emerald-500/30 transition-all text-base tracking-widest mt-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-400/50">
+            <i id="submitIcon" class="fa-solid fa-cloud-arrow-up mr-2 text-lg"></i>
+            <span id="submitText" data-i18n="btnSubmit">บันทึกข้อมูลเข้าระบบ</span>
         </button>
     </form>
 </div>
@@ -115,33 +184,48 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+/* =============================================================
+   🎨 Theme & Glow Logic
+============================================================= */
+const savedTheme = localStorage.getItem('wms_theme') || 'dark';
+document.body.setAttribute('data-theme', savedTheme);
+
+document.addEventListener('mousemove', (e) => {
+    document.documentElement.style.setProperty('--x', e.clientX + 'px');
+    document.documentElement.style.setProperty('--y', e.clientY + 'px');
+});
+document.addEventListener('touchmove', (e) => {
+    document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px');
+    document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px');
+});
+
 // ==========================================
 // 🌍 ระบบแปลภาษา 4 ชาติ
 // ==========================================
 const translations = {
     th: {
-        appTitle: "STORE FG DISPATCH", navMenu: "เมนูหลัก", navDispatch: "บันทึกข้อมูล", navReport: "ดูรายงาน",
-        shift: "เลือกกะ / 班次", staffId: "รหัสพนักงาน / Staff ID", staffIdPh: "เช่น EMP001",
-        itemList: "รายการสินค้า (ITEM CODE)", partNamePh: "ชื่อชิ้นงานจะขึ้นอัตโนมัติ", searchPh: "พิมพ์ค้นหา ITEM (เช่น 088)",
-        bag: "ถุง", pack: "บรรจุ", fraction: "เศษ", total: "รวม", btnAdd: "เพิ่มรายการ", btnSubmit: "บันทึกข้อมูล", takePhoto: "ถ่ายรูป / 拍照"
+        appTitle: "DISPATCH FG", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน",
+        shift: "กะ / SHIFT", staffId: "รหัสพนักงาน", staffIdPh: "EMP001",
+        itemList: "รายการสินค้าเบิกจ่าย", partNamePh: "ชื่อชิ้นงานจะแสดงอัตโนมัติ", searchPh: "ค้นหารหัส ITEM (เช่น 088)",
+        bag: "ถุง", pack: "บรรจุ", fraction: "เศษ", total: "ยอดรวม", btnAdd: "เพิ่มรายการเบิกจ่าย", btnSubmit: "บันทึกข้อมูลเข้าระบบ", takePhoto: "แนบรูปถ่าย"
     },
     zh: {
-        appTitle: "倉庫發貨系統", navMenu: "主選單", navDispatch: "發貨記錄", navReport: "查看報告",
-        shift: "班次", staffId: "員工編號 (Staff ID)", staffIdPh: "例如 EMP001",
-        itemList: "物料明細 (ITEM CODE)", partNamePh: "物料名稱會自動顯示", searchPh: "搜尋項目 (例如 088)",
-        bag: "袋數", pack: "包裝", fraction: "零數", total: "總計", btnAdd: "增加物料", btnSubmit: "確認提交", takePhoto: "拍照"
+        appTitle: "發貨系統", navMenu: "主頁", navDispatch: "發貨", navReport: "報告",
+        shift: "班次", staffId: "員工編號", staffIdPh: "EMP001",
+        itemList: "物料清單", partNamePh: "自動顯示物料名稱", searchPh: "搜尋代碼 (如 088)",
+        bag: "袋", pack: "包裝", fraction: "零數", total: "總計", btnAdd: "新增項目", btnSubmit: "確認提交", takePhoto: "拍照"
     },
     mm: {
-        appTitle: "ကုန်ထုတ်ပေးမှုစနစ်", navMenu: "မီနူးမူ", navDispatch: "ထုတ်ပေးမှုမှတ်တမ်း", navReport: "အစီရင်ခံစာ",
-        shift: "အဆိုင်း", staffId: "ဝန်ထမ်းကုဒ်", staffIdPh: "ဥပမာ EMP001",
-        itemList: "ပစ္စည်းစာရင်း (ITEM CODE)", partNamePh: "အမည်အလိုအလျောက်ပေါ်လာမည်", searchPh: "ပစ္စည်းရှာရန် (ဥပမာ 088)",
-        bag: "အိတ်", pack: "ထုပ်ပိုး", fraction: "အပို", total: "စုစုပေါင်း", btnAdd: "ပစ္စည်းထည့်ရန်", btnSubmit: "အတည်ပြုသည်", takePhoto: "ဓာတ်ပုံ ရိုက်ပါ"
+        appTitle: "ထုတ်ပေးမှုစနစ်", navMenu: "ပင်မစာမျက်နှာ", navDispatch: "ထုတ်ပေးခြင်း", navReport: "အစီရင်ခံစာ",
+        shift: "အဆိုင်း", staffId: "ဝန်ထမ်းကုဒ်", staffIdPh: "EMP001",
+        itemList: "ပစ္စည်းစာရင်း", partNamePh: "အမည်အလိုအလျောက်ပေါ်လာမည်", searchPh: "ရှာဖွေရန် (ဥပမာ 088)",
+        bag: "အိတ်", pack: "ထုပ်ပိုး", fraction: "အပို", total: "စုစုပေါင်း", btnAdd: "ပစ္စည်းထည့်ရန်", btnSubmit: "အတည်ပြုသည်", takePhoto: "ဓာတ်ပုံရိုက်ရန်"
     },
     en: {
-        appTitle: "STORE FG DISPATCH", navMenu: "Main Menu", navDispatch: "Dispatch", navReport: "Report",
-        shift: "Select Shift", staffId: "Staff ID", staffIdPh: "e.g. EMP001",
-        itemList: "Item List (ITEM CODE)", partNamePh: "Part Name will auto-fill", searchPh: "Search ITEM (e.g. 088)",
-        bag: "Bag", pack: "Pack", fraction: "Fraction", total: "Total", btnAdd: "Add Item", btnSubmit: "Submit", takePhoto: "Take Photo"
+        appTitle: "DISPATCH FG", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report",
+        shift: "SHIFT", staffId: "STAFF ID", staffIdPh: "EMP001",
+        itemList: "DISPATCH ITEMS", partNamePh: "Auto-fill part name", searchPh: "Search ITEM (e.g. 088)",
+        bag: "Bag", pack: "Pack", fraction: "Frac.", total: "TOTAL", btnAdd: "Add Item", btnSubmit: "SUBMIT DATA", takePhoto: "Take Photo"
     }
 };
 
@@ -171,15 +255,17 @@ const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
 const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
 
-let masterDataList = []; // เก็บข้อมูลสินค้าทั้งหมดจาก DB
+let masterDataList = []; 
 
 async function fetchMasterData() {
     try {
         const { data, error } = await sbClient.from("part_master").select("*");
         if (error) throw error;
         masterDataList = data;
-        // ปิดหน้าต่าง Loading
-        document.getElementById('masterLoading').classList.add('hidden');
+        
+        let loader = document.getElementById('masterLoading');
+        loader.classList.add('opacity-0');
+        setTimeout(() => loader.classList.add('hidden'), 300);
     } catch(err) {
         alert("โหลดฐานข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ");
         console.error(err);
@@ -192,53 +278,53 @@ function makeUID() { return "r" + (++uidCounter); }
 function createRow() {
     var uid = makeUID();
     var div = document.createElement("div");
-    div.className = "item-row bg-gray-50 p-3 rounded-xl border border-gray-200 relative pt-7 pb-2 shadow-sm";
+    div.className = "item-row glass-input p-4 rounded-2xl relative pt-8 shadow-md border-[var(--glass-border)]";
     div.setAttribute("data-row-uid", uid);
 
     div.innerHTML = `
-        <span class="absolute top-1.5 left-3 text-[10px] font-bold text-slate-400 uppercase row-number"></span>
-        <button type="button" data-action="remove-row" class="absolute top-1.5 right-2 text-gray-400 hover:text-red-500 p-1 bg-white rounded-md border border-gray-100 shadow-sm"><i class="fa-solid fa-trash-can"></i></button>
+        <div class="absolute top-0 left-0 right-0 bg-black/10 px-3 py-1.5 rounded-t-2xl flex justify-between items-center border-b border-[var(--glass-border)]">
+            <span class="text-[10px] font-black text-[var(--text-sub)] uppercase tracking-widest row-number"></span>
+            <button type="button" data-action="remove-row" class="text-[var(--text-sub)] hover:text-red-400 transition-colors"><i class="fa-solid fa-xmark text-sm"></i></button>
+        </div>
 
         <!-- 🔍 ช่อง Smart Search -->
-        <div class="mb-2 relative">
-            <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-500"></i>
-                <input type="text" class="item-search w-full bg-white border border-sky-300 rounded-lg p-2.5 pl-9 text-sm font-bold text-sky-800 focus:ring-2 focus:ring-sky-500 outline-none" data-i18n-placeholder="searchPh" placeholder="พิมพ์ค้นหา ITEM (เช่น 088)" autocomplete="off" required>
-            </div>
-            <!-- กล่องเด้งแสดงผลลัพธ์ -->
-            <div class="suggestions-box"></div>
-            <!-- ซ่อนรหัส Item Code จริงๆ ไว้ส่งเข้า Database -->
+        <div class="mb-3 mt-1 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-sky-400"></i>
+            <input type="text" class="item-search w-full glass-input rounded-xl p-3 pl-11 text-sm font-bold focus:ring-2 focus:ring-sky-500 outline-none" data-i18n-placeholder="searchPh" placeholder="ค้นหารหัส ITEM (เช่น 088)" autocomplete="off" required>
+            <div class="suggestions-box custom-scroll"></div>
             <input type="hidden" class="real-item-code">
         </div>
 
         <!-- 🔒 ชื่อสินค้า (Auto-fill) -->
-        <div class="mb-3">
-            <input type="text" class="part-name w-full bg-slate-200 border border-gray-300 rounded-lg p-2.5 text-xs text-slate-600 font-medium outline-none cursor-not-allowed" data-i18n-placeholder="partNamePh" placeholder="ชื่อชิ้นงานจะขึ้นอัตโนมัติ" readonly tabindex="-1">
+        <div class="mb-4">
+            <input type="text" class="part-name w-full bg-black/20 border border-[var(--glass-border)] rounded-xl p-3 text-xs text-[var(--text-main)] font-medium outline-none cursor-not-allowed opacity-70" data-i18n-placeholder="partNamePh" placeholder="ชื่อชิ้นงานจะแสดงอัตโนมัติ" readonly tabindex="-1">
         </div>
 
-        <!-- 🔢 ใส่จำนวน -->
-        <div class="grid grid-cols-4 gap-2 mb-2">
+        <!-- 📱 Mobile Optimized Qty Inputs -->
+        <div class="grid grid-cols-3 gap-2 mb-3">
             <div>
-                <label class="block text-[10px] text-center font-medium text-gray-500 mb-0.5"><i class="fa-solid fa-bag-shopping text-amber-600"></i> <span data-i18n="bag">ถุง</span></label>
-                <input type="number" min="0" class="bag-qty w-full bg-white border border-gray-300 rounded-lg p-1.5 text-sm text-center font-bold">
+                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1 uppercase tracking-wider"><i class="fa-solid fa-bag-shopping text-amber-500 mr-1"></i> <span data-i18n="bag">ถุง</span></label>
+                <input type="number" min="0" class="bag-qty w-full glass-input rounded-xl p-2.5 text-base text-center font-black outline-none" placeholder="0">
             </div>
             <div>
-                <label class="block text-[10px] text-center font-medium text-gray-500 mb-0.5"><i class="fa-solid fa-box text-blue-600"></i> <span data-i18n="pack">บรรจุ</span></label>
-                <input type="number" min="0" class="pack-qty w-full bg-white border border-gray-300 rounded-lg p-1.5 text-sm text-center font-bold">
+                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1 uppercase tracking-wider"><i class="fa-solid fa-box text-blue-400 mr-1"></i> <span data-i18n="pack">บรรจุ</span></label>
+                <input type="number" min="0" class="pack-qty w-full glass-input rounded-xl p-2.5 text-base text-center font-black outline-none" placeholder="0">
             </div>
             <div>
-                <label class="block text-[10px] text-center font-medium text-gray-500 mb-0.5"><i class="fa-solid fa-layer-group text-purple-600"></i> <span data-i18n="fraction">เศษ</span></label>
-                <input type="number" min="0" class="fraction-qty w-full bg-white border border-gray-300 rounded-lg p-1.5 text-sm text-center font-bold">
-            </div>
-            <div>
-                <label class="block text-[10px] text-center font-bold text-emerald-700 mb-0.5"><span data-i18n="total">รวม</span></label>
-                <input type="number" class="total-qty w-full bg-emerald-50 border border-emerald-200 rounded-lg p-1.5 text-sm text-center font-black text-emerald-700" readonly tabindex="-1">
+                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1 uppercase tracking-wider"><i class="fa-solid fa-layer-group text-purple-400 mr-1"></i> <span data-i18n="fraction">เศษ</span></label>
+                <input type="number" min="0" class="fraction-qty w-full glass-input rounded-xl p-2.5 text-base text-center font-black outline-none" placeholder="0">
             </div>
         </div>
 
-        <div class="mt-1">
-            <button type="button" data-action="take-photo" class="w-full bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-lg py-1.5 text-xs font-semibold flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-camera"></i> <span data-i18n="takePhoto">ถ่ายรูป / 拍照</span>
+        <!-- 📱 Total Box -->
+        <div class="mb-4 bg-emerald-500/10 rounded-xl p-3 border border-emerald-500/30 flex items-center justify-between shadow-inner">
+            <label class="block text-xs font-black text-emerald-500 ml-2 uppercase tracking-widest"><span data-i18n="total">ยอดรวม</span></label>
+            <input type="number" class="total-qty w-1/2 bg-transparent text-2xl text-right font-black text-emerald-400 outline-none pr-1" readonly tabindex="-1" placeholder="0">
+        </div>
+
+        <div class="mt-2">
+            <button type="button" data-action="take-photo" class="w-full glass-input hover:bg-[var(--card-hover)] hover:text-sky-500 border border-dashed border-sky-400/50 rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-colors">
+                <i class="fa-solid fa-camera"></i> <span data-i18n="takePhoto">แนบรูปถ่าย</span>
             </button>
             <div class="photo-strip"></div>
         </div>
@@ -256,11 +342,10 @@ function updateRowNumbers() {
 }
 
 /* =============================================================
-   EVENT DELEGATION (จัดการคลิกและพิมพ์ในแถว)
+   EVENT DELEGATION
 ============================================================= */
 var container = document.getElementById("itemsContainer");
 
-// 1. ดักจับการพิมพ์ค้นหา (Smart Auto-Complete)
 container.addEventListener("input", function(e) {
     if (e.target.classList.contains("item-search")) {
         let input = e.target;
@@ -270,38 +355,31 @@ container.addEventListener("input", function(e) {
         let hiddenInput = row.querySelector(".real-item-code");
         let nameInput = row.querySelector(".part-name");
 
-        // ถ้ายูสเซอร์ลบข้อความ ให้รีเซ็ตค่าที่ซ่อนไว้ด้วย
-        hiddenInput.value = "";
-        nameInput.value = "";
-        input.classList.remove('bg-green-50', 'border-green-400', 'text-green-800');
+        hiddenInput.value = ""; nameInput.value = "";
+        input.classList.remove('border-emerald-400', 'text-emerald-500');
 
-        if (val.length < 2) {
-            box.style.display = "none";
-            return;
-        }
+        if (val.length < 2) { box.style.display = "none"; return; }
 
-        // กรองข้อมูลจาก masterDataList
         let matches = masterDataList.filter(item => 
             item.item_code.toUpperCase().includes(val) || 
             (item.code_name && item.code_name.toUpperCase().includes(val)) ||
             (item.cl && item.cl.toUpperCase().includes(val))
-        ).slice(0, 10); // เอาแค่ 10 รายการเพื่อไม่ให้ล้นจอ
+        ).slice(0, 10);
 
         if (matches.length > 0) {
             box.innerHTML = matches.map(item => `
                 <div class="suggestion-item flex flex-col" data-code="${item.item_code}" data-name="${item.code_name}" data-cl="${item.cl}" data-pack="${item.pack_type}">
-                    <span class="text-sm font-bold text-slate-800">${item.item_code}</span>
-                    <span class="text-[10px] text-slate-500">ลูกค้า: ${item.cl} | ${item.code_name}</span>
+                    <span class="text-sm font-black text-[var(--text-main)]">${item.item_code}</span>
+                    <span class="text-[10px] font-bold text-[var(--text-sub)]">ลูกค้า: <span class="text-sky-500">${item.cl}</span> | ${item.code_name}</span>
                 </div>
             `).join("");
             box.style.display = "block";
         } else {
-            box.innerHTML = `<div class="p-3 text-xs text-red-500 text-center">ไม่พบสินค้าในระบบ</div>`;
+            box.innerHTML = `<div class="p-3 text-xs font-bold text-red-400 text-center bg-red-500/10 rounded-lg m-2">ไม่พบสินค้าในระบบ Database</div>`;
             box.style.display = "block";
         }
     }
 
-    // 2. คำนวณยอดรวม (Bag * Pack + Fraction)
     if (e.target.classList.contains("bag-qty") || e.target.classList.contains("pack-qty") || e.target.classList.contains("fraction-qty")) {
         let row = e.target.closest(".item-row");
         let bags = parseFloat(row.querySelector(".bag-qty").value) || 0;
@@ -311,7 +389,6 @@ container.addEventListener("input", function(e) {
     }
 });
 
-// ดักจับการจิ้มเลือกสินค้าจากกล่อง Auto-Complete
 container.addEventListener("click", function(e) {
     let suggestion = e.target.closest(".suggestion-item");
     if (suggestion) {
@@ -321,21 +398,18 @@ container.addEventListener("click", function(e) {
         let cl = suggestion.getAttribute("data-cl");
         let pack = suggestion.getAttribute("data-pack") || "";
 
-        // เติมข้อมูลลงช่อง
         let searchInput = row.querySelector(".item-search");
         searchInput.value = code;
-        searchInput.classList.add('bg-green-50', 'border-green-400', 'text-green-800'); // เปลี่ยนสีช่องให้รู้ว่าเลือกระบบแล้ว
+        searchInput.classList.add('border-emerald-400', 'text-emerald-500'); 
         row.querySelector(".real-item-code").value = code;
-        row.querySelector(".part-name").value = `ลูกค้า: ${cl} | ${name}`;
+        row.querySelector(".part-name").value = `CL: ${cl} | ${name}`;
         
-        // เติมจำนวนบรรจุให้อัตโนมัติ (ถ้ามี)
         let packInput = row.querySelector(".pack-qty");
         if(packInput.value === "") packInput.value = pack.replace(/[^0-9]/g, '');
 
         row.querySelector(".suggestions-box").style.display = "none";
     }
 
-    // จัดการปุ่มลบแถว
     let btn = e.target.closest("[data-action]");
     if (btn && btn.getAttribute("data-action") === "remove-row") {
         if (document.querySelectorAll(".item-row").length > 1) {
@@ -343,20 +417,17 @@ container.addEventListener("click", function(e) {
             btn.closest(".item-row").remove();
             updateRowNumbers();
         } else {
-            alert("ต้องมีรายการอย่างน้อย 1 แถว");
+            alert("ต้องมีอย่างน้อย 1 รายการ");
         }
     }
     
-    // ถ่ายรูป
     if (btn && btn.getAttribute("data-action") === "take-photo") {
         activePhotoRow = btn.closest(".item-row");
         let cam = document.getElementById("globalCameraInput");
-        cam.value = "";
-        cam.click();
+        cam.value = ""; cam.click();
     }
 });
 
-// ปิดกล่อง Auto-complete เมื่อคลิกที่อื่น
 document.addEventListener("click", function(e) {
     if (!e.target.closest(".relative")) {
         document.querySelectorAll(".suggestions-box").forEach(box => box.style.display = "none");
@@ -364,7 +435,7 @@ document.addEventListener("click", function(e) {
 });
 
 /* =============================================================
-   PENDING FILES STORE & CAMERA (เหมือนเดิม 100%)
+   PENDING FILES STORE & CAMERA
 ============================================================= */
 var pendingFiles = {};
 function getPendingFiles(uid)    { return pendingFiles[uid] || []; }
@@ -385,9 +456,7 @@ function compressImage(file, callback) {
             else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
             canvas.width = width; canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
-            canvas.toBlob(blob => {
-                callback(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' }));
-            }, 'image/jpeg', 0.7);
+            canvas.toBlob(blob => { callback(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' })); }, 'image/jpeg', 0.7);
         };
         img.src = event.target.result;
     };
@@ -425,10 +494,7 @@ async function uploadPhotos(uid, files, txnId) {
         }).catch(() => ({ ok: false, name: file.name }));
     });
     var results = await Promise.all(tasks);
-    return {
-        urls: results.filter(r => r.ok).map(r => r.url),
-        failed: results.filter(r => !r.ok).map(r => r.name)
-    };
+    return { urls: results.filter(r => r.ok).map(r => r.url), failed: results.filter(r => !r.ok).map(r => r.name) };
 }
 
 /* =============================================================
@@ -438,18 +504,17 @@ document.getElementById("dispatchForm").addEventListener("submit", async functio
     event.preventDefault();
     if (!sbClient) { alert("❌ ระบบฐานข้อมูลไม่พร้อมใช้งาน"); return; }
 
-    // ตรวจสอบ Validation ว่าเลือกรหัสสินค้าจากระบบจริงๆ หรือยังพิมพ์มั่วอยู่
     let allValid = true;
     let rows = document.querySelectorAll(".item-row");
     rows.forEach(row => {
         if (row.querySelector(".real-item-code").value === "") {
-            row.querySelector(".item-search").classList.add("border-red-500", "ring-2", "ring-red-500");
+            row.querySelector(".item-search").classList.add("border-red-500", "ring-2", "ring-red-500", "bg-red-500/10");
             allValid = false;
         }
     });
 
     if(!allValid) {
-        alert("⚠️ กรุณาจิ้มเลือกรายการสินค้าจากตัวเลือกที่ระบบค้นหาให้เท่านั้น ห้ามพิมพ์เองมั่วๆ ครับ!");
+        alert("⚠️ กรุณาเลือกรายการสินค้าจากตัวเลือกที่ระบบค้นหาให้เท่านั้น!");
         return;
     }
 
@@ -486,18 +551,16 @@ document.getElementById("dispatchForm").addEventListener("submit", async functio
         var items = [];
         rows.forEach(row => {
             var uid = row.getAttribute("data-row-uid");
-            var itemCode = row.querySelector(".real-item-code").value; // ดึงรหัสที่แท้จริง
-            var name = row.querySelector(".part-name").value; // ดึงชื่อ
+            var itemCode = row.querySelector(".real-item-code").value; 
+            var name = row.querySelector(".part-name").value; 
             var bag = Number(row.querySelector(".bag-qty").value) || 0;
             var pack = Number(row.querySelector(".pack-qty").value) || 0;
             var frac = Number(row.querySelector(".fraction-qty").value) || 0;
             
             items.push({
                 bill_id: txnId,
-                part_name: `${itemCode} (${name})`, // ฟอร์แมตใหม่: ITEM CODE (ลูกค้า | ชื่อ)
-                bag_qty: bag,
-                pack_qty: pack,
-                fraction_qty: frac,
+                part_name: `${itemCode} (${name})`, 
+                bag_qty: bag, pack_qty: pack, fraction_qty: frac,
                 photo_urls: photoUrlsMap[uid] || []
             });
         });
@@ -506,8 +569,6 @@ document.getElementById("dispatchForm").addEventListener("submit", async functio
         if (r2.error) throw new Error("bill_items: " + r2.error.message);
 
         alert("✅ บันทึกสำเร็จ!\nรหัสอ้างอิง: " + txnId);
-
-        /* Reset form */
         clearAllPendingFiles();
         document.getElementById("itemsContainer").innerHTML = "";
         createRow();
@@ -518,7 +579,7 @@ document.getElementById("dispatchForm").addEventListener("submit", async functio
         console.error(err);
     } finally {
         textEl.textContent = origTxt;
-        iconEl.className = "fa-solid fa-paper-plane mr-2";
+        iconEl.className = "fa-solid fa-cloud-arrow-up mr-2 text-lg";
         btn.disabled = false;
     }
 });
@@ -531,14 +592,9 @@ document.addEventListener("DOMContentLoaded", function() {
     if(savedStaff) document.getElementById("staffId").value = savedStaff;
 
     document.getElementById("btnAddRow").addEventListener("click", createRow);
-    
-    // โหลดภาษา
     changeLanguage(currentLang);
     
-    // ดึงข้อมูล Master Data ทันทีที่เปิดหน้าเว็บ
-    fetchMasterData().then(() => {
-        createRow(); // สร้างแถวแรกหลังจากโหลดข้อมูล Database เสร็จแล้ว
-    });
+    fetchMasterData().then(() => { createRow(); });
 });
 </script>
 </body>

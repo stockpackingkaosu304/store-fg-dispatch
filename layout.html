@@ -8,15 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 🎨 1. Dynamic Theme Engine */
-        :root{
+        /* 🎨 1. Dynamic Theme Engine (แก้บั๊ก :root ให้เปลี่ยนสีแผนที่ได้ 100%) */
+        :root, [data-theme="light"] {
             --cell: 22px;      
             --cols: 47;
             --rows: 30;
 
             --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
             --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(0, 0, 0, 0.1);
+            --glass-border: rgba(0, 0, 0, 0.15);
             --input-bg: rgba(255, 255, 255, 0.95);
             --text-main: #0f172a;
             --text-sub: #475569;
@@ -52,63 +52,64 @@
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
         /* 🪞 2. Glassmorphism Utilities */
-        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); transition: all 0.3s ease; }
-        .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); backdrop-filter: blur(8px); transition: all 0.3s ease; }
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); transition: background 0.3s ease; }
+        .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); backdrop-filter: blur(8px); transition: background 0.3s ease; }
         .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
         .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; }
 
-        /* ===== Interactive boxes ===== */
+        /* ===== Interactive boxes (แก้สีพื้นฐานให้รองรับ Theme) ===== */
         .rack-box {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-size: 10px; line-height: 1.05; text-align: center;
-            font-weight: 800; color: #0f172a; cursor: pointer; background-color: #ffffff;
-            transition: all 0.15s ease; border: 1.5px solid #475569;
+            font-weight: 800; color: var(--text-main); cursor: pointer; background-color: var(--glass-bg);
+            transition: all 0.15s ease; border: 1.5px solid var(--glass-border);
             box-sizing: border-box; position: relative; z-index: 5; padding: 1px; overflow: hidden;
         }
         .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
         .rack-box.narrow-vert span { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 0.02em; }
         .rack-box .box-icon { font-size: 12px; margin-bottom: 2px; }
 
-        .rack-box.type-lift { background-color: #c4b5fd; color: #312e81; border-color: #7c3aed; }
+        .rack-box.type-lift { background-color: rgba(139, 92, 246, 0.2); color: #8b5cf6; border-color: #8b5cf6; }
         .rack-box.type-lift:hover { background-color: #a78bfa; color: white; box-shadow: 0 0 10px #7c3aed; }
-        .rack-box.type-lift .box-icon { color: #4c1d95; font-size: 14px; }
+        .rack-box.type-lift .box-icon { color: #8b5cf6; font-size: 14px; }
         .rack-box.type-lift:hover .box-icon { color: white; }
 
-        .status-empty { background-color: #4ade80 !important; color: #042f1a; }
-        .status-partial { background-color: #facc15 !important; color: #422006; }
-        .status-full { background-color: #f87171 !important; color: #4c0505; }
-        .status-unknown { background-color: #e2e8f0; color: #64748b; }
+        .status-empty { background-color: #4ade80 !important; color: #042f1a !important; border-color:#166534 !important;}
+        .status-partial { background-color: #facc15 !important; color: #422006 !important; border-color:#854d0e !important;}
+        .status-full { background-color: #f87171 !important; color: #fff !important; border-color:#991b1b !important;}
+        .status-unknown { background-color: var(--input-bg); color: var(--text-sub); }
 
         .highlight-blink { animation: blinker 0.8s linear infinite; background-color: #0ea5e9 !important; color: white !important; box-shadow: 0 0 20px #0ea5e9; z-index: 40 !important; border-color: #0284c7; }
         @keyframes blinker { 50% { opacity: 0.4; } }
 
         /* ===== Static zone boxes ===== */
-        .zone-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; line-height:1.1; font-weight:700; color:#94a3b8; background: rgba(51,65,85,0.55); border: 1px dashed #475569; box-sizing:border-box; padding:2px; overflow:hidden; border-radius:2px; }
-        .toilet-box { display:flex; align-items:center; justify-content:center; font-size: 8.5px; font-weight:700; color:#94a3b8; background: rgba(30,41,59,0.9); border: 1px solid #334155; box-sizing:border-box; }
-        .void-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; font-weight:700; color:#334155; background: repeating-linear-gradient(45deg, rgba(51,65,85,0.15), rgba(51,65,85,0.15) 10px, transparent 10px, transparent 20px); border: 1px dashed #334155; box-sizing:border-box; border-radius:2px; }
+        .zone-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; line-height:1.1; font-weight:700; color:var(--text-sub); background: var(--input-bg); border: 1px dashed var(--glass-border); box-sizing:border-box; padding:2px; overflow:hidden; border-radius:2px; }
+        .toilet-box { display:flex; align-items:center; justify-content:center; font-size: 8.5px; font-weight:700; color:var(--text-sub); background: var(--glass-bg); border: 1px solid var(--glass-border); box-sizing:border-box; }
+        .void-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; font-weight:700; color:var(--text-sub); background: repeating-linear-gradient(45deg, var(--input-bg), var(--input-bg) 10px, transparent 10px, transparent 20px); border: 1px dashed var(--glass-border); box-sizing:border-box; border-radius:2px; }
 
         .building-position-wrapper{ position: relative; }
         .floor-badge-outside{ position:absolute; left:2px; top:-30px; z-index:25; padding: 4px 12px; font-size:11px; font-weight:900; border-radius:8px; letter-spacing:.05em; white-space:nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.5); }
 
-        /* ===== 3D scene scaffolding ===== */
+        /* ===== 3D scene scaffolding (แก้บั๊กกระตุกซูม และเปลี่ยนสีฐานตาม Theme) ===== */
         .scene-container { perspective: 2300px; perspective-origin: 50% 50%; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); }
-        #scale-wrapper { transition: transform 0.1s ease-out; }
+        /* 🛑 เอา transition ออกจาก scale-wrapper เพื่อแก้ปัญหาซูม 2 นิ้วกระตุก */
+        #scale-wrapper { transform-origin: top left; } 
         .building-3d { position: relative; transform-style: preserve-3d; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
-        .floor-layer { position: absolute; top: 0; left: 0; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); background: rgba(30, 41, 59, 0.9); border: 3px solid #64748b; box-shadow: 0 25px 50px rgba(0,0,0,0.8); transform-style: preserve-3d; transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell)); }
-        .floor-layer::before { content: ''; position: absolute; top: 100%; left: -3px; right: -3px; height: 20px; background: #0f172a; transform-origin: top; transform: rotateX(-90deg); border: 1px solid #334155; }
-        .floor-layer::after { content: ''; position: absolute; top: -3px; bottom: -3px; right: -20px; width: 20px; background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b; }
+        .floor-layer { position: absolute; top: 0; left: 0; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); background: var(--glass-bg); border: 3px solid var(--glass-border); box-shadow: 0 25px 50px rgba(0,0,0,0.8); transform-style: preserve-3d; transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell)); }
+        .floor-layer::before { content: ''; position: absolute; top: 100%; left: -3px; right: -3px; height: 20px; background: var(--input-bg); transform-origin: top; transform: rotateX(-90deg); border: 1px solid var(--glass-border); }
+        .floor-layer::after { content: ''; position: absolute; top: -3px; bottom: -3px; right: -20px; width: 20px; background: var(--glass-border); transform-origin: left; transform: rotateY(90deg); border: 1px solid var(--glass-border); }
 
         .state-3d { transform: rotateX(42deg) rotateZ(-16deg) translateZ(0px) translateY(-20px); }
         .state-3d #floor1-layer { transform: translateZ(-110px); opacity: 1; }
         .state-3d #floor2-layer { transform: translateZ(200px); opacity: 1; }
 
         .state-f1 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
-        .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
+        .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: var(--glass-bg); }
         .state-f1 #floor2-layer { transform: translateZ(500px); opacity: 0; pointer-events: none; }
 
         .state-f2 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
         .state-f2 #floor1-layer { transform: translateZ(-500px); opacity: 0; pointer-events: none; }
-        .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
+        .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: var(--glass-bg); }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; animation: fadeIn 0.3s; }
@@ -122,7 +123,7 @@
         /* ✅ CSS กล่องค้นหาแบบย่อได้ */
         #searchResultsPanel { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         #searchResultsPanel.minimized {
-            top: 85px !important; left: auto !important; right: 16px !important;
+            top: 70px !important; left: auto !important; right: 16px !important;
             width: 140px !important; min-height: 40px !important; height: 44px !important;
             border-radius: 22px !important; overflow: hidden; display: flex !important; cursor: pointer;
         }
@@ -130,10 +131,10 @@
         #searchResultsPanel.minimized .min-header { display: flex !important; }
         .min-header { display: none; }
 
-        /* อนุญาตให้ซูมแผนที่ 2 นิ้ว */
+        /* อนุญาตให้แพนนิ้วบนแผนที่ */
         #scroll-wrapper { touch-action: pan-x pan-y; }
 
-        /* ✅ CSS สำหรับ Legend แบบพับได้ */
+        /* ✅ CSS สำหรับ Legend แบบกดจิ้ม (ลบ :hover ออกทั้งหมด) */
         .legend-container {
             position: absolute; right: 16px; bottom: 80px; z-index: 55;
             display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
@@ -144,9 +145,9 @@
             background: var(--glass-bg); border: 1px solid var(--glass-border);
             color: var(--text-main); font-size: 18px; cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
-        .legend-btn:hover { background: var(--card-hover); transform: scale(1.1); color: #0ea5e9; }
+        .legend-btn:active { transform: scale(0.95); } /* เอฟเฟกต์ตอนจิ้ม */
         
         .legend-content {
             background: var(--glass-bg); backdrop-filter: blur(15px);
@@ -157,34 +158,33 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             transform-origin: bottom right; width: 220px;
         }
-        /* สถานะตอนแสดงผล */
-        .legend-container:hover .legend-content, 
+        /* ทำงานต่อเมื่อถูกสั่งเพิ่มคลาส .active ด้วย JavaScript เท่านั้น */
         .legend-container.active .legend-content {
             opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
         }
-        .legend-item { display: flex; items-center; gap: 8px; font-size: 11px; font-weight: bold; color: var(--text-main); }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: bold; color: var(--text-main); }
     </style>
 </head>
 <body class="h-screen flex flex-col select-none relative" data-theme="dark">
 
     <div class="mouse-glow"></div>
 
-    <!-- 🌐 Top Navbar -->
-    <div class="glass-panel sticky top-0 p-3 z-[60] border-b-0 m-3 rounded-2xl">
+    <!-- 🌐 Top Navbar (เอา Margin และ Border โค้งออก เพื่อลบกรอบล่องหน) -->
+    <div class="glass-panel sticky top-0 p-3 z-[60] w-full border-b border-[var(--glass-border)]">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
             
-            <div class="flex items-center gap-4 w-full md:w-auto">
-                <a href="menu.html" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--text-main)] text-xs font-bold border border-[var(--glass-border)] bg-[var(--glass-bg)] hover:bg-[var(--card-hover)] hover:scale-105 shadow-sm transition-all duration-300">
-                    <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">เมนูหลัก</span>
+            <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+                <a href="menu.html" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--text-main)] text-xs font-bold border border-[var(--glass-border)] bg-[var(--glass-bg)] hover:bg-[var(--card-hover)] hover:scale-105 shadow-sm transition-all duration-300 shrink-0">
+                    <i class="fa-solid fa-house"></i> <span class="hidden md:inline" data-i18n="navMenu">เมนูหลัก</span>
                 </a>
                 
-                <div class="flex items-center gap-2 group cursor-pointer">
+                <div class="flex items-center gap-2 group cursor-pointer shrink-0">
                     <div class="relative flex items-center justify-center">
                         <div class="absolute inset-0 bg-red-500/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <img src="logo.png" alt="KSS Logo" class="h-7 md:h-8 w-auto object-contain relative z-10 drop-shadow-sm transition-transform duration-300 group-hover:scale-110">
+                        <img src="logo.png" alt="KSS Logo" class="h-6 md:h-8 w-auto object-contain relative z-10 drop-shadow-sm transition-transform duration-300 group-hover:scale-110">
                     </div>
-                    <h1 class="text-base font-black tracking-widest text-[var(--text-main)] flex items-center transition-colors group-hover:text-red-500">
-                        KAOSU 3D <span class="text-[10px] text-[var(--text-sub)] font-bold ml-1 bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded shadow-inner">[v1.1.2]</span>
+                    <h1 class="text-sm md:text-base font-black tracking-widest text-[var(--text-main)] flex items-center transition-colors group-hover:text-red-500">
+                        KAOSU 3D <span class="text-[9px] md:text-[10px] text-[var(--text-sub)] font-bold ml-1 bg-[var(--input-bg)] border border-[var(--glass-border)] px-1.5 py-0.5 rounded shadow-inner">[v1.1.2]</span>
                     </h1>
                 </div>
             </div>
@@ -195,7 +195,7 @@
                 <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)..."
                     class="w-full glass-input rounded-full py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-inner font-bold placeholder-[var(--text-sub)]">
                 
-                <div id="searchResultsPanel" class="fixed top-[130px] md:top-full md:mt-2 left-4 right-4 md:left-0 md:right-0 max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
+                <div id="searchResultsPanel" class="fixed top-[120px] md:top-full md:mt-2 left-4 right-4 md:left-0 md:right-0 max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
                     <div class="full-header bg-[var(--glass-bg)] text-[var(--text-main)] text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-[var(--glass-border)] flex justify-between items-center shadow-sm">
                         <span id="searchPanelTitle" class="text-sky-500"><i class="fa-solid fa-list-ul mr-1.5"></i> <span data-i18n="searchPanelDefaultTitle">สรุปผลการค้นหา</span></span>
                         <div class="flex gap-2 items-center">
@@ -213,13 +213,14 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 hidden md:flex">
-                <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
-                    <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110" title="Light Theme"></button>
-                    <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110" title="Dark Theme"></button>
-                    <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110" title="Kaosu Theme"></button>
+            <!-- ✅ Theme Switcher (โชว์ตลอดทั้งมือถือและคอม) -->
+            <div class="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto mt-2 md:mt-0">
+                <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-3 md:gap-2 shadow-inner w-full md:w-auto justify-center">
+                    <button onclick="changeTheme('light')" class="w-6 h-6 md:w-5 md:h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Light Theme"></button>
+                    <button onclick="changeTheme('dark')" class="w-6 h-6 md:w-5 md:h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Dark Theme"></button>
+                    <button onclick="changeTheme('kaosu')" class="w-6 h-6 md:w-5 md:h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Kaosu Theme"></button>
                 </div>
-                <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
+                <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors shrink-0">
                     <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
                     <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
                         <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
@@ -263,8 +264,8 @@
         </button>
     </div>
 
-    <!-- 💡 Legend แบบพับได้ (Floating Info Button) -->
-    <div class="legend-container" onclick="this.classList.toggle('active')">
+    <!-- 💡 Legend แบบพับได้ (✅ ต้องกดจิ้มถึงจะเปิด/ปิดเท่านั้น) -->
+    <div id="legendContainer" class="legend-container">
         <div class="legend-content">
             <div class="text-xs font-black text-sky-500 mb-1 border-b border-[var(--glass-border)] pb-2"><i class="fa-solid fa-circle-info mr-1"></i> คำอธิบายสัญลักษณ์</div>
             <div class="legend-item"><span class="w-3 h-3 rounded-full bg-green-500 shadow"></span> <span data-i18n="legendEmpty">ว่าง (Empty)</span></div>
@@ -274,7 +275,8 @@
             <div class="legend-item"><span class="w-3 h-3 rounded-sm" style="background:rgba(139, 92, 246, 0.4);border:1px solid #8b5cf6;"></span> <span data-i18n="legendLift">ลิฟต์ขนของ</span></div>
             <div class="legend-item"><span class="w-3 h-3 rounded-sm bg-slate-500/20 border border-dashed border-slate-500"></span> <span data-i18n="legendZone">พื้นที่/เครื่องจักร</span></div>
         </div>
-        <div class="legend-btn" title="คำอธิบายสี">
+        <!-- ฟังก์ชัน onclik เรียก toggleLegend() -->
+        <div class="legend-btn" title="คำอธิบายสี" onclick="toggleLegend(event)">
             <i class="fa-solid fa-question"></i>
         </div>
     </div>
@@ -294,7 +296,23 @@
 
 <script>
         // ==========================================
-        // 🔍 ระบบซูมด้วย 2 นิ้ว (Pinch-to-Zoom & Pan)
+        // 💡 ระบบกดปุ่ม Legend (คลิกเพื่อเปิด/ปิด)
+        // ==========================================
+        function toggleLegend(e) {
+            e.stopPropagation(); // ป้องกันไม่ให้การกดลามไปถึง body
+            document.getElementById('legendContainer').classList.toggle('active');
+        }
+        
+        // ถ้าจิ้มที่ว่างบนหน้าจอ (ที่ไม่ใช่กล่อง Legend) ให้พับเก็บทันที
+        document.addEventListener('click', (e) => {
+            const legend = document.getElementById('legendContainer');
+            if (legend.classList.contains('active') && !e.target.closest('#legendContainer')) {
+                legend.classList.remove('active');
+            }
+        });
+
+        // ==========================================
+        // 🔍 ระบบซูมด้วย 2 นิ้วแบบสมูท (Smooth Pinch-to-Zoom & Pan)
         // ==========================================
         let currentScaleMultiplier = 1;
         let lastScaleMultiplier = 1;
@@ -313,14 +331,16 @@
 
         scrollWrapper.addEventListener('touchmove', (e) => {
             if(e.touches.length === 2) {
-                e.preventDefault(); 
+                e.preventDefault(); // ล็อกหน้าจอไม่ให้ Browser ซูมมั่ว
                 const currentDistance = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
                 const scaleChange = currentDistance / initialPinchDistance;
-                currentScaleMultiplier = Math.max(0.5, Math.min(lastScaleMultiplier * scaleChange, 3)); 
-                resize3D(); 
+                currentScaleMultiplier = Math.max(0.4, Math.min(lastScaleMultiplier * scaleChange, 3.5)); // ให้ซูมได้กว้างขึ้น
+                
+                // ใช้ requestAnimationFrame เพื่อให้ซูมลื่นไหลแบบ 60FPS
+                requestAnimationFrame(resize3D); 
             }
         }, {passive: false});
 
@@ -332,7 +352,7 @@
         });
 
         // ==========================================
-        // 🗺️ Layout Logic (คงเดิม)
+        // 🗺️ Layout Logic (พิกัดและฟังก์ชันคงเดิม 100%)
         // ==========================================
         const FLOOR1_DATA = [{"r1":1,"c1":1,"r2":3,"c2":2,"val":"Cargo Lift","type":"lift","id":"LIFT-FRONT-F1"},{"r1":1,"c1":3,"r2":3,"c2":7,"val":"Shipping Office","type":"zone"},{"r1":1,"c1":8,"r2":5,"c2":11,"val":"EPP Silo","type":"zone"},{"r1":1,"c1":12,"r2":8,"c2":23,"val":"Roll Container","type":"roll","id":"ROLL-CONTAINER-F1"},{"r1":1,"c1":29,"r2":5,"c2":30,"val":"MC20","type":"zone"},{"r1":1,"c1":31,"r2":5,"c2":32,"val":"MC19","type":"zone"},{"r1":1,"c1":33,"r2":5,"c2":34,"val":"MC18","type":"zone"},{"r1":1,"c1":35,"r2":5,"c2":36,"val":"MC17","type":"zone"},{"r1":1,"c1":37,"r2":5,"c2":38,"val":"MC16","type":"zone"},{"r1":1,"c1":39,"r2":5,"c2":40,"val":"MC15","type":"zone"},{"r1":1,"c1":41,"r2":5,"c2":42,"val":"MC14","type":"zone"},{"r1":1,"c1":44,"r2":28,"c2":44,"val":"In-line Packing Area","type":"zone"},{"r1":1,"c1":45,"r2":3,"c2":47,"val":"MC13","type":"zone"},{"r1":4,"c1":4,"r2":5,"c2":5,"val":"QA Area","type":"zone"},{"r1":4,"c1":6,"r2":8,"c2":7,"val":"A1-13","type":"rack","id":"A1-13"},{"r1":4,"c1":45,"r2":6,"c2":47,"val":"MC12","type":"zone"},{"r1":6,"c1":4,"r2":8,"c2":4,"val":"A1-11","type":"rack","id":"A1-11"},{"r1":6,"c1":5,"r2":8,"c2":5,"val":"A1-12","type":"rack","id":"A1-12"},{"r1":6,"c1":28,"r2":8,"c2":42,"val":"In-line Packing Area","type":"zone"},{"r1":7,"c1":45,"r2":8,"c2":47,"val":"MC11","type":"zone"},{"r1":9,"c1":45,"r2":10,"c2":47,"val":"MC10","type":"zone"},{"r1":10,"c1":4,"r2":10,"c2":7,"val":"A1-09","type":"rack","id":"A1-09"},{"r1":10,"c1":9,"r2":10,"c2":13,"val":"A1-14","type":"rack","id":"A1-14"},{"r1":10,"c1":17,"r2":18,"c2":20,"val":"Pending Labeling Area","type":"zone"},{"r1":10,"c1":23,"r2":11,"c2":26,"val":"Film M/C 2","type":"zone"},{"r1":10,"c1":28,"r2":18,"c2":38,"val":"WIP Area  (Pending Packaging)","type":"zone"},{"r1":10,"c1":40,"r2":12,"c2":42,"val":"Oven 08","type":"zone"},{"r1":11,"c1":4,"r2":11,"c2":7,"val":"A1-08","type":"rack","id":"A1-08"},{"r1":11,"c1":9,"r2":11,"c2":13,"val":"A1-15","type":"rack","id":"A1-15"},{"r1":11,"c1":45,"r2":12,"c2":47,"val":"MC09","type":"zone"},{"r1":12,"c1":4,"r2":12,"c2":7,"val":"A1-07","type":"rack","id":"A1-07"},{"r1":12,"c1":9,"r2":12,"c2":13,"val":"A1-16","type":"rack","id":"A1-16"},{"r1":13,"c1":4,"r2":13,"c2":7,"val":"A1-06","type":"rack","id":"A1-06"},{"r1":13,"c1":9,"r2":13,"c2":13,"val":"A1-17","type":"rack","id":"A1-17"},{"r1":13,"c1":23,"r2":14,"c2":26,"val":"Film M/C 1","type":"zone"},{"r1":13,"c1":40,"r2":14,"c2":42,"val":"Oven 07","type":"zone"},{"r1":13,"c1":45,"r2":14,"c2":47,"val":"MC08","type":"zone"},{"r1":14,"c1":4,"r2":14,"c2":7,"val":"A1-05","type":"rack","id":"A1-05"},{"r1":14,"c1":9,"r2":14,"c2":13,"val":"A1-18","type":"rack","id":"A1-18"},{"r1":15,"c1":4,"r2":15,"c2":7,"val":"A1-04","type":"rack","id":"A1-04"},{"r1":15,"c1":9,"r2":15,"c2":13,"val":"A1-19","type":"rack","id":"A1-19"},{"r1":15,"c1":40,"r2":16,"c2":42,"val":"Oven 06","type":"zone"},{"r1":15,"c1":45,"r2":16,"c2":47,"val":"MC07","type":"zone"},{"r1":16,"c1":4,"r2":16,"c2":7,"val":"A1-03","type":"rack","id":"A1-03"},{"r1":16,"c1":9,"r2":16,"c2":13,"val":"A1-20","type":"rack","id":"A1-20"},{"r1":16,"c1":14,"r2":18,"c2":15,"val":"Wrapping Machine","type":"zone"},{"r1":16,"c1":22,"r2":16,"c2":26,"val":"AUTO 4","type":"zone"},{"r1":17,"c1":4,"r2":17,"c2":7,"val":"A1-02","type":"rack","id":"A1-02"},{"r1":17,"c1":9,"r2":18,"c2":13,"val":"A1-21","type":"rack","id":"A1-21"},{"r1":17,"c1":40,"r2":18,"c2":42,"val":"Oven 05","type":"zone"},{"r1":17,"c1":45,"r2":18,"c2":47,"val":"MC06","type":"zone"},{"r1":18,"c1":4,"r2":18,"c2":7,"val":"A1-01","type":"rack","id":"A1-01"},{"r1":18,"c1":22,"r2":18,"c2":26,"val":"AUTO 3","type":"zone"},{"r1":19,"c1":45,"r2":20,"c2":47,"val":"MC05","type":"zone"},{"r1":20,"c1":1,"r2":28,"c2":7,"val":"office","type":"zone"},{"r1":20,"c1":9,"r2":21,"c2":13,"val":"A1-22","type":"rack","id":"A1-22"},{"r1":20,"c1":15,"r2":25,"c2":20,"val":"Pending Labeling Area","type":"zone"},{"r1":20,"c1":22,"r2":20,"c2":26,"val":"AUTO 2","type":"zone"},{"r1":20,"c1":28,"r2":28,"c2":38,"val":"WIP Area  (Pending Packaging)","type":"zone"},{"r1":20,"c1":40,"r2":21,"c2":42,"val":"Oven 04","type":"zone"},{"r1":21,"c1":45,"r2":22,"c2":47,"val":"MC04","type":"zone"},{"r1":22,"c1":9,"r2":22,"c2":13,"val":"A1-23","type":"rack","id":"A1-23"},{"r1":22,"c1":22,"r2":22,"c2":26,"val":"AUTO 1","type":"zone"},{"r1":22,"c1":40,"r2":23,"c2":42,"val":"Oven 03","type":"zone"},{"r1":23,"c1":9,"r2":23,"c2":13,"val":"A1-24","type":"rack","id":"A1-24"},{"r1":23,"c1":45,"r2":24,"c2":47,"val":"MC03","type":"zone"},{"r1":24,"c1":9,"r2":24,"c2":13,"val":"A1-25","type":"rack","id":"A1-25"},{"r1":24,"c1":22,"r2":25,"c2":23,"val":"Wrapping Machine","type":"zone"},{"r1":24,"c1":40,"r2":25,"c2":42,"val":"Oven 02","type":"zone"},{"r1":25,"c1":9,"r2":25,"c2":13,"val":"A1-26","type":"rack","id":"A1-26"},{"r1":25,"c1":45,"r2":26,"c2":47,"val":"MC02","type":"zone"},{"r1":26,"c1":9,"r2":26,"c2":13,"val":"A1-27","type":"rack","id":"A1-27"},{"r1":26,"c1":15,"r2":28,"c2":18,"val":"Cargo Lift","type":"lift","id":"LIFT-SOUTH-F1"},{"r1":26,"c1":19,"r2":28,"c2":20,"val":"Packing & Store Office","type":"zone"},{"r1":26,"c1":22,"r2":28,"c2":26,"val":"Assembly Area","type":"zone"},{"r1":26,"c1":40,"r2":27,"c2":42,"val":"Oven 01","type":"zone"},{"r1":27,"c1":9,"r2":27,"c2":13,"val":"A1-28","type":"rack","id":"A1-28"},{"r1":27,"c1":45,"r2":28,"c2":47,"val":"MC01","type":"zone"},{"r1":28,"c1":9,"r2":28,"c2":13,"val":"A1-29","type":"rack","id":"A1-29"},{"r1":28,"c1":40,"r2":28,"c2":42,"val":"QC Area","type":"zone"},{"r1":10,"c1":43,"r2":28,"c2":43,"val":"หลังตู้อบ","type":"rack","id":"OVEN-BACK-F1"},{"r1":30,"c1":3,"r2":30,"c2":4,"val":"Toilet","type":"toilet"},{"r1":30,"c1":6,"r2":30,"c2":7,"val":"Toilet","type":"toilet"}];
         const FLOOR2_DATA = [{"r1":1,"c1":1,"r2":3,"c2":2,"val":"Cargo Lift","type":"lift","id":"LIFT-FRONT-F2"},{"r1":1,"c1":3,"r2":3,"c2":4,"val":"A2-63","type":"rack","id":"A2-63"},{"r1":1,"c1":5,"r2":3,"c2":6,"val":"A2-64","type":"rack","id":"A2-64"},{"r1":1,"c1":7,"r2":3,"c2":8,"val":"A2-65","type":"rack","id":"A2-65"},{"r1":1,"c1":9,"r2":8,"c2":47,"val":"1ST","type":"void"},{"r1":5,"c1":3,"r2":8,"c2":7,"val":"A2-62","type":"rack","id":"A2-62"},{"r1":9,"c1":3,"r2":12,"c2":7,"val":"A2-61","type":"rack","id":"A2-61"},{"r1":9,"c1":9,"r2":12,"c2":10,"val":"A2-54","type":"rack","id":"A2-54"},{"r1":9,"c1":11,"r2":12,"c2":12,"val":"A2-53","type":"rack","id":"A2-53"},{"r1":9,"c1":13,"r2":12,"c2":14,"val":"A2-52","type":"rack","id":"A2-52"},{"r1":9,"c1":15,"r2":12,"c2":16,"val":"A2-51","type":"rack","id":"A2-51"},{"r1":9,"c1":17,"r2":12,"c2":18,"val":"A2-50","type":"rack","id":"A2-50"},{"r1":9,"c1":19,"r2":12,"c2":20,"val":"A2-49","type":"rack","id":"A2-49"},{"r1":9,"c1":21,"r2":12,"c2":22,"val":"A2-48","type":"rack","id":"A2-48"},{"r1":9,"c1":23,"r2":12,"c2":24,"val":"A2-47","type":"rack","id":"A2-47"},{"r1":9,"c1":25,"r2":12,"c2":26,"val":"A2-46","type":"rack","id":"A2-46"},{"r1":9,"c1":27,"r2":12,"c2":28,"val":"A2-45","type":"rack","id":"A2-45"},{"r1":9,"c1":29,"r2":12,"c2":30,"val":"A2-44","type":"rack","id":"A2-44"},{"r1":9,"c1":31,"r2":12,"c2":32,"val":"A2-43","type":"rack","id":"A2-43"},{"r1":9,"c1":33,"r2":12,"c2":34,"val":"A2-42","type":"rack","id":"A2-42"},{"r1":9,"c1":35,"r2":12,"c2":36,"val":"A2-41","type":"rack","id":"A2-41"},{"r1":9,"c1":37,"r2":12,"c2":38,"val":"A2-40","type":"rack","id":"A2-40"},{"r1":9,"c1":39,"r2":28,"c2":47,"val":"1ST","type":"void"},{"r1":15,"c1":1,"r2":19,"c2":7,"type":"rackgroup","items":[{"val":"A2-60","id":"A2-60"},{"val":"A2-59","id":"A2-59"},{"val":"A2-58","id":"A2-58"},{"val":"A2-57","id":"A2-57"},{"val":"A2-56","id":"A2-56"},{"val":"A2-55","id":"A2-55"}]},{"r1":15,"c1":9,"r2":17,"c2":10,"val":"A2-27","type":"rack","id":"A2-27"},{"r1":15,"c1":11,"r2":17,"c2":12,"val":"A2-28","type":"rack","id":"A2-28"},{"r1":15,"c1":13,"r2":17,"c2":14,"val":"A2-29","type":"rack","id":"A2-29"},{"r1":15,"c1":19,"r2":17,"c2":20,"val":"A2-30","type":"rack","id":"A2-30"},{"r1":15,"c1":21,"r2":17,"c2":22,"val":"A2-31","type":"rack","id":"A2-31"},{"r1":15,"c1":23,"r2":17,"c2":24,"val":"A2-32","type":"rack","id":"A2-32"},{"r1":15,"c1":25,"r2":17,"c2":26,"val":"A2-33","type":"rack","id":"A2-33"},{"r1":15,"c1":27,"r2":17,"c2":28,"val":"A2-34","type":"rack","id":"A2-34"},{"r1":15,"c1":29,"r2":17,"c2":30,"val":"A2-35","type":"rack","id":"A2-35"},{"r1":15,"c1":31,"r2":17,"c2":32,"val":"A2-36","type":"rack","id":"A2-36"},{"r1":15,"c1":33,"r2":17,"c2":34,"val":"A2-37","type":"rack","id":"A2-37"},{"r1":15,"c1":35,"r2":17,"c2":36,"val":"A2-38","type":"rack","id":"A2-38"},{"r1":15,"c1":37,"r2":17,"c2":38,"val":"A2-39","type":"rack","id":"A2-39"},{"r1":18,"c1":9,"r2":20,"c2":10,"val":"A2-26","type":"rack","id":"A2-26"},{"r1":18,"c1":11,"r2":20,"c2":12,"val":"A2-25","type":"rack","id":"A2-25"},{"r1":18,"c1":13,"r2":20,"c2":14,"val":"A2-24","type":"rack","id":"A2-24"},{"r1":18,"c1":19,"r2":20,"c2":20,"val":"A2-23","type":"rack","id":"A2-23"},{"r1":18,"c1":21,"r2":20,"c2":22,"val":"A2-22","type":"rack","id":"A2-22"},{"r1":18,"c1":23,"r2":20,"c2":24,"val":"A2-21","type":"rack","id":"A2-21"},{"r1":18,"c1":25,"r2":20,"c2":26,"val":"A2-20","type":"rack","id":"A2-20"},{"r1":18,"c1":27,"r2":20,"c2":28,"val":"A2-19","type":"rack","id":"A2-19"},{"r1":18,"c1":29,"r2":20,"c2":30,"val":"A2-18","type":"rack","id":"A2-18"},{"r1":18,"c1":31,"r2":20,"c2":32,"val":"A2-17","type":"rack","id":"A2-17"},{"r1":18,"c1":33,"r2":20,"c2":34,"val":"A2-16","type":"rack","id":"A2-16"},{"r1":18,"c1":35,"r2":20,"c2":36,"val":"A2-15","type":"rack","id":"A2-15"},{"r1":18,"c1":37,"r2":20,"c2":38,"val":"A2-14","type":"rack","id":"A2-14"},{"r1":22,"c1":1,"r2":30,"c2":7,"val":"STAFF ROOM (3ST)","type":"zone"},{"r1":23,"c1":9,"r2":28,"c2":10,"val":"A2-01","type":"rack","id":"A2-01"},{"r1":23,"c1":11,"r2":28,"c2":12,"val":"A2-02","type":"rack","id":"A2-02"},{"r1":23,"c1":13,"r2":28,"c2":14,"val":"A2-03","type":"rack","id":"A2-03"},{"r1":23,"c1":19,"r2":28,"c2":20,"val":"A2-04","type":"rack","id":"A2-04"},{"r1":23,"c1":21,"r2":28,"c2":22,"val":"A2-05","type":"rack","id":"A2-05"},{"r1":23,"c1":23,"r2":28,"c2":24,"val":"A2-06","type":"rack","id":"A2-06"},{"r1":23,"c1":25,"r2":28,"c2":26,"val":"A2-07","type":"rack","id":"A2-07"},{"r1":23,"c1":27,"r2":28,"c2":28,"val":"A2-08","type":"rack","id":"A2-08"},{"r1":23,"c1":29,"r2":28,"c2":30,"val":"A2-09","type":"rack","id":"A2-09"},{"r1":23,"c1":31,"r2":28,"c2":32,"val":"A2-10","type":"rack","id":"A2-10"},{"r1":23,"c1":33,"r2":28,"c2":34,"val":"A2-11","type":"rack","id":"A2-11"},{"r1":23,"c1":35,"r2":28,"c2":36,"val":"A2-12","type":"rack","id":"A2-12"},{"r1":23,"c1":37,"r2":28,"c2":38,"val":"A2-13","type":"rack","id":"A2-13"},{"r1":26,"c1":15,"r2":28,"c2":18,"val":"Cargo Lift","type":"lift","id":"LIFT-SOUTH-F2"}];
@@ -431,9 +451,9 @@
             if (mode === 'f2') { badge.setAttribute('data-i18n','badgeF2'); badge.textContent = t.badgeF2; badge.className = 'floor-badge-outside bg-amber-900 text-amber-300 border border-amber-500'; }
         }
 
-        // ==========================================
+        // ==========================================================================
         // 🚀 ระบบ Supabase & Smart Filter Data 
-        // ==========================================
+        // ==========================================================================
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
@@ -628,152 +648,20 @@
         document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); });
 
         // ==========================================
-        // 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n)
+        // 🌍 ระบบแปลภาษา 4 ชาติ
         // ==========================================
         const translations = {
-            th: {
-                navMenu: "เมนูหลัก",
-                searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...",
-                btnOverview: "ภาพรวม 3D",
-                btnFocusF1: "ชั้น 1",
-                btnFocusF2: "ชั้น 2",
-                legendEmpty: "ว่าง (Empty)",
-                legendPartial: "มีบางส่วน (Partial)",
-                legendFull: "เต็ม (Full)",
-                legendRackPoint: "จุดวางสินค้า",
-                legendLift: "ลิฟต์ขนของ",
-                legendZone: "พื้นที่/เครื่องจักร",
-                badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)",
-                badgeF1: "1ST FLOOR",
-                badgeF2: "2ND FLOOR",
-                modalClose: "ปิดหน้าต่าง",
-                modalNoData: "ไม่มีสินค้าในช่องนี้",
-                modalNotFound: "ไม่พบข้อมูล",
-                statusEmpty: "ว่าง (Empty)",
-                statusPartial: "กลาง (Partial)",
-                statusFull: "เต็ม (Full)",
-                statusUnknown: "ไม่มีข้อมูล",
-                searchPanelDefaultTitle: "สรุปผลการค้นหา",
-                searchFoundPrefix: "พบ",
-                searchFoundSuffix: "ตำแหน่ง",
-                searchNotFoundTitle: "ไม่พบรายการ",
-                searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา",
-                labelCode: "Code",
-                labelMaxStack: "Max Stack",
-                labelPack: "แพ็ก",
-                labelCustomer: "ลูกค้า",
-                labelMax: "Max"
-            },
-            zh: {
-                navMenu: "主選單",
-                searchPlaceholder: "搜尋商品代碼、名稱、儲位...",
-                btnOverview: "3D 總覽",
-                btnFocusF1: "1樓",
-                btnFocusF2: "2樓",
-                legendEmpty: "空 (Empty)",
-                legendPartial: "部分 (Partial)",
-                legendFull: "滿 (Full)",
-                legendRackPoint: "儲位",
-                legendLift: "貨梯",
-                legendZone: "區域/機台",
-                badgeOverview: "3D 總覽 (1-2樓)",
-                badgeF1: "1樓",
-                badgeF2: "2樓",
-                modalClose: "關閉視窗",
-                modalNoData: "此儲位無商品",
-                modalNotFound: "找不到資料",
-                statusEmpty: "空 (Empty)",
-                statusPartial: "部分 (Partial)",
-                statusFull: "滿 (Full)",
-                statusUnknown: "無資料",
-                searchPanelDefaultTitle: "搜尋結果",
-                searchFoundPrefix: "找到",
-                searchFoundSuffix: "個位置",
-                searchNotFoundTitle: "找不到結果",
-                searchNotFoundDesc: "找不到符合的資料",
-                labelCode: "代碼",
-                labelMaxStack: "最大堆疊",
-                labelPack: "包裝",
-                labelCustomer: "客戶",
-                labelMax: "最大"
-            },
-            mm: {
-                navMenu: "မီနူးမူ",
-                searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...",
-                btnOverview: "3D ကြည့်ရန်",
-                btnFocusF1: "ပထမထပ်",
-                btnFocusF2: "ဒုတိယထပ်",
-                legendEmpty: "လွတ်",
-                legendPartial: "အချို့",
-                legendFull: "ပြည့်",
-                legendRackPoint: "နေရာ",
-                legendLift: "ဓာတ်လှေကား",
-                legendZone: "နေရာ/စက်",
-                badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)",
-                badgeF1: "ပထမထပ်",
-                badgeF2: "ဒုတိယထပ်",
-                modalClose: "ပိတ်ရန်",
-                modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ",
-                modalNotFound: "ဒေတာမတွေ့ပါ",
-                statusEmpty: "လွတ်",
-                statusPartial: "အချို့",
-                statusFull: "ပြည့်",
-                statusUnknown: "မသိပါ",
-                searchPanelDefaultTitle: "ရလဒ်များ",
-                searchFoundPrefix: "တွေ့ပြီး",
-                searchFoundSuffix: "နေရာ",
-                searchNotFoundTitle: "မတွေ့ပါ",
-                searchNotFoundDesc: "ဒေတာမတွေ့ပါ",
-                labelCode: "ကုဒ်",
-                labelMaxStack: "အများဆုံး",
-                labelPack: "ထုပ်ပိုး",
-                labelCustomer: "ဖောက်သည်",
-                labelMax: "Max"
-            },
-            en: {
-                navMenu: "Main Menu",
-                searchPlaceholder: "Search item, name, location...",
-                btnOverview: "3D Overview",
-                btnFocusF1: "Floor 1",
-                btnFocusF2: "Floor 2",
-                legendEmpty: "Empty",
-                legendPartial: "Partial",
-                legendFull: "Full",
-                legendRackPoint: "Storage",
-                legendLift: "Cargo Lift",
-                legendZone: "Zone/Machine",
-                badgeOverview: "3D Overview (F1-F2)",
-                badgeF1: "1ST FLOOR",
-                badgeF2: "2ND FLOOR",
-                modalClose: "Close",
-                modalNoData: "No items here",
-                modalNotFound: "Not found",
-                statusEmpty: "Empty",
-                statusPartial: "Partial",
-                statusFull: "Full",
-                statusUnknown: "No data",
-                searchPanelDefaultTitle: "Search Results",
-                searchFoundPrefix: "Found",
-                searchFoundSuffix: "location(s)",
-                searchNotFoundTitle: "No results",
-                searchNotFoundDesc: "No matching data",
-                labelCode: "Code",
-                labelMaxStack: "Max Stack",
-                labelPack: "Pack",
-                labelCustomer: "Customer",
-                labelMax: "Max"
-            }
+            th: { navMenu: "เมนูหลัก", searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...", btnOverview: "ภาพรวม 3D", btnFocusF1: "ชั้น 1", btnFocusF2: "ชั้น 2", legendEmpty: "ว่าง (Empty)", legendPartial: "มีบางส่วน (Partial)", legendFull: "เต็ม (Full)", legendRackPoint: "จุดวางสินค้า", legendLift: "ลิฟต์ขนของ", legendZone: "พื้นที่/เครื่องจักร", badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "ปิดหน้าต่าง", modalNoData: "ไม่มีสินค้าในช่องนี้", modalNotFound: "ไม่พบข้อมูล", statusEmpty: "ว่าง (Empty)", statusPartial: "กลาง (Partial)", statusFull: "เต็ม (Full)", statusUnknown: "ไม่มีข้อมูล", searchPanelDefaultTitle: "สรุปผลการค้นหา", searchFoundPrefix: "พบ", searchFoundSuffix: "ตำแหน่ง", searchNotFoundTitle: "ไม่พบรายการ", searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "แพ็ก", labelCustomer: "ลูกค้า", labelMax: "Max" },
+            zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大" },
+            mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max" },
+            en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max" }
         };
-
-        let currentLang = localStorage.getItem('wms_lang') || 'th';
 
         function changeLanguage(lang) {
             if (!translations[lang]) return;
             currentLang = lang;
             localStorage.setItem('wms_lang', lang);
-
             document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang);
-
             const t = translations[lang];
             document.querySelectorAll("[data-i18n]").forEach(el => {
                 const key = el.getAttribute("data-i18n");

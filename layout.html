@@ -3,17 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Store Layout - WMS [v1.1.2]</title>
+    <title>3D Store Layout - WMS [Premium]</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* 🎨 1. Dynamic Theme Engine (แก้ปัญหาคอนทราสต์สีกลืนกัน) */
         :root{
             --cell: 22px;      /* grid unit, matches 1 excel column/row */
             --cols: 47;
             --rows: 30;
+
+            /* ☀️ Light Theme: พื้นสว่าง ตัวหนังสือเข้ม */
+            --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(0, 0, 0, 0.1);
+            --input-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --card-hover: rgba(241, 245, 249, 1);
+            --glow-color: rgba(14, 165, 233, 0.15);
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        [data-theme="dark"] {
+            /* 🌙 Dark Theme: พื้นมืด ตัวหนังสือสว่าง */
+            --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --input-bg: rgba(15, 23, 42, 0.8);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --card-hover: rgba(51, 65, 85, 0.9);
+            --glow-color: rgba(56, 189, 248, 0.15);
+        }
+        [data-theme="kaosu"] {
+            /* 🔴 Kaosu Theme */
+            --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
+            --glass-bg: rgba(69, 10, 10, 0.8);
+            --glass-border: rgba(250, 204, 21, 0.3);
+            --input-bg: rgba(0, 0, 0, 0.6);
+            --text-main: #fef08a;
+            --text-sub: #fca5a5;
+            --card-hover: rgba(127, 29, 29, 0.9);
+            --glow-color: rgba(250, 204, 21, 0.15);
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg-gradient); background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+            color: var(--text-main); overflow: hidden; transition: color 0.3s ease, background 0.5s ease;
+        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        /* 🪞 2. Glassmorphism Utilities */
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); transition: all 0.3s ease; }
+        .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); backdrop-filter: blur(8px); transition: all 0.3s ease; }
+        .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+        .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; }
 
         /* ===== Interactive boxes (A1-xx / A2-xx racks, Lift, Roll Container) — white, clickable ===== */
         .rack-box {
@@ -29,10 +74,8 @@
         .rack-box.narrow-vert span { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 0.02em; }
         .rack-box .box-icon { font-size: 12px; margin-bottom: 2px; }
 
-        /* Cargo lift boxes — distinct color from plain white rack boxes */
-        .rack-box.type-lift {
-            background-color: #c4b5fd; color: #312e81; border-color: #7c3aed;
-        }
+        /* Cargo lift boxes */
+        .rack-box.type-lift { background-color: #c4b5fd; color: #312e81; border-color: #7c3aed; }
         .rack-box.type-lift:hover { background-color: #a78bfa; color: white; box-shadow: 0 0 10px #7c3aed; }
         .rack-box.type-lift .box-icon { color: #4c1d95; font-size: 14px; }
         .rack-box.type-lift:hover .box-icon { color: white; }
@@ -49,69 +92,26 @@
         }
         @keyframes blinker { 50% { opacity: 0.4; } }
 
-        /* ===== Static zone / room / machine boxes (context only, from Excel) ===== */
-        .zone-box {
-            display:flex; align-items:center; justify-content:center; text-align:center;
-            font-size: 8.5px; line-height:1.1; font-weight:700; color:#94a3b8;
-            background: rgba(51,65,85,0.55); border: 1px dashed #475569;
-            box-sizing:border-box; padding:2px; overflow:hidden; border-radius:2px;
-        }
-        .toilet-box {
-            display:flex; align-items:center; justify-content:center;
-            font-size: 8.5px; font-weight:700; color:#94a3b8;
-            background: rgba(30,41,59,0.9); border: 1px solid #334155; box-sizing:border-box;
-        }
-        .void-box {
-            display:flex; align-items:center; justify-content:center; text-align:center;
-            font-size: 8.5px; font-weight:700; color:#334155;
-            background: repeating-linear-gradient(45deg, rgba(51,65,85,0.15), rgba(51,65,85,0.15) 10px, transparent 10px, transparent 20px);
-            border: 1px dashed #334155; box-sizing:border-box; border-radius:2px;
-        }
+        /* ===== Static zone / room / machine boxes ===== */
+        .zone-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; line-height:1.1; font-weight:700; color:#94a3b8; background: rgba(51,65,85,0.55); border: 1px dashed #475569; box-sizing:border-box; padding:2px; overflow:hidden; border-radius:2px; }
+        .toilet-box { display:flex; align-items:center; justify-content:center; font-size: 8.5px; font-weight:700; color:#94a3b8; background: rgba(30,41,59,0.9); border: 1px solid #334155; box-sizing:border-box; }
+        .void-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; font-weight:700; color:#334155; background: repeating-linear-gradient(45deg, rgba(51,65,85,0.15), rgba(51,65,85,0.15) 10px, transparent 10px, transparent 20px); border: 1px dashed #334155; box-sizing:border-box; border-radius:2px; }
 
         .building-position-wrapper{ position: relative; }
-        .floor-badge-outside{
-            position:absolute; left:2px; top:-30px; z-index:25;
-            padding: 4px 12px; font-size:11px; font-weight:900; border-radius:8px;
-            letter-spacing:.05em; white-space:nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.5);
-        }
+        .floor-badge-outside{ position:absolute; left:2px; top:-30px; z-index:25; padding: 4px 12px; font-size:11px; font-weight:900; border-radius:8px; letter-spacing:.05em; white-space:nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.5); }
 
-        /* ===== 3D scene scaffolding ===== */
-        .scene-container {
-            perspective: 2300px; perspective-origin: 50% 50%;
-            /* [Patch v1.1.2] บังคับขนาด Scene ให้เป๊ะตามตาราง เพื่อไม่ให้มันเด้งไปมา */
-            width: calc(var(--cell) * var(--cols));
-            height: calc(var(--cell) * var(--rows));
-        }
-        #scale-wrapper {
-            transition: transform 0.3s ease;
-        }
-        .building-3d {
-            position: relative; transform-style: preserve-3d;
-            width: calc(var(--cell) * var(--cols));
-            height: calc(var(--cell) * var(--rows));
-            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-        }
+        /* ===== 3D scene scaffolding (โครงสร้างเดิม ห้ามเปลี่ยน) ===== */
+        .scene-container { perspective: 2300px; perspective-origin: 50% 50%; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); }
+        #scale-wrapper { transition: transform 0.3s ease; }
+        .building-3d { position: relative; transform-style: preserve-3d; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
         .floor-layer {
-            position: absolute; top: 0; left: 0;
-            width: calc(var(--cell) * var(--cols));
-            height: calc(var(--cell) * var(--rows));
-            background: rgba(30, 41, 59, 0.9);
-            border: 3px solid #64748b;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
-            transform-style: preserve-3d;
-            transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-            display: grid;
-            grid-template-columns: repeat(var(--cols), var(--cell));
-            grid-template-rows: repeat(var(--rows), var(--cell));
+            position: absolute; top: 0; left: 0; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows));
+            background: rgba(30, 41, 59, 0.9); border: 3px solid #64748b; box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+            transform-style: preserve-3d; transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); display: grid;
+            grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell));
         }
-        .floor-layer::before {
-            content: ''; position: absolute; top: 100%; left: -3px; right: -3px; height: 20px;
-            background: #0f172a; transform-origin: top; transform: rotateX(-90deg); border: 1px solid #334155;
-        }
-        .floor-layer::after {
-            content: ''; position: absolute; top: -3px; bottom: -3px; right: -20px; width: 20px;
-            background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b;
-        }
+        .floor-layer::before { content: ''; position: absolute; top: 100%; left: -3px; right: -3px; height: 20px; background: #0f172a; transform-origin: top; transform: rotateX(-90deg); border: 1px solid #334155; }
+        .floor-layer::after { content: ''; position: absolute; top: -3px; bottom: -3px; right: -20px; width: 20px; background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b; }
 
         .state-3d { transform: rotateX(42deg) rotateZ(-16deg) translateZ(0px) translateY(-20px); }
         .state-3d #floor1-layer { transform: translateZ(-110px); opacity: 1; }
@@ -125,68 +125,102 @@
         .state-f2 #floor1-layer { transform: translateZ(-500px); opacity: 0; pointer-events: none; }
         .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
 
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
-        .modal-overlay.active { display: flex; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
 
-        /* [Patch v1.1.2] Custom Scrollbar ให้ดูสะอาดตาบน PC */
         .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
+
+        /* Search Results Panel */
+        .suggestions-box {
+            position: absolute; z-index: 50; width: 100%; background: var(--input-bg); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+            max-height: 250px; overflow-y: auto; display: none; top: calc(100% + 8px); left: 0;
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col select-none bg-slate-950">
+<body class="h-screen flex flex-col select-none relative" data-theme="dark">
 
-    <div class="sticky top-0 bg-slate-900 text-white p-3 shadow-2xl z-50 border-b border-slate-800">
+    <div class="mouse-glow"></div>
+
+    <!-- 🌐 Top Navbar (เปลี่ยนจากทึบ เป็น Glassmorphism) -->
+    <div class="glass-panel sticky top-0 p-3 z-[60] border-b-0 m-3 rounded-2xl">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 items-center justify-between">
             <div class="flex items-center gap-3 w-full md:w-auto">
-                <a href="menu.html" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm border border-slate-700">
-                    <i class="fa-solid fa-house mr-1"></i> <span data-i18n="navMenu">เมนูหลัก</span>
+                <!-- ✅ ใช้ตัวแปรสีเพื่อแก้ปัญหาขาวทับขาว -->
+                <a href="menu.html" class="glass-input hover:bg-[var(--card-hover)] px-4 py-2.5 rounded-xl text-[var(--text-main)] text-xs font-bold transition-all flex items-center shadow-sm">
+                    <i class="fa-solid fa-house mr-2"></i> <span data-i18n="navMenu">เมนูหลัก</span>
                 </a>
-                <h1 class="text-base font-black tracking-wider"><i class="fa-solid fa-cubes text-sky-400 mr-2"></i>WMS 3D STORE <span class="text-[10px] text-sky-300 font-normal bg-sky-900 px-2 py-1 rounded ml-1">[v1.1.2]</span></h1>
+                <h1 class="text-base font-black tracking-wider text-[var(--text-main)] flex items-center">
+                    <i class="fa-solid fa-cubes text-sky-500 mr-2 drop-shadow-sm"></i>WMS 3D <span class="text-[10px] text-[var(--text-sub)] font-bold ml-1 bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded shadow-inner">[v1.1.2]</span>
+                </h1>
             </div>
+
+            <!-- 🔍 Search Box -->
             <div class="relative w-full md:w-96">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-[var(--text-sub)]"></i>
+                <!-- ✅ ใช้ var(--text-main) และ var(--input-bg) -->
                 <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05, A2-30)..."
-                    class="w-full bg-slate-950 border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    class="w-full glass-input rounded-full py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-inner font-bold placeholder-[var(--text-sub)]">
+                <div id="searchResultsPanel" class="suggestions-box custom-scroll p-2">
+                    <div class="bg-[var(--glass-bg)] text-[var(--text-main)] text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-[var(--glass-border)] flex justify-between items-center">
+                        <span id="searchPanelTitle" class="text-sky-500"><i class="fa-solid fa-list-ul mr-1.5"></i> <span data-i18n="searchPanelDefaultTitle">สรุปผลการค้นหา</span></span>
+                        <button onclick="document.getElementById('searchResultsPanel').style.display='none'" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-base"></i></button>
+                    </div>
+                    <div id="searchResultsContent" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+                </div>
             </div>
-            <div class="flex items-center gap-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg px-2 py-1 shadow-md hover:border-sky-400 transition-colors">
-                <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
-                <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
-                    <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
-                    <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
-                    <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
-                    <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
-                </select>
-                <i class="fa-solid fa-chevron-down text-slate-400 text-[9px] pointer-events-none ml-1"></i>
+
+            <div class="flex items-center gap-2">
+                <!-- Theme Switcher -->
+                <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
+                    <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110" title="Light Theme"></button>
+                    <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110" title="Dark Theme"></button>
+                    <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110" title="Kaosu Theme"></button>
+                </div>
+                <!-- Language Switcher -->
+                <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
+                    <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
+                    <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
+                        <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
+                        <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
+                        <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
+                        <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down text-[var(--text-sub)] text-[9px] pointer-events-none ml-1"></i>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="relative z-50 bg-slate-950 border-b border-slate-800 p-2 flex justify-center gap-2 shadow-inner flex-wrap">
-        <button onclick="changeView('3d')" id="btn-3d" class="bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition-all">
+    <!-- 🕹️ View Controls (ปรับให้เป็นกระจกลอยเด่น และแก้คอนทราสต์) -->
+    <div class="absolute bottom-16 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] flex justify-center gap-2 glass-panel p-2.5 rounded-2xl shadow-2xl border border-[var(--glass-border)]">
+        <button onclick="changeView('3d')" id="btn-3d" class="bg-gradient-to-r from-sky-500 to-blue-600 text-white text-xs font-black px-5 py-2.5 rounded-xl shadow-lg transition-all active:scale-95">
             <i class="fa-solid fa-layer-group"></i> <span data-i18n="btnOverview">ดูภาพรวม 3D</span>
         </button>
-        <button onclick="changeView('f1')" id="btn-f1" class="bg-slate-800 text-slate-400 text-xs font-bold px-4 py-2 rounded-lg shadow transition-all">
+        <button onclick="changeView('f1')" id="btn-f1" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
             <i class="fa-solid fa-arrow-down"></i> <span data-i18n="btnFocusF1">โฟกัส ชั้น 1</span>
         </button>
-        <button onclick="changeView('f2')" id="btn-f2" class="bg-slate-800 text-slate-400 text-xs font-bold px-4 py-2 rounded-lg shadow transition-all">
+        <button onclick="changeView('f2')" id="btn-f2" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
             <i class="fa-solid fa-arrow-up"></i> <span data-i18n="btnFocusF2">โฟกัส ชั้น 2</span>
         </button>
     </div>
 
-   <div class="relative z-50 shadow-lg bg-slate-900 py-2 px-4 text-[11px] flex justify-center gap-5 text-slate-400 font-bold border-b border-slate-800/50 flex-wrap">
-        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-400 shadow"></span> <span data-i18n="legendEmpty">ว่าง (Empty)</span></div>
-        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-400 shadow"></span> <span data-i18n="legendPartial">มีบางส่วน (Partial)</span></div>
-        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-400 shadow"></span> <span data-i18n="legendFull">เต็ม (Full)</span></div>
+    <!-- 🎨 Legend Bar (ปรับเป็น Glass) -->
+    <div class="relative z-[50] shadow-md glass-panel py-2 px-4 text-[11px] flex justify-center gap-5 text-[var(--text-main)] font-bold border-t-0 border-x-0 flex-wrap mx-3 rounded-b-2xl">
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500 shadow"></span> <span data-i18n="legendEmpty">ว่าง (Empty)</span></div>
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-500 shadow"></span> <span data-i18n="legendPartial">มีบางส่วน (Partial)</span></div>
+        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500 shadow"></span> <span data-i18n="legendFull">เต็ม (Full)</span></div>
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-white border border-slate-500"></span> <span data-i18n="legendRackPoint">จุดวางสินค้า: A1/A2/Roll Container</span></div>
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm" style="background:#c4b5fd;border:1px solid #7c3aed;"></span> <span data-i18n="legendLift">ลิฟต์ขนของ</span></div>
         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-slate-600 border border-dashed border-slate-400"></span> <span data-i18n="legendZone">พื้นที่/เครื่องจักร</span></div>
     </div>
 
-    <!-- [Patch v1.1.2] Scroll Wrapper สำหรับไถหน้าจอบนมือถือ -->
-    <div id="scroll-wrapper" class="flex-1 w-full overflow-auto relative custom-scroll">
-        <!-- Spacer กรอบจำลองพื้นที่เพื่อกันไม่ให้โดนตัดขอบและดันขึ้นข้างบน -->
+    <!-- 🗺️ [Patch v1.1.2] โครงสร้างแผนผัง 3D (คงเดิม 100% ห้ามเปลี่ยน) -->
+    <div id="scroll-wrapper" class="flex-1 w-full overflow-auto relative custom-scroll z-10">
         <div id="spacer" class="relative flex justify-center md:items-center p-4 pt-12 md:p-10 min-w-max min-h-max transition-all">
             <div class="scene-container">
                 <div id="scale-wrapper">
@@ -202,27 +236,35 @@
         </div>
     </div>
 
+    <!-- 🪟 Info Modal (Glassmorphism + แก้คอนทราสต์ตัวหนังสือ) -->
     <div id="infoModal" class="modal-overlay" onclick="closeModal(event)">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-11/12 max-w-sm shadow-2xl m-auto text-slate-100" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-start mb-4">
-                <h3 id="modalTitle" class="text-2xl font-black text-white tracking-wider">A1-00</h3>
-                <span id="modalStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase border border-slate-600">Status</span>
+        <div class="glass-panel rounded-3xl p-6 w-11/12 max-w-sm shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-sky-500/20 rounded-full blur-2xl"></div>
+            <div class="flex justify-between items-start mb-4 relative z-10">
+                <h3 id="modalTitle" class="text-3xl font-black text-[var(--text-main)] tracking-wider drop-shadow-sm">A1-00</h3>
+                <span id="modalStatusBadge" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase border border-[var(--glass-border)] shadow-sm">Status</span>
             </div>
-            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-5 min-h-[120px]" id="modalBodyContent"></div>
-            <button onclick="closeModal(event)" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-95" data-i18n="modalClose">ปิดหน้าต่าง</button>
+            <!-- ✅ เปลี่ยนพื้นหลังให้สีเข้ม/สว่างตามธีม และใช้ var(--text-main) -->
+            <div class="glass-input p-4 rounded-2xl mb-5 min-h-[120px] max-h-[350px] overflow-y-auto custom-scroll relative z-10 shadow-inner" id="modalBodyContent"></div>
+            <button onclick="closeModal(event)" class="relative z-10 w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black py-3.5 rounded-xl transition-all shadow-lg shadow-sky-500/30 active:scale-95" data-i18n="modalClose">ปิดหน้าต่าง</button>
         </div>
     </div>
-<div id="searchResultsPanel" class="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:top-24 md:bottom-auto md:w-80 max-h-[45vh] md:max-h-[60vh] bg-slate-900/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
-        <div class="bg-slate-800 text-white text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-slate-700 flex justify-between items-center shadow-sm">
-            <span id="searchPanelTitle" class="text-sky-400"><i class="fa-solid fa-list-ul mr-1.5"></i> <span data-i18n="searchPanelDefaultTitle">สรุปผลการค้นหา</span></span>
-            <button onclick="document.getElementById('searchResultsPanel').classList.add('hidden')" class="text-slate-400 hover:text-white transition-colors p-1"><i class="fa-solid fa-xmark text-base"></i></button>
-        </div>
-        <div id="searchResultsContent" class="flex-1 overflow-y-auto p-2 space-y-2 custom-scroll">
-            </div>
-    </div>
+
 <script>
+        // ==========================================
+        // 🎨 Theme Engine & Mouse Glow
+        // ==========================================
+        function changeTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            localStorage.setItem('wms_theme', themeName);
+        }
+        document.body.setAttribute('data-theme', localStorage.getItem('wms_theme') || 'dark'); // Default Dark
+        
+        document.addEventListener('mousemove', (e) => { document.documentElement.style.setProperty('--x', e.clientX + 'px'); document.documentElement.style.setProperty('--y', e.clientY + 'px'); });
+        document.addEventListener('touchmove', (e) => { document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px'); document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px'); });
+
         // ==========================================================================
-        // ข้อมูลตำแหน่งช่อง/โซน (v1.1.3 — เพิ่ม OVEN-BACK-F1 หลังตู้อบ)
+        // ข้อมูลตำแหน่งช่อง/โซน (คงเดิม 100%)
         // ==========================================================================
         const FLOOR1_DATA = [{"r1":1,"c1":1,"r2":3,"c2":2,"val":"Cargo Lift","type":"lift","id":"LIFT-FRONT-F1"},{"r1":1,"c1":3,"r2":3,"c2":7,"val":"Shipping Office","type":"zone"},{"r1":1,"c1":8,"r2":5,"c2":11,"val":"EPP Silo","type":"zone"},{"r1":1,"c1":12,"r2":8,"c2":23,"val":"Roll Container","type":"roll","id":"ROLL-CONTAINER-F1"},{"r1":1,"c1":29,"r2":5,"c2":30,"val":"MC20","type":"zone"},{"r1":1,"c1":31,"r2":5,"c2":32,"val":"MC19","type":"zone"},{"r1":1,"c1":33,"r2":5,"c2":34,"val":"MC18","type":"zone"},{"r1":1,"c1":35,"r2":5,"c2":36,"val":"MC17","type":"zone"},{"r1":1,"c1":37,"r2":5,"c2":38,"val":"MC16","type":"zone"},{"r1":1,"c1":39,"r2":5,"c2":40,"val":"MC15","type":"zone"},{"r1":1,"c1":41,"r2":5,"c2":42,"val":"MC14","type":"zone"},{"r1":1,"c1":44,"r2":28,"c2":44,"val":"In-line Packing Area","type":"zone"},{"r1":1,"c1":45,"r2":3,"c2":47,"val":"MC13","type":"zone"},{"r1":4,"c1":4,"r2":5,"c2":5,"val":"QA Area","type":"zone"},{"r1":4,"c1":6,"r2":8,"c2":7,"val":"A1-13","type":"rack","id":"A1-13"},{"r1":4,"c1":45,"r2":6,"c2":47,"val":"MC12","type":"zone"},{"r1":6,"c1":4,"r2":8,"c2":4,"val":"A1-11","type":"rack","id":"A1-11"},{"r1":6,"c1":5,"r2":8,"c2":5,"val":"A1-12","type":"rack","id":"A1-12"},{"r1":6,"c1":28,"r2":8,"c2":42,"val":"In-line Packing Area","type":"zone"},{"r1":7,"c1":45,"r2":8,"c2":47,"val":"MC11","type":"zone"},{"r1":9,"c1":45,"r2":10,"c2":47,"val":"MC10","type":"zone"},{"r1":10,"c1":4,"r2":10,"c2":7,"val":"A1-09","type":"rack","id":"A1-09"},{"r1":10,"c1":9,"r2":10,"c2":13,"val":"A1-14","type":"rack","id":"A1-14"},{"r1":10,"c1":17,"r2":18,"c2":20,"val":"Pending Labeling Area","type":"zone"},{"r1":10,"c1":23,"r2":11,"c2":26,"val":"Film M/C 2","type":"zone"},{"r1":10,"c1":28,"r2":18,"c2":38,"val":"WIP Area  (Pending Packaging)","type":"zone"},{"r1":10,"c1":40,"r2":12,"c2":42,"val":"Oven 08","type":"zone"},{"r1":11,"c1":4,"r2":11,"c2":7,"val":"A1-08","type":"rack","id":"A1-08"},{"r1":11,"c1":9,"r2":11,"c2":13,"val":"A1-15","type":"rack","id":"A1-15"},{"r1":11,"c1":45,"r2":12,"c2":47,"val":"MC09","type":"zone"},{"r1":12,"c1":4,"r2":12,"c2":7,"val":"A1-07","type":"rack","id":"A1-07"},{"r1":12,"c1":9,"r2":12,"c2":13,"val":"A1-16","type":"rack","id":"A1-16"},{"r1":13,"c1":4,"r2":13,"c2":7,"val":"A1-06","type":"rack","id":"A1-06"},{"r1":13,"c1":9,"r2":13,"c2":13,"val":"A1-17","type":"rack","id":"A1-17"},{"r1":13,"c1":23,"r2":14,"c2":26,"val":"Film M/C 1","type":"zone"},{"r1":13,"c1":40,"r2":14,"c2":42,"val":"Oven 07","type":"zone"},{"r1":13,"c1":45,"r2":14,"c2":47,"val":"MC08","type":"zone"},{"r1":14,"c1":4,"r2":14,"c2":7,"val":"A1-05","type":"rack","id":"A1-05"},{"r1":14,"c1":9,"r2":14,"c2":13,"val":"A1-18","type":"rack","id":"A1-18"},{"r1":15,"c1":4,"r2":15,"c2":7,"val":"A1-04","type":"rack","id":"A1-04"},{"r1":15,"c1":9,"r2":15,"c2":13,"val":"A1-19","type":"rack","id":"A1-19"},{"r1":15,"c1":40,"r2":16,"c2":42,"val":"Oven 06","type":"zone"},{"r1":15,"c1":45,"r2":16,"c2":47,"val":"MC07","type":"zone"},{"r1":16,"c1":4,"r2":16,"c2":7,"val":"A1-03","type":"rack","id":"A1-03"},{"r1":16,"c1":9,"r2":16,"c2":13,"val":"A1-20","type":"rack","id":"A1-20"},{"r1":16,"c1":14,"r2":18,"c2":15,"val":"Wrapping Machine","type":"zone"},{"r1":16,"c1":22,"r2":16,"c2":26,"val":"AUTO 4","type":"zone"},{"r1":17,"c1":4,"r2":17,"c2":7,"val":"A1-02","type":"rack","id":"A1-02"},{"r1":17,"c1":9,"r2":18,"c2":13,"val":"A1-21","type":"rack","id":"A1-21"},{"r1":17,"c1":40,"r2":18,"c2":42,"val":"Oven 05","type":"zone"},{"r1":17,"c1":45,"r2":18,"c2":47,"val":"MC06","type":"zone"},{"r1":18,"c1":4,"r2":18,"c2":7,"val":"A1-01","type":"rack","id":"A1-01"},{"r1":18,"c1":22,"r2":18,"c2":26,"val":"AUTO 3","type":"zone"},{"r1":19,"c1":45,"r2":20,"c2":47,"val":"MC05","type":"zone"},{"r1":20,"c1":1,"r2":28,"c2":7,"val":"office","type":"zone"},{"r1":20,"c1":9,"r2":21,"c2":13,"val":"A1-22","type":"rack","id":"A1-22"},{"r1":20,"c1":15,"r2":25,"c2":20,"val":"Pending Labeling Area","type":"zone"},{"r1":20,"c1":22,"r2":20,"c2":26,"val":"AUTO 2","type":"zone"},{"r1":20,"c1":28,"r2":28,"c2":38,"val":"WIP Area  (Pending Packaging)","type":"zone"},{"r1":20,"c1":40,"r2":21,"c2":42,"val":"Oven 04","type":"zone"},{"r1":21,"c1":45,"r2":22,"c2":47,"val":"MC04","type":"zone"},{"r1":22,"c1":9,"r2":22,"c2":13,"val":"A1-23","type":"rack","id":"A1-23"},{"r1":22,"c1":22,"r2":22,"c2":26,"val":"AUTO 1","type":"zone"},{"r1":22,"c1":40,"r2":23,"c2":42,"val":"Oven 03","type":"zone"},{"r1":23,"c1":9,"r2":23,"c2":13,"val":"A1-24","type":"rack","id":"A1-24"},{"r1":23,"c1":45,"r2":24,"c2":47,"val":"MC03","type":"zone"},{"r1":24,"c1":9,"r2":24,"c2":13,"val":"A1-25","type":"rack","id":"A1-25"},{"r1":24,"c1":22,"r2":25,"c2":23,"val":"Wrapping Machine","type":"zone"},{"r1":24,"c1":40,"r2":25,"c2":42,"val":"Oven 02","type":"zone"},{"r1":25,"c1":9,"r2":25,"c2":13,"val":"A1-26","type":"rack","id":"A1-26"},{"r1":25,"c1":45,"r2":26,"c2":47,"val":"MC02","type":"zone"},{"r1":26,"c1":9,"r2":26,"c2":13,"val":"A1-27","type":"rack","id":"A1-27"},{"r1":26,"c1":15,"r2":28,"c2":18,"val":"Cargo Lift","type":"lift","id":"LIFT-SOUTH-F1"},{"r1":26,"c1":19,"r2":28,"c2":20,"val":"Packing & Store Office","type":"zone"},{"r1":26,"c1":22,"r2":28,"c2":26,"val":"Assembly Area","type":"zone"},{"r1":26,"c1":40,"r2":27,"c2":42,"val":"Oven 01","type":"zone"},{"r1":27,"c1":9,"r2":27,"c2":13,"val":"A1-28","type":"rack","id":"A1-28"},{"r1":27,"c1":45,"r2":28,"c2":47,"val":"MC01","type":"zone"},{"r1":28,"c1":9,"r2":28,"c2":13,"val":"A1-29","type":"rack","id":"A1-29"},{"r1":28,"c1":40,"r2":28,"c2":42,"val":"QC Area","type":"zone"},{"r1":10,"c1":43,"r2":28,"c2":43,"val":"หลังตู้อบ","type":"rack","id":"OVEN-BACK-F1"},{"r1":30,"c1":3,"r2":30,"c2":4,"val":"Toilet","type":"toilet"},{"r1":30,"c1":6,"r2":30,"c2":7,"val":"Toilet","type":"toilet"}];
         const FLOOR2_DATA = [{"r1":1,"c1":1,"r2":3,"c2":2,"val":"Cargo Lift","type":"lift","id":"LIFT-FRONT-F2"},{"r1":1,"c1":3,"r2":3,"c2":4,"val":"A2-63","type":"rack","id":"A2-63"},{"r1":1,"c1":5,"r2":3,"c2":6,"val":"A2-64","type":"rack","id":"A2-64"},{"r1":1,"c1":7,"r2":3,"c2":8,"val":"A2-65","type":"rack","id":"A2-65"},{"r1":1,"c1":9,"r2":8,"c2":47,"val":"1ST","type":"void"},{"r1":5,"c1":3,"r2":8,"c2":7,"val":"A2-62","type":"rack","id":"A2-62"},{"r1":9,"c1":3,"r2":12,"c2":7,"val":"A2-61","type":"rack","id":"A2-61"},{"r1":9,"c1":9,"r2":12,"c2":10,"val":"A2-54","type":"rack","id":"A2-54"},{"r1":9,"c1":11,"r2":12,"c2":12,"val":"A2-53","type":"rack","id":"A2-53"},{"r1":9,"c1":13,"r2":12,"c2":14,"val":"A2-52","type":"rack","id":"A2-52"},{"r1":9,"c1":15,"r2":12,"c2":16,"val":"A2-51","type":"rack","id":"A2-51"},{"r1":9,"c1":17,"r2":12,"c2":18,"val":"A2-50","type":"rack","id":"A2-50"},{"r1":9,"c1":19,"r2":12,"c2":20,"val":"A2-49","type":"rack","id":"A2-49"},{"r1":9,"c1":21,"r2":12,"c2":22,"val":"A2-48","type":"rack","id":"A2-48"},{"r1":9,"c1":23,"r2":12,"c2":24,"val":"A2-47","type":"rack","id":"A2-47"},{"r1":9,"c1":25,"r2":12,"c2":26,"val":"A2-46","type":"rack","id":"A2-46"},{"r1":9,"c1":27,"r2":12,"c2":28,"val":"A2-45","type":"rack","id":"A2-45"},{"r1":9,"c1":29,"r2":12,"c2":30,"val":"A2-44","type":"rack","id":"A2-44"},{"r1":9,"c1":31,"r2":12,"c2":32,"val":"A2-43","type":"rack","id":"A2-43"},{"r1":9,"c1":33,"r2":12,"c2":34,"val":"A2-42","type":"rack","id":"A2-42"},{"r1":9,"c1":35,"r2":12,"c2":36,"val":"A2-41","type":"rack","id":"A2-41"},{"r1":9,"c1":37,"r2":12,"c2":38,"val":"A2-40","type":"rack","id":"A2-40"},{"r1":9,"c1":39,"r2":28,"c2":47,"val":"1ST","type":"void"},{"r1":15,"c1":1,"r2":19,"c2":7,"type":"rackgroup","items":[{"val":"A2-60","id":"A2-60"},{"val":"A2-59","id":"A2-59"},{"val":"A2-58","id":"A2-58"},{"val":"A2-57","id":"A2-57"},{"val":"A2-56","id":"A2-56"},{"val":"A2-55","id":"A2-55"}]},{"r1":15,"c1":9,"r2":17,"c2":10,"val":"A2-27","type":"rack","id":"A2-27"},{"r1":15,"c1":11,"r2":17,"c2":12,"val":"A2-28","type":"rack","id":"A2-28"},{"r1":15,"c1":13,"r2":17,"c2":14,"val":"A2-29","type":"rack","id":"A2-29"},{"r1":15,"c1":19,"r2":17,"c2":20,"val":"A2-30","type":"rack","id":"A2-30"},{"r1":15,"c1":21,"r2":17,"c2":22,"val":"A2-31","type":"rack","id":"A2-31"},{"r1":15,"c1":23,"r2":17,"c2":24,"val":"A2-32","type":"rack","id":"A2-32"},{"r1":15,"c1":25,"r2":17,"c2":26,"val":"A2-33","type":"rack","id":"A2-33"},{"r1":15,"c1":27,"r2":17,"c2":28,"val":"A2-34","type":"rack","id":"A2-34"},{"r1":15,"c1":29,"r2":17,"c2":30,"val":"A2-35","type":"rack","id":"A2-35"},{"r1":15,"c1":31,"r2":17,"c2":32,"val":"A2-36","type":"rack","id":"A2-36"},{"r1":15,"c1":33,"r2":17,"c2":34,"val":"A2-37","type":"rack","id":"A2-37"},{"r1":15,"c1":35,"r2":17,"c2":38,"val":"A2-38","type":"rack","id":"A2-38"},{"r1":18,"c1":9,"r2":20,"c2":10,"val":"A2-26","type":"rack","id":"A2-26"},{"r1":18,"c1":11,"r2":20,"c2":12,"val":"A2-25","type":"rack","id":"A2-25"},{"r1":18,"c1":13,"r2":20,"c2":14,"val":"A2-24","type":"rack","id":"A2-24"},{"r1":18,"c1":19,"r2":20,"c2":20,"val":"A2-23","type":"rack","id":"A2-23"},{"r1":18,"c1":21,"r2":20,"c2":22,"val":"A2-22","type":"rack","id":"A2-22"},{"r1":18,"c1":23,"r2":20,"c2":24,"val":"A2-21","type":"rack","id":"A2-21"},{"r1":18,"c1":25,"r2":20,"c2":26,"val":"A2-20","type":"rack","id":"A2-20"},{"r1":18,"c1":27,"r2":20,"c2":28,"val":"A2-19","type":"rack","id":"A2-19"},{"r1":18,"c1":29,"r2":20,"c2":30,"val":"A2-18","type":"rack","id":"A2-18"},{"r1":18,"c1":31,"r2":20,"c2":32,"val":"A2-17","type":"rack","id":"A2-17"},{"r1":18,"c1":33,"r2":20,"c2":34,"val":"A2-16","type":"rack","id":"A2-16"},{"r1":18,"c1":35,"r2":20,"c2":38,"val":"A2-15","type":"rack","id":"A2-15"},{"r1":22,"c1":1,"r2":30,"c2":7,"val":"STAFF ROOM (3ST)","type":"zone"},{"r1":23,"c1":9,"r2":28,"c2":10,"val":"A2-01","type":"rack","id":"A2-01"},{"r1":23,"c1":11,"r2":28,"c2":12,"val":"A2-02","type":"rack","id":"A2-02"},{"r1":23,"c1":13,"r2":28,"c2":14,"val":"A2-03","type":"rack","id":"A2-03"},{"r1":23,"c1":19,"r2":28,"c2":20,"val":"A2-04","type":"rack","id":"A2-04"},{"r1":23,"c1":21,"r2":28,"c2":22,"val":"A2-05","type":"rack","id":"A2-05"},{"r1":23,"c1":23,"r2":28,"c2":24,"val":"A2-06","type":"rack","id":"A2-06"},{"r1":23,"c1":25,"r2":28,"c2":26,"val":"A2-07","type":"rack","id":"A2-07"},{"r1":23,"c1":27,"r2":28,"c2":28,"val":"A2-08","type":"rack","id":"A2-08"},{"r1":23,"c1":29,"r2":28,"c2":30,"val":"A2-09","type":"rack","id":"A2-09"},{"r1":23,"c1":31,"r2":28,"c2":32,"val":"A2-10","type":"rack","id":"A2-10"},{"r1":23,"c1":33,"r2":28,"c2":34,"val":"A2-11","type":"rack","id":"A2-11"},{"r1":23,"c1":35,"r2":28,"c2":38,"val":"A2-12","type":"rack","id":"A2-12"},{"r1":26,"c1":15,"r2":28,"c2":18,"val":"Cargo Lift","type":"lift","id":"LIFT-SOUTH-F2"}];
@@ -300,8 +342,15 @@
         function changeView(mode) {
             const b = document.getElementById('building');
             b.className = "building-3d";
+            
+            // ✅ เปลี่ยนคลาสปุ่มตาม Theme และ Glassmorphism โดยแก้สีขาวทับขาว
             ['3d','f1','f2'].forEach(m => {
-                document.getElementById('btn-'+m).className = `text-xs font-bold px-4 py-2 rounded-lg shadow transition-all ${mode===m ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-400'}`;
+                let btn = document.getElementById('btn-'+m);
+                if(m === mode) {
+                    btn.className = "bg-gradient-to-r from-sky-500 to-blue-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow transition-all";
+                } else {
+                    btn.className = "glass-input text-[var(--text-main)] hover:bg-[var(--card-hover)] text-xs font-bold px-4 py-2 rounded-xl shadow transition-all";
+                }
             });
             b.classList.add('state-'+mode);
 
@@ -382,7 +431,7 @@
             const t = translations[currentLang] || translations.th;
 
             if(!term) {
-                panel.classList.add('hidden');
+                panel.style.display = 'none';
                 return;
             }
 
@@ -416,22 +465,23 @@
                     // 💡 แสดงผลเฉพาะรายการที่ตรงกับการค้นหา (เพื่อไม่ให้ตาลาย)
                     let itemsToDisplay = matchedItems.length > 0 ? matchedItems : iArr;
 
+                    // ✅ ปรับสีการแสดงผลในกล่องค้นหาให้เห็นชัด (ใช้ CSS Variable)
                     html += `
-                    <div class="bg-slate-950 p-3 rounded border border-slate-700 hover:border-sky-500 cursor-pointer transition-colors shadow-md" onclick="openModal('${locId}')">
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="text-sky-400 font-black text-sm tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
+                    <div class="glass-input hover:bg-[var(--card-hover)] p-3 rounded border border-[var(--glass-border)] cursor-pointer transition-colors shadow-md mb-2" onclick="openModal('${locId}')">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sky-500 font-black text-sm tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
                         </div>`;
 
                     itemsToDisplay.forEach((itemCode) => {
                         let mData = masterData[itemCode.toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
 
                         html += `
-                        <div class="mb-2 pl-3 border-l-2 border-slate-600 space-y-1">
-                            <div class="text-sm font-bold text-amber-400"><i class="fa-solid fa-tag text-xs"></i> ${t.labelCode}: ${mData.code_name} <span class="text-xs text-slate-400 ml-1">(${mData.cl})</span></div>
-                            <div class="text-xs text-slate-300">ITEM: ${itemCode}</div>
-                            <div class="text-[11px] text-slate-400 font-medium mt-1">
-                                <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-white">${mData.max_stack}</span></span>
-                                <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-white">${mData.pack_type} ${mData.bag_color}</span></span>
+                        <div class="mb-2 pl-3 border-l-2 border-slate-500 space-y-1">
+                            <div class="text-[11px] font-bold text-[var(--text-main)]"><i class="fa-solid fa-tag text-xs text-amber-500 mr-1"></i> ${t.labelCode}: ${mData.code_name} <span class="text-[10px] text-[var(--text-sub)] ml-1">(${mData.cl})</span></div>
+                            <div class="text-[10px] text-[var(--text-sub)]">ITEM: ${itemCode}</div>
+                            <div class="text-[10px] text-[var(--text-sub)] font-medium mt-1">
+                                <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></span>
+                                <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
                             </div>
                         </div>`;
                     });
@@ -444,15 +494,15 @@
             if(foundCount > 0) {
                 content.innerHTML = html;
                 panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchFoundPrefix} ${foundCount} ${t.searchFoundSuffix}`;
-                panel.classList.remove('hidden');
+                panel.style.display = 'block';
             } else {
-                content.innerHTML = `<div class="text-center text-slate-500 py-6 text-sm"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>${t.searchNotFoundDesc}</div>`;
+                content.innerHTML = `<div class="text-center text-[var(--text-sub)] py-6 text-sm font-bold"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>${t.searchNotFoundDesc}</div>`;
                 panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchNotFoundTitle}`;
-                panel.classList.remove('hidden');
+                panel.style.display = 'block';
             }
         });
 
-        // --- อัปเกรดหน้าต่าง Modal (ตอนคลิกแผนผัง) ---
+        // --- อัปเกรดหน้าต่าง Modal (ตอนคลิกแผนผัง) แก้สีพื้นหลังให้อ่านง่าย ---
         function openModal(locId) {
             const t = translations[currentLang] || translations.th;
             document.getElementById('modalTitle').innerText = locId;
@@ -460,36 +510,36 @@
             const badge = document.getElementById('modalStatusBadge');
 
             badge.innerText = data.status === 'Empty' ? t.statusEmpty : data.status === 'Partial' ? t.statusPartial : data.status === 'Full' ? t.statusFull : t.statusUnknown;
-            badge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border " + 
-                (data.status === 'Empty' ? "bg-green-950 text-green-400 border-green-800" : 
-                 data.status === 'Partial' ? "bg-yellow-950 text-yellow-400 border-yellow-800" : 
-                 data.status === 'Full' ? "bg-red-950 text-red-400 border-red-800" : 
-                 "bg-slate-800 text-slate-400 border-slate-700");
+            badge.className = "px-3 py-1 rounded-full text-[10px] font-black uppercase border " + 
+                (data.status === 'Empty' ? "bg-green-500/20 text-green-500 border-green-500/30" : 
+                 data.status === 'Partial' ? "bg-yellow-500/20 text-yellow-500 border-yellow-500/30" : 
+                 data.status === 'Full' ? "bg-red-500/20 text-red-500 border-red-500/30" : 
+                 "bg-[var(--input-bg)] text-[var(--text-sub)] border-[var(--glass-border)]");
 
             let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
 
             if (iArr.length === 0) {
-                document.getElementById('modalBodyContent').innerHTML = `<div class="text-center text-slate-500 py-8"><i class="fa-solid fa-box-open text-4xl mb-3 block text-slate-600"></i><span class="text-sm">${t.modalNoData}</span></div>`;
+                document.getElementById('modalBodyContent').innerHTML = `<div class="text-center text-[var(--text-sub)] py-8"><i class="fa-solid fa-box-open text-4xl mb-3 block opacity-50"></i><span class="text-sm font-bold">${t.modalNoData}</span></div>`;
             } else {
-                let html = '<div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 hide-scroll">';
+                let html = '<div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scroll">';
                 for (let i = 0; i < iArr.length; i++) {
                     let itemCode = iArr[i].toUpperCase();
-                    // 💡 ดึงข้อมูลจาก Master Data มาแสดง
                     let mData = masterData[itemCode] || { code_name: t.modalNotFound, cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
 
+                    // ✅ แก้ไขสีภายใน Modal ให้สลับตาม Theme อัตโนมัติ
                     html += `
-                    <div class="bg-slate-900 p-3.5 rounded-lg border border-slate-700 flex items-start gap-3 shadow-md">
-                        <div class="bg-sky-950 text-sky-400 rounded-lg p-2.5 mt-1 border border-sky-900/50"><i class="fa-solid fa-box text-base"></i></div>
+                    <div class="glass-input p-3.5 rounded-lg flex items-start gap-3 shadow-md">
+                        <div class="bg-sky-500/10 text-sky-500 rounded-lg p-2.5 mt-1 border border-sky-500/20"><i class="fa-solid fa-box text-base"></i></div>
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-end mb-1">
-                                <span class="text-base font-black text-amber-400 truncate">${mData.code_name}</span>
-                                <span class="text-xs font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">${t.labelCustomer}: ${mData.cl}</span>
+                                <span class="text-sm font-black text-[var(--text-main)] truncate">${mData.code_name}</span>
+                                <span class="text-[9px] font-bold text-white bg-sky-500 px-2 py-0.5 rounded shadow-sm">${t.labelCustomer}: ${mData.cl}</span>
                             </div>
-                            <div class="text-xs text-slate-300 font-mono mb-2 truncate">${itemCode}</div>
+                            <div class="text-[10px] text-[var(--text-sub)] font-mono mb-2 truncate">${itemCode}</div>
 
-                            <div class="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-400 bg-slate-950 p-2 rounded border border-slate-800">
-                                <div><i class="fa-solid fa-layer-group text-slate-500 mr-1"></i> ${t.labelMax}: <span class="text-white">${mData.max_stack}</span></div>
-                                <div><i class="fa-solid fa-box-open text-slate-500 mr-1"></i> ${t.labelPack}: <span class="text-white">${mData.pack_type} ${mData.bag_color}</span></div>
+                            <div class="grid grid-cols-2 gap-2 text-[10px] font-medium text-[var(--text-sub)] bg-[var(--bg-gradient)] p-2 rounded border border-[var(--glass-border)]">
+                                <div><i class="fa-solid fa-layer-group text-slate-400 mr-1"></i> ${t.labelMax}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></div>
+                                <div><i class="fa-solid fa-box-open text-slate-400 mr-1"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></div>
                             </div>
                         </div>
                     </div>`;
@@ -501,7 +551,6 @@
         }
 
         function closeModal(e) { document.getElementById('infoModal').classList.remove('active'); }
-        // 💡 เปลี่ยนจาก fetchLocations เป็น fetchAllData
         document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); });
     </script>
 
@@ -512,14 +561,14 @@
     const translations = {
         th: {
             navMenu: "เมนูหลัก",
-            searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05, A2-30)...",
+            searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...",
             btnOverview: "ดูภาพรวม 3D",
             btnFocusF1: "โฟกัส ชั้น 1",
             btnFocusF2: "โฟกัส ชั้น 2",
             legendEmpty: "ว่าง (Empty)",
             legendPartial: "มีบางส่วน (Partial)",
             legendFull: "เต็ม (Full)",
-            legendRackPoint: "จุดวางสินค้า: A1/A2/Roll Container",
+            legendRackPoint: "จุดวางสินค้า: A1/A2/Roll",
             legendLift: "ลิฟต์ขนของ",
             legendZone: "พื้นที่/เครื่องจักร",
             badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)",
@@ -545,14 +594,14 @@
         },
         zh: {
             navMenu: "主選單",
-            searchPlaceholder: "搜尋商品代碼、名稱、儲位 (例如 A1-05, A2-30)...",
+            searchPlaceholder: "搜尋商品代碼、名稱、儲位...",
             btnOverview: "3D 總覽",
             btnFocusF1: "聚焦 1樓",
             btnFocusF2: "聚焦 2樓",
             legendEmpty: "空 (Empty)",
             legendPartial: "部分 (Partial)",
             legendFull: "滿 (Full)",
-            legendRackPoint: "儲位: A1/A2/Roll Container",
+            legendRackPoint: "儲位: A1/A2/Roll",
             legendLift: "貨梯",
             legendZone: "區域/機台",
             badgeOverview: "3D 總覽 (1-2樓)",
@@ -565,7 +614,7 @@
             statusPartial: "部分 (Partial)",
             statusFull: "滿 (Full)",
             statusUnknown: "無資料",
-            searchPanelDefaultTitle: "搜尋結果摘要",
+            searchPanelDefaultTitle: "搜尋結果",
             searchFoundPrefix: "找到",
             searchFoundSuffix: "個位置",
             searchNotFoundTitle: "找不到結果",
@@ -578,15 +627,15 @@
         },
         mm: {
             navMenu: "မီနူးမူ",
-            searchPlaceholder: "ကုန်ကုဒ်၊ အမည်၊ နေရာကုဒ် ရှာရန် (ဥပမာ A1-05, A2-30)...",
-            btnOverview: "3D ခြုံငုံကြည့်ရန်",
+            searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...",
+            btnOverview: "3D ကြည့်ရန်",
             btnFocusF1: "ပထမထပ်",
             btnFocusF2: "ဒုတိယထပ်",
-            legendEmpty: "လွတ် (Empty)",
-            legendPartial: "အချို့ (Partial)",
-            legendFull: "ပြည့် (Full)",
-            legendRackPoint: "ကုန်ထားနေရာ: A1/A2/Roll Container",
-            legendLift: "ကုန်တင်ဓာတ်လှေကား",
+            legendEmpty: "လွတ်",
+            legendPartial: "အချို့",
+            legendFull: "ပြည့်",
+            legendRackPoint: "နေရာ: A1/A2/Roll",
+            legendLift: "ဓာတ်လှေကား",
             legendZone: "နေရာ/စက်",
             badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)",
             badgeF1: "ပထမထပ်",
@@ -594,38 +643,38 @@
             modalClose: "ပိတ်ရန်",
             modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ",
             modalNotFound: "ဒေတာမတွေ့ပါ",
-            statusEmpty: "လွတ် (Empty)",
-            statusPartial: "အချို့ (Partial)",
-            statusFull: "ပြည့် (Full)",
-            statusUnknown: "ဒေတာမရှိပါ",
-            searchPanelDefaultTitle: "ရှာဖွေမှုရလဒ်များ",
+            statusEmpty: "လွတ်",
+            statusPartial: "အချို့",
+            statusFull: "ပြည့်",
+            statusUnknown: "မသိပါ",
+            searchPanelDefaultTitle: "ရလဒ်များ",
             searchFoundPrefix: "တွေ့ပြီး",
             searchFoundSuffix: "နေရာ",
-            searchNotFoundTitle: "ရလဒ်မတွေ့ပါ",
-            searchNotFoundDesc: "ရှာဖွေမှုအတွက် ဒေတာမတွေ့ပါ",
+            searchNotFoundTitle: "မတွေ့ပါ",
+            searchNotFoundDesc: "ဒေတာမတွေ့ပါ",
             labelCode: "ကုဒ်",
-            labelMaxStack: "အများဆုံးအထပ်",
+            labelMaxStack: "အများဆုံး",
             labelPack: "ထုပ်ပိုး",
             labelCustomer: "ဖောက်သည်",
-            labelMax: "အများဆုံး"
+            labelMax: "Max"
         },
         en: {
             navMenu: "Main Menu",
-            searchPlaceholder: "Search item code, name, location (e.g. A1-05, A2-30)...",
+            searchPlaceholder: "Search item, name, location...",
             btnOverview: "3D Overview",
-            btnFocusF1: "Focus Floor 1",
-            btnFocusF2: "Focus Floor 2",
+            btnFocusF1: "Floor 1",
+            btnFocusF2: "Floor 2",
             legendEmpty: "Empty",
             legendPartial: "Partial",
             legendFull: "Full",
-            legendRackPoint: "Storage point: A1/A2/Roll Container",
+            legendRackPoint: "Storage: A1/A2/Roll",
             legendLift: "Cargo Lift",
             legendZone: "Zone/Machine",
-            badgeOverview: "3D Overview (Floor 1-2)",
+            badgeOverview: "3D Overview (F1-F2)",
             badgeF1: "1ST FLOOR",
             badgeF2: "2ND FLOOR",
             modalClose: "Close",
-            modalNoData: "No items in this location",
+            modalNoData: "No items here",
             modalNotFound: "Not found",
             statusEmpty: "Empty",
             statusPartial: "Partial",
@@ -635,7 +684,7 @@
             searchFoundPrefix: "Found",
             searchFoundSuffix: "location(s)",
             searchNotFoundTitle: "No results",
-            searchNotFoundDesc: "No matching data found",
+            searchNotFoundDesc: "No matching data",
             labelCode: "Code",
             labelMaxStack: "Max Stack",
             labelPack: "Pack",

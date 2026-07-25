@@ -132,14 +132,13 @@
         .custom-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
 
-        /* ✅ CSS สำหรับกล่องค้นหาแบบย่อได้ */
-        #searchResultsPanel { 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            /* กำหนดให้กว้าง 100% ของกล่องพ่อแม่ (ช่องค้นหา) */
-            width: 100%; 
+        /* ✅ CSS กล่องค้นหา: บังคับให้เป็น absolute width 100% ของช่องค้นหา */
+        #searchResultsPanel {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
         }
         #searchResultsPanel.minimized {
-            position: fixed !important; /* ตอนย่อให้ลอยชิดขวาจอ */
+            position: fixed !important;
             top: 75px !important;
             left: auto !important;
             right: 16px !important;
@@ -158,7 +157,7 @@
 
         #scroll-wrapper { touch-action: pan-x pan-y; }
 
-        /* ✅ CSS สำหรับ Legend (ลบ :hover ออก 100% บังคับให้กดได้อย่างเดียว) */
+        /* ✅ CSS สำหรับ Legend (ลบ :hover เพื่อไม่ให้เด้งมั่วตอนรูดจอ) */
         .legend-btn {
             width: 44px; height: 44px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
@@ -174,14 +173,13 @@
             border: 1px solid var(--glass-border); border-radius: 16px;
             padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex; flex-direction: column; gap: 10px;
-            
-            /* ซ่อนไว้และตั้งตำแหน่งให้อยู่เหนือปุ่ม */
+            /* ซ่อนไว้ใต้ปุ่ม */
             opacity: 0; transform: translateY(20px) scale(0.9); pointer-events: none;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             transform-origin: bottom right; width: 220px;
             position: absolute; bottom: 60px; right: 0;
         }
-        /* ทำงานต่อเมื่อถูกเพิ่มคลาส .active ผ่าน Javascript เท่านั้น */
+        /* เปิดเมื่อมีคลาส .active */
         #legendContainer.active .legend-content {
             opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
         }
@@ -192,7 +190,7 @@
 
     <div class="mouse-glow"></div>
 
-    <!-- 🌐 Top Navbar (✅ แก้ไข 1: ลบ Margin ออก เปลี่ยนเป็น w-full เพื่อลบกรอบใสล่องหน) -->
+    <!-- 🌐 Top Navbar (✅ ลบ m-3 และ rounded-2xl ออก เพื่อลบขอบใสล่องหน) -->
     <div class="glass-panel sticky top-0 p-3 z-[60] w-full border-b border-[var(--glass-border)]">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
             
@@ -212,27 +210,21 @@
                 </div>
             </div>
 
-            <!-- 🔍 Search Box (✅ แก้ไข 2: เปลี่ยนเป็น absolute เพื่อให้กล่องพอดีกับช่องค้นหาเป๊ะๆ) -->
+            <!-- 🔍 Search Box (✅ เปลี่ยนกล่องผลลัพธ์เป็น absolute w-full ให้ขนาดพอดีกับช่องพิมพ์) -->
             <div class="relative w-full md:w-[28rem]">
                 <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-[var(--text-sub)]"></i>
                 <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)..."
                     class="w-full glass-input rounded-full py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-inner font-bold placeholder-[var(--text-sub)]">
                 
-                <!-- เปลี่ยน class เป็น absolute เพื่อไม่อ้างอิงความกว้างจากหน้าจอ (fixed) -->
-                <div id="searchResultsPanel" class="absolute top-full mt-2 left-0 max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
-                    
-                    <!-- โหมดขยาย (Full Header) -->
+                <div id="searchResultsPanel" class="absolute top-[calc(100%+8px)] left-0 max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
                     <div class="full-header bg-[var(--glass-bg)] text-[var(--text-main)] text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-[var(--glass-border)] flex justify-between items-center shadow-sm">
                         <span id="searchPanelTitle" class="text-sky-500"><i class="fa-solid fa-list-ul mr-1.5"></i> <span data-i18n="searchPanelDefaultTitle">สรุปผลการค้นหา</span></span>
                         <div class="flex gap-2 items-center">
-                            <!-- ปุ่มย่อ (Minimize) -->
                             <button onclick="toggleMinimizeSearch()" class="text-[var(--text-sub)] hover:text-sky-500 transition-colors p-1" title="ย่อหน้าต่างเก็บ"><i class="fa-solid fa-compress text-sm"></i></button>
-                            <!-- ปุ่มปิด (Close) -->
                             <button onclick="closeSearchPanel()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-base"></i></button>
                         </div>
                     </div>
 
-                    <!-- โหมดย่อ (Minimized Header) จะแสดงตอนกดปุ่มย่อเท่านั้น -->
                     <div class="min-header w-full px-4 py-2 flex justify-between items-center cursor-pointer hover:bg-[var(--card-hover)] transition-colors rounded-full h-full" onclick="toggleMinimizeSearch()">
                         <span class="text-sky-500 text-[11px] font-bold flex items-center gap-1.5"><i class="fa-solid fa-magnifying-glass"></i> <span id="minSearchCount">0 รายการ</span></span>
                         <i class="fa-solid fa-expand text-[var(--text-sub)]"></i>
@@ -243,13 +235,11 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap justify-center w-full md:w-auto mt-2 md:mt-0">
-                <!-- Theme Switcher -->
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
                     <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Light Theme"></button>
                     <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Dark Theme"></button>
                     <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Kaosu Theme"></button>
                 </div>
-                <!-- Language Switcher -->
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
                     <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
                     <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
@@ -264,7 +254,7 @@
         </div>
     </div>
 
-    <!-- 🗺️ โครงสร้างแผนผัง 3D (โครงสร้างเดิมที่เพิ่มระบบ 2 นิ้วซูม) -->
+    <!-- 🗺️ โครงสร้างแผนผัง 3D -->
     <div id="scroll-wrapper" class="flex-1 w-full overflow-auto relative custom-scroll z-10">
         <div id="spacer" class="relative flex justify-center md:items-center p-4 pt-12 md:p-10 min-w-max min-h-max transition-all">
             <div class="scene-container">
@@ -281,7 +271,7 @@
         </div>
     </div>
 
-    <!-- 🕹️ View Controls (ลอยอยู่ด้านล่าง ไม่บังแผนที่) -->
+    <!-- 🕹️ View Controls -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-[60] flex justify-center gap-2 glass-panel p-1.5 md:p-2.5 rounded-2xl shadow-2xl border border-[var(--glass-border)] w-[90%] md:w-auto">
         <button onclick="changeView('3d')" id="btn-3d" class="bg-gradient-to-r from-sky-500 to-blue-600 text-white text-[10px] md:text-xs font-black px-3 md:px-5 py-2 md:py-2.5 rounded-xl shadow-lg transition-all active:scale-95 whitespace-nowrap flex-1 md:flex-none">
             <i class="fa-solid fa-layer-group"></i> <span data-i18n="btnOverview">ภาพรวม 3D</span>
@@ -294,7 +284,7 @@
         </button>
     </div>
 
-    <!-- 💡 ✅ แก้ไข 3: Legend แบบพับได้ ล็อกตำแหน่งชัดเจน (ทำงานเมื่อคลิกปุ่ม ? เท่านั้น) -->
+    <!-- 💡 ✅ นำกล่อง Legend (?) คืนชีพ ล็อกไว้มุมขวาล่าง และกดคลิกเพื่อเปิดเท่านั้น -->
     <div id="legendContainer" class="fixed right-4 bottom-24 z-[70] flex flex-col items-end">
         <div class="legend-content">
             <div class="text-xs font-black text-sky-500 mb-1 border-b border-[var(--glass-border)] pb-2"><i class="fa-solid fa-circle-info mr-1"></i> คำอธิบายสัญลักษณ์</div>
@@ -325,15 +315,14 @@
 
 <script>
         // ==========================================
-        // 💡 ✅ เพิ่มสคริปต์ควบคุมการเปิด/ปิด Legend
+        // 💡 ✅ ฟังก์ชันปุ่ม Legend (กดเพื่อเปิด/ปิด)
         // ==========================================
         function toggleLegend(e) {
-            e.stopPropagation(); // กันการคลิกทะลุไปโดน body
+            e.stopPropagation(); 
             const legend = document.getElementById('legendContainer');
             if(legend) legend.classList.toggle('active');
         }
 
-        // เช็กถ้ากดที่ว่างบนจอ ให้ซ่อนกล่อง Legend กลับเข้าไป
         document.addEventListener('click', (e) => {
             const legend = document.getElementById('legendContainer');
             if (legend && legend.classList.contains('active') && !e.target.closest('#legendContainer')) {
@@ -566,6 +555,7 @@
             panel.classList.remove('minimized'); 
         }
 
+        // 💡 ✅ แก้ไขจุดที่ 1: อัปเกรดระบบค้นหาให้หาเจอและกะพริบไฟ แม้ใน Database จะยังไม่มีข้อมูลของช่องนั้น
         document.getElementById('searchInput').addEventListener('input', e => {
             const term = e.target.value.trim().toUpperCase();
             document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
@@ -584,7 +574,16 @@
             let html = '';
             let foundCount = 0;
 
-            for(const [locId, data] of Object.entries(locationData)) {
+            // รวบรวมรายชื่อช่อง (Location) ทั้งหมดจากแปลน 3D เพื่อใช้ค้นหา
+            let allLocs = new Set();
+            [...FLOOR1_DATA, ...FLOOR2_DATA].forEach(loc => {
+                if(loc.type === 'rackgroup') loc.items.forEach(i => allLocs.add(i.val));
+                else if(loc.val) allLocs.add(loc.val);
+            });
+
+            // ตรวจสอบจากรายชื่อช่องทั้งหมด (ไม่พึ่งพาแค่ข้อมูลใน DB)
+            allLocs.forEach(locId => {
+                const data = locationData[locId] || { items_list: "" };
                 let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
 
                 let matchedItems = iArr.filter(itemCode => {
@@ -594,12 +593,13 @@
 
                     return itemCode.toUpperCase().includes(term) || 
                            codeName.includes(term) || 
-                           cl.includes(term) || 
-                           locId.toUpperCase().includes(term);
+                           cl.includes(term);
                 });
 
+                // ถ้าชื่อช่องตรงกับการค้นหา หรือ ชื่อสินค้าข้างในตรงกับการค้นหา
                 if(matchedItems.length > 0 || locId.toUpperCase().includes(term)) {
-
+                    
+                    // สั่งให้กล่องกะพริบ
                     boxIdsFor(locId).forEach(id => { 
                         const b = document.getElementById(id); 
                         if(b) b.classList.add('highlight-blink'); 
@@ -613,36 +613,40 @@
                             <span class="text-sky-500 font-black text-sm tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
                         </div>`;
 
-                    itemsToDisplay.forEach((itemCode) => {
-                        let mData = masterData[itemCode.toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
-
-                        html += `
-                        <div class="mb-2 pl-3 border-l-2 border-slate-500 space-y-1">
-                            <div class="text-[11px] font-bold text-[var(--text-main)]"><i class="fa-solid fa-tag text-xs text-amber-500 mr-1"></i> ${t.labelCode}: ${mData.code_name} <span class="text-[10px] text-[var(--text-sub)] ml-1">(${mData.cl})</span></div>
-                            <div class="text-[10px] text-[var(--text-sub)]">ITEM: ${itemCode}</div>
-                            <div class="text-[10px] text-[var(--text-sub)] font-medium mt-1">
-                                <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></span>
-                                <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
-                            </div>
-                        </div>`;
-                    });
+                    if(itemsToDisplay.length > 0) {
+                        itemsToDisplay.forEach((itemCode) => {
+                            let mData = masterData[itemCode.toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
+                            html += `
+                            <div class="mb-2 pl-3 border-l-2 border-slate-500 space-y-1">
+                                <div class="text-[11px] font-bold text-[var(--text-main)]"><i class="fa-solid fa-tag text-xs text-amber-500 mr-1"></i> ${t.labelCode}: ${mData.code_name} <span class="text-[10px] text-[var(--text-sub)] ml-1">(${mData.cl})</span></div>
+                                <div class="text-[10px] text-[var(--text-sub)]">ITEM: ${itemCode}</div>
+                                <div class="text-[10px] text-[var(--text-sub)] font-medium mt-1">
+                                    <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></span>
+                                    <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
+                                </div>
+                            </div>`;
+                        });
+                    } else {
+                        // กรณีเจอชื่อช่อง แต่ยังไม่มีสินค้าข้างใน
+                        html += `<div class="text-[10px] text-[var(--text-sub)] pl-3">-- ${t.statusEmpty} --</div>`;
+                    }
 
                     html += `</div>`;
                     foundCount++;
                 }
-            }
+            });
 
             panel.classList.remove('minimized');
 
             if(foundCount > 0) {
                 content.innerHTML = html;
                 panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchFoundPrefix} ${foundCount} ${t.searchFoundSuffix}`;
-                minCount.innerText = `${foundCount} รายการ`; 
+                if(minCount) minCount.innerText = `${foundCount} รายการ`; 
                 panel.classList.remove('hidden');
             } else {
                 content.innerHTML = `<div class="text-center text-[var(--text-sub)] py-6 text-sm font-bold"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>${t.searchNotFoundDesc}</div>`;
                 panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchNotFoundTitle}`;
-                minCount.innerText = `0 รายการ`;
+                if(minCount) minCount.innerText = `0 รายการ`;
                 panel.classList.remove('hidden');
             }
         });

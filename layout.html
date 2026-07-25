@@ -70,15 +70,19 @@
             box-sizing: border-box; position: relative; z-index: 5;
             padding: 1px; overflow: hidden;
         }
-        .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
+        /* ✅ จำกัด hover effect ไว้เฉพาะอุปกรณ์ที่มีเมาส์จริง (desktop) เท่านั้น
+           เพื่อไม่ให้จอสัมผัส (มือถือ/แท็บเล็ต) เกิดอาการ "เด้ง" ค้างตอนแตะ */
+        @media (hover: hover) and (pointer: fine) {
+            .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
+            .rack-box.type-lift:hover { background-color: #a78bfa; color: white; box-shadow: 0 0 10px #7c3aed; }
+            .rack-box.type-lift:hover .box-icon { color: white; }
+        }
         .rack-box.narrow-vert span { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 0.02em; }
         .rack-box .box-icon { font-size: 12px; margin-bottom: 2px; }
 
         /* Cargo lift boxes */
         .rack-box.type-lift { background-color: #c4b5fd; color: #312e81; border-color: #7c3aed; }
-        .rack-box.type-lift:hover { background-color: #a78bfa; color: white; box-shadow: 0 0 10px #7c3aed; }
         .rack-box.type-lift .box-icon { color: #4c1d95; font-size: 14px; }
-        .rack-box.type-lift:hover .box-icon { color: white; }
 
         .status-empty { background-color: #4ade80 !important; color: #042f1a; }
         .status-partial { background-color: #facc15 !important; color: #422006; }
@@ -102,7 +106,10 @@
 
         /* ===== 3D scene scaffolding ===== */
         .scene-container { perspective: 2300px; perspective-origin: 50% 50%; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); }
-        #scale-wrapper { transition: transform 0.1s ease-out; /* ลดเวลา transition ลงเพื่อให้ซูมนิ้วได้ลื่นขึ้น */ }
+        /* ✅ ตัด transition ออกจาก scale-wrapper เพราะตอนบีบนิ้วซูม (pinch) เราอัปเดต transform
+           ถี่มาก (ทุก touchmove) การมี transition 0.1s ทำให้ค่าที่ตั้งใหม่ไล่ตามค่าเก่าไม่ทัน
+           เกิดอาการกระตุก/หน่วง ให้ปล่อยให้ transform เปลี่ยนทันทีแทน (สมูทกว่าเดิมมาก) */
+        #scale-wrapper { transition: none; }
         .building-3d { position: relative; transform-style: preserve-3d; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
         .floor-layer {
             position: absolute; top: 0; left: 0; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows));
@@ -135,7 +142,13 @@
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
 
         /* ✅ CSS สำหรับกล่องค้นหาแบบย่อได้ (Minimize State) */
-        #searchResultsPanel { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        /* กล่องผลการค้นหา: มือถือ = การ์ดเล็กกะทัดรัดชิดขวา, จอใหญ่ = กว้างเต็มช่องค้นหาอ่านง่าย */
+        #searchResultsPanel {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: min(88vw, 300px);
+            left: auto !important;
+            right: 0;
+        }
         #searchResultsPanel.minimized {
             top: 85px !important; /* ดันไปหลบใต้ Navbar */
             left: auto !important;
@@ -152,6 +165,10 @@
         #searchResultsPanel.minimized #searchResultsContent { display: none !important; }
         #searchResultsPanel.minimized .min-header { display: flex !important; }
         .min-header { display: none; }
+
+        @media (min-width: 768px) {
+            #searchResultsPanel { width: 100%; right: 0; }
+        }
 
         /* ✅ อนุญาตให้ใช้สองนิ้วซูม และเลื่อนแผนที่ได้อิสระ */
         #scroll-wrapper { touch-action: pan-x pan-y; }
@@ -188,7 +205,7 @@
                     class="w-full glass-input rounded-full py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-inner font-bold placeholder-[var(--text-sub)]">
                 
                 <!-- ✅ กล่องค้นหาที่อัปเกรดให้ย่อ/ขยายได้ -->
-                <div id="searchResultsPanel" class="fixed top-[130px] md:top-full md:mt-2 left-4 right-4 md:left-0 md:right-0 max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
+                <div id="searchResultsPanel" class="fixed top-[130px] md:top-full md:mt-2 md:left-0 max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
                     
                     <!-- โหมดขยาย (Full Header) -->
                     <div class="full-header bg-[var(--glass-bg)] text-[var(--text-main)] text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-[var(--glass-border)] flex justify-between items-center shadow-sm">
@@ -211,12 +228,12 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 hidden md:flex">
+            <div class="flex items-center gap-2 flex-wrap justify-center w-full md:w-auto">
                 <!-- Theme Switcher -->
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
-                    <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110" title="Light Theme"></button>
-                    <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110" title="Dark Theme"></button>
-                    <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110" title="Kaosu Theme"></button>
+                    <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Light Theme"></button>
+                    <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Dark Theme"></button>
+                    <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Kaosu Theme"></button>
                 </div>
                 <!-- Language Switcher -->
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
@@ -337,11 +354,12 @@
         }
 
         // ==========================================
-        // 🔍 ระบบซูมด้วย 2 นิ้ว (Pinch-to-Zoom & Pan)
+        // 🔍 ระบบซูมด้วย 2 นิ้ว (Pinch-to-Zoom & Pan) — ปรับให้สมูทขึ้นด้วย requestAnimationFrame
         // ==========================================
         let currentScaleMultiplier = 1;
         let lastScaleMultiplier = 1;
         let initialPinchDistance = null;
+        let pinchRafPending = false;
 
         const scrollWrapper = document.getElementById('scroll-wrapper');
         
@@ -358,7 +376,7 @@
 
         // ดักจับเมื่อขยับนิ้ว (Touch Move) เพื่อซูม
         scrollWrapper.addEventListener('touchmove', (e) => {
-            if(e.touches.length === 2) {
+            if(e.touches.length === 2 && initialPinchDistance) {
                 e.preventDefault(); // ป้องกันไม่ให้ Browser ทำการซูมมั่วๆ
                 const currentDistance = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
@@ -367,7 +385,16 @@
                 // คำนวณอัตราส่วนการขยาย
                 const scaleChange = currentDistance / initialPinchDistance;
                 currentScaleMultiplier = Math.max(0.5, Math.min(lastScaleMultiplier * scaleChange, 3)); // ล็อกการซูมไม่ให้เกิน 3 เท่า
-                resize3D(); // เรียกอัปเดตขนาด
+
+                // ✅ รวมหลาย touchmove ที่ยิงถี่ๆ ให้อัปเดตแค่ 1 ครั้งต่อเฟรม (requestAnimationFrame)
+                // ช่วยลดอาการกระตุก/หน่วงตอนบีบนิ้วซูมบนมือถือ
+                if (!pinchRafPending) {
+                    pinchRafPending = true;
+                    requestAnimationFrame(() => {
+                        resize3D();
+                        pinchRafPending = false;
+                    });
+                }
             }
         }, {passive: false});
 

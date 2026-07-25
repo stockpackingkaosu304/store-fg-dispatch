@@ -7,34 +7,38 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* 🎨 1. Dynamic Theme Engine (แก้ปัญหาคอนทราสต์สีกลืนกัน) */
         :root {
-            --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --input-bg: rgba(255, 255, 255, 0.6);
-            --text-main: #1e293b;
-            --text-sub: #64748b;
-            --card-hover: rgba(255, 255, 255, 0.9);
+            /* ☀️ Light Theme: พื้นสว่าง ตัวหนังสือเข้ม กรอบเทาอ่อนเห็นชัด */
+            --bg-gradient: linear-gradient(-45deg, #f1f5f9, #e2e8f0, #cbd5e1, #f8fafc);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(0, 0, 0, 0.15);
+            --input-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --card-hover: rgba(241, 245, 249, 1);
             --glow-color: rgba(14, 165, 233, 0.15);
         }
         [data-theme="dark"] {
+            /* 🌙 Dark Theme: พื้นมืด ตัวหนังสือสว่าง */
             --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
             --glass-bg: rgba(30, 41, 59, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --input-bg: rgba(15, 23, 42, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --input-bg: rgba(15, 23, 42, 0.8);
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
-            --card-hover: rgba(51, 65, 85, 0.8);
+            --card-hover: rgba(51, 65, 85, 0.9);
             --glow-color: rgba(56, 189, 248, 0.15);
         }
         [data-theme="kaosu"] {
+            /* 🔴 Kaosu Theme: พื้นแดง ตัวหนังสือทอง/ขาว */
             --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
-            --glass-bg: rgba(69, 10, 10, 0.6);
-            --glass-border: rgba(250, 204, 21, 0.2);
-            --input-bg: rgba(0, 0, 0, 0.2);
+            --glass-bg: rgba(69, 10, 10, 0.8);
+            --glass-border: rgba(250, 204, 21, 0.3);
+            --input-bg: rgba(0, 0, 0, 0.6);
             --text-main: #fef08a; 
             --text-sub: #fca5a5;
-            --card-hover: rgba(127, 29, 29, 0.8);
+            --card-hover: rgba(127, 29, 29, 0.9);
             --glow-color: rgba(250, 204, 21, 0.15);
         }
 
@@ -45,17 +49,24 @@
         }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
+        /* UI Utilities */
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: transform 0.2s; }
+        .photo-thumb:hover { transform: scale(1.1); }
         .photo-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
-        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); transition: all 0.3s ease; }
         .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); backdrop-filter: blur(8px); transition: all 0.3s ease; }
-        .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+        .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
         
         .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; transition: width 0.2s, height 0.2s; }
 
-        .suggestions-box { position: absolute; z-index: 50; width: 100%; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); max-height: 220px; overflow-y: auto; display: none; top: calc(100% + 4px); left: 0; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
+
+        .suggestions-box { position: absolute; z-index: 50; width: 100%; background: var(--input-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); max-height: 220px; overflow-y: auto; display: none; top: calc(100% + 6px); left: 0; }
         .suggestion-item { padding: 12px 16px; border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s; }
         .suggestion-item:hover { background: var(--card-hover); }
         .suggestion-item:last-child { border-bottom: none; }
@@ -63,28 +74,44 @@
 </head>
 <body class="min-h-screen p-3 md:p-6 relative" data-theme="dark">
 
+<!-- เอฟเฟกต์แสงออร่า -->
 <div class="mouse-glow"></div>
 
 <div class="max-w-md mx-auto glass-panel rounded-3xl overflow-hidden relative z-10 shadow-2xl">
+    
+    <!-- Screen Loading -->
     <div id="masterLoading" class="absolute inset-0 bg-[var(--glass-bg)] backdrop-blur-md z-[100] flex flex-col items-center justify-center transition-opacity duration-300">
         <div class="w-16 h-16 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin mb-4"></div>
         <p class="text-xs font-bold text-[var(--text-main)] tracking-widest animate-pulse">CONNECTING DB...</p>
     </div>
 
-    <!-- Header Section -->
-    <div class="p-6 relative border-b border-[var(--glass-border)]">
-        <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-black/20 backdrop-blur-sm border border-[var(--glass-border)] rounded-xl px-3 py-1.5 shadow-md z-[60]">
-            <i class="fa-solid fa-earth-asia text-sky-400 text-xs"></i>
-            <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-[10px] font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
-                <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
-                <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
-                <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
-                <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
-            </select>
+    <!-- Header Section (จัด Layout ใหม่ให้เรียบร้อย ไม่ทับซ้อน) -->
+    <div class="p-5 md:p-6 relative border-b border-[var(--glass-border)]">
+        
+        <!-- 🎛️ Top Controls: Theme & Language -->
+        <div class="flex justify-end gap-2 mb-4 relative z-[60]">
+            <!-- Theme Switcher -->
+            <div class="glass-input rounded-full px-2 py-1 flex items-center gap-1.5 shadow-inner">
+                <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110" title="Light Theme"></button>
+                <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110" title="Dark Theme"></button>
+                <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110" title="Kaosu Theme"></button>
+            </div>
+            <!-- Language Switcher -->
+            <div class="glass-input rounded-full px-3 py-1 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
+                <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
+                <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
+                    <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
+                    <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
+                    <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
+                    <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+                </select>
+                <i class="fa-solid fa-chevron-down text-[var(--text-sub)] text-[9px] pointer-events-none"></i>
+            </div>
         </div>
         
-        <div class="flex items-center gap-4 mb-5 pr-20">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-400 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/30 shrink-0">
+        <!-- 📦 Title Area -->
+        <div class="flex items-center gap-4 mb-5">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-400 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/30 shrink-0">
                 <i class="fa-solid fa-pen-to-square text-white text-xl"></i>
             </div>
             <div>
@@ -93,6 +120,7 @@
             </div>
         </div>
 
+        <!-- 🧭 Nav Buttons -->
         <div class="flex gap-2">
             <a href="menu.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-[11px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all">
                 <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">หน้าหลัก</span>
@@ -106,14 +134,17 @@
         </div>
     </div>
 
-    <form id="dispatchForm" class="p-6 space-y-5">
-        <!-- Top Info Row -->
-        <div class="grid grid-cols-2 gap-4">
+    <!-- ฟอร์มข้อมูล -->
+    <form id="dispatchForm" class="p-5 md:p-6 space-y-5">
+        
+        <!-- User Info Row -->
+        <div class="grid grid-cols-2 gap-3 md:gap-4">
             <div>
                 <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-wider" data-i18n="shift">กะ / SHIFT</label>
                 <div class="relative">
-                    <i class="fa-solid fa-clock absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
-                    <select id="shift" class="w-full glass-input rounded-xl p-3 pl-9 text-sm font-bold outline-none appearance-none cursor-pointer">
+                    <i class="fa-solid fa-clock absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs z-10"></i>
+                    <!-- ✅ แก้สีตัวอักษรให้ดึงจาก var(--text-main) -->
+                    <select id="shift" class="w-full glass-input rounded-xl p-3 pl-9 text-sm font-bold text-[var(--text-main)] outline-none appearance-none cursor-pointer relative z-0">
                         <option value="A" class="text-slate-800">Shift A</option>
                         <option value="B" class="text-slate-800">Shift B</option>
                     </select>
@@ -122,31 +153,32 @@
             <div>
                 <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-wider" data-i18n="staffId">รหัสพนักงาน</label>
                 <div class="relative">
-                    <i class="fa-solid fa-id-badge absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
-                    <input type="text" id="staffId" class="w-full glass-input rounded-xl p-3 pl-9 text-sm font-bold uppercase tracking-widest outline-none" data-i18n-placeholder="staffIdPh" placeholder="EMP001" required>
+                    <i class="fa-solid fa-id-badge absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs z-10"></i>
+                    <input type="text" id="staffId" class="w-full glass-input rounded-xl p-3 pl-9 text-sm font-bold text-[var(--text-main)] placeholder-[var(--text-sub)] uppercase tracking-widest outline-none relative z-0" data-i18n-placeholder="staffIdPh" placeholder="EMP001" required>
                 </div>
             </div>
         </div>
 
-        <div class="h-px w-full bg-[var(--glass-border)] opacity-50 my-2"></div>
+        <div class="h-px w-full bg-[var(--glass-border)] opacity-60 my-3"></div>
 
+        <!-- Item rows Container -->
         <div>
-            <div class="flex justify-between items-center mb-3">
-                <label class="block text-xs font-black text-[var(--text-main)] uppercase tracking-wider flex items-center gap-2">
-                    <div class="bg-sky-500/20 text-sky-500 p-1.5 rounded-lg"><i class="fa-solid fa-boxes-packing"></i></div> 
+            <div class="flex justify-between items-center mb-4">
+                <label class="flex items-center gap-2 text-xs font-black text-[var(--text-main)] uppercase tracking-wider">
+                    <div class="bg-sky-500/20 text-sky-500 p-1.5 rounded-lg border border-sky-500/30"><i class="fa-solid fa-boxes-packing"></i></div> 
                     <span data-i18n="itemList">รายการสินค้า</span>
                 </label>
             </div>
 
             <div id="itemsContainer" class="space-y-4"></div>
 
-            <button type="button" id="btnAddRow" class="w-full mt-4 glass-input hover:bg-[var(--card-hover)] text-sky-500 font-bold py-3.5 px-4 rounded-xl border border-dashed border-sky-500/50 text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+            <button type="button" id="btnAddRow" class="w-full mt-4 glass-input hover:bg-[var(--card-hover)] text-sky-500 font-bold py-3.5 px-4 rounded-xl border border-dashed border-sky-500/50 text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm">
                 <i class="fa-solid fa-plus-circle text-lg"></i>
                 <span data-i18n="btnAdd">เพิ่มรายการเบิกจ่าย</span>
             </button>
         </div>
 
-        <button id="submitBtn" type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-4 px-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all text-sm tracking-widest mt-4 active:scale-95 disabled:opacity-50 border border-emerald-400/50">
+        <button id="submitBtn" type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-4 px-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all text-sm tracking-widest mt-2 active:scale-95 disabled:opacity-50 border border-emerald-400/50">
             <i id="submitIcon" class="fa-solid fa-cloud-arrow-up mr-2 text-lg"></i>
             <span id="submitText" data-i18n="btnSubmit">บันทึกข้อมูลเข้าระบบ</span>
         </button>
@@ -159,8 +191,14 @@
 /* =============================================================
    🎨 Theme & Glow Logic
 ============================================================= */
-const savedTheme = localStorage.getItem('wms_theme') || 'dark';
-document.body.setAttribute('data-theme', savedTheme);
+function changeTheme(themeName) {
+    document.body.setAttribute('data-theme', themeName);
+    localStorage.setItem('wms_theme', themeName);
+}
+// Load Theme
+document.body.setAttribute('data-theme', localStorage.getItem('wms_theme') || 'dark');
+
+// Mouse Tracking
 document.addEventListener('mousemove', (e) => { document.documentElement.style.setProperty('--x', e.clientX + 'px'); document.documentElement.style.setProperty('--y', e.clientY + 'px'); });
 document.addEventListener('touchmove', (e) => { document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px'); document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px'); });
 
@@ -173,6 +211,7 @@ const translations = {
     mm: { appTitle: "ထုတ်ပေးမှုစနစ်", navMenu: "ပင်မ", navDispatch: "ထုတ်ပေး", navReport: "အစီရင်ခံစာ", shift: "အဆိုင်း", staffId: "ဝန်ထမ်းကုဒ်", staffIdPh: "EMP001", itemList: "ပစ္စည်းစာရင်း", partNamePh: "အမည်အလိုအလျောက်ပေါ်လာမည်", searchPh: "ရှာဖွေရန် (ဥပမာ 088)", bag: "အိတ်", pack: "ထုပ်ပိုး", fraction: "အပို", total: "စုစုပေါင်း", btnAdd: "ပစ္စည်းထည့်ရန်", btnSubmit: "အတည်ပြုသည်", takePhoto: "ဓာတ်ပုံ" },
     en: { appTitle: "DISPATCH FG", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report", shift: "SHIFT", staffId: "STAFF ID", staffIdPh: "EMP001", itemList: "DISPATCH ITEMS", partNamePh: "Auto-fill part name", searchPh: "Search ITEM (e.g. 088)", bag: "Bag", pack: "Pack", fraction: "Frac.", total: "TOTAL", btnAdd: "Add Item", btnSubmit: "SUBMIT DATA", takePhoto: "Photo" }
 };
+
 let currentLang = localStorage.getItem('wms_lang') || 'th';
 function changeLanguage(lang) {
     currentLang = lang; localStorage.setItem('wms_lang', lang);
@@ -202,50 +241,50 @@ var uidCounter = 0;
 function createRow() {
     var uid = "r" + (++uidCounter);
     var div = document.createElement("div");
-    div.className = "item-row glass-panel p-4 rounded-2xl relative pt-10 shadow-sm border border-[var(--glass-border)]";
+    // ✅ กรอบการ์ดสำหรับแต่ละรายการสินค้า
+    div.className = "item-row glass-panel p-4 rounded-2xl relative pt-10 shadow-sm transition-all";
     div.setAttribute("data-row-uid", uid);
     
-    // UI ที่ถูกปรับแก้ใหม่อย่างลงตัว
     div.innerHTML = `
-        <div class="absolute top-0 left-0 right-0 bg-black/10 px-4 py-2 rounded-t-2xl flex justify-between items-center border-b border-[var(--glass-border)]">
-            <span class="text-[10px] font-black text-[var(--text-sub)] uppercase tracking-widest row-number"></span>
-            <button type="button" data-action="remove-row" class="text-[var(--text-sub)] hover:text-red-400 transition-colors"><i class="fa-solid fa-xmark text-sm"></i></button>
+        <div class="absolute top-0 left-0 right-0 bg-[var(--glass-border)] px-4 py-2 rounded-t-2xl flex justify-between items-center border-b border-[var(--glass-border)] opacity-70">
+            <span class="text-[10px] font-black text-[var(--text-main)] uppercase tracking-widest row-number"></span>
+            <button type="button" data-action="remove-row" class="text-[var(--text-main)] hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-sm"></i></button>
         </div>
 
         <div class="mb-4 relative mt-1">
-            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-sky-400"></i>
-            <input type="text" class="item-search w-full glass-input rounded-xl p-3.5 pl-11 text-sm font-bold focus:ring-2 focus:ring-sky-500 outline-none transition-all" data-i18n-placeholder="searchPh" placeholder="ค้นหารหัส ITEM (เช่น 088)" autocomplete="off" required>
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-sky-500"></i>
+            <input type="text" class="item-search w-full glass-input rounded-xl p-3.5 pl-11 text-sm font-bold text-[var(--text-main)] placeholder-[var(--text-sub)] focus:ring-2 focus:ring-sky-500 outline-none transition-all shadow-inner" data-i18n-placeholder="searchPh" placeholder="ค้นหารหัส ITEM (เช่น 088)" autocomplete="off" required>
             <div class="suggestions-box custom-scroll"></div>
             <input type="hidden" class="real-item-code">
         </div>
 
-        <div class="mb-5">
-            <input type="text" class="part-name w-full bg-black/10 border border-[var(--glass-border)] rounded-xl p-3 text-xs text-[var(--text-main)] font-medium outline-none cursor-not-allowed opacity-80 text-center" data-i18n-placeholder="partNamePh" placeholder="ชื่อชิ้นงานจะแสดงอัตโนมัติ" readonly tabindex="-1">
+        <div class="mb-4">
+            <input type="text" class="part-name w-full bg-[var(--glass-border)] border border-[var(--glass-border)] rounded-xl p-3 text-xs text-[var(--text-main)] font-bold outline-none cursor-not-allowed opacity-80 text-center shadow-inner" data-i18n-placeholder="partNamePh" placeholder="ชื่อชิ้นงานจะแสดงอัตโนมัติ" readonly tabindex="-1">
         </div>
 
-        <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="grid grid-cols-3 gap-2 mb-4">
             <div class="relative">
                 <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1.5 uppercase tracking-wider"><i class="fa-solid fa-bag-shopping text-amber-500 mr-1"></i><span data-i18n="bag">ถุง</span></label>
-                <input type="number" min="0" class="bag-qty w-full glass-input rounded-xl p-3 text-base text-center font-black outline-none focus:ring-2 focus:ring-amber-400" placeholder="0">
+                <input type="number" min="0" class="bag-qty w-full glass-input rounded-xl p-2.5 text-base text-[var(--text-main)] placeholder-[var(--text-sub)] text-center font-black outline-none focus:ring-2 focus:ring-amber-400 shadow-inner" placeholder="0">
             </div>
             <div class="relative">
-                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1.5 uppercase tracking-wider"><i class="fa-solid fa-box text-blue-400 mr-1"></i><span data-i18n="pack">บรรจุ</span></label>
-                <input type="number" min="0" class="pack-qty w-full glass-input rounded-xl p-3 text-base text-center font-black outline-none focus:ring-2 focus:ring-blue-400" placeholder="0">
+                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1.5 uppercase tracking-wider"><i class="fa-solid fa-box text-blue-500 mr-1"></i><span data-i18n="pack">บรรจุ</span></label>
+                <input type="number" min="0" class="pack-qty w-full glass-input rounded-xl p-2.5 text-base text-[var(--text-main)] placeholder-[var(--text-sub)] text-center font-black outline-none focus:ring-2 focus:ring-blue-400 shadow-inner" placeholder="0">
             </div>
             <div class="relative">
-                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1.5 uppercase tracking-wider"><i class="fa-solid fa-layer-group text-purple-400 mr-1"></i><span data-i18n="fraction">เศษ</span></label>
-                <input type="number" min="0" class="fraction-qty w-full glass-input rounded-xl p-3 text-base text-center font-black outline-none focus:ring-2 focus:ring-purple-400" placeholder="0">
+                <label class="block text-[10px] text-center font-bold text-[var(--text-sub)] mb-1.5 uppercase tracking-wider"><i class="fa-solid fa-layer-group text-purple-500 mr-1"></i><span data-i18n="fraction">เศษ</span></label>
+                <input type="number" min="0" class="fraction-qty w-full glass-input rounded-xl p-2.5 text-base text-[var(--text-main)] placeholder-[var(--text-sub)] text-center font-black outline-none focus:ring-2 focus:ring-purple-400 shadow-inner" placeholder="0">
             </div>
         </div>
 
-        <div class="mb-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl p-3.5 border border-emerald-500/30 flex items-center justify-between shadow-inner">
-            <label class="block text-xs font-black text-emerald-500 ml-2 uppercase tracking-widest"><span data-i18n="total">ยอดรวม</span></label>
-            <input type="number" class="total-qty w-1/2 bg-transparent text-2xl text-right font-black text-emerald-400 outline-none pr-2" readonly tabindex="-1" placeholder="0">
+        <div class="mb-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl p-3 border border-emerald-500/30 flex items-center justify-between shadow-inner">
+            <label class="block text-xs font-black text-emerald-600 ml-2 uppercase tracking-widest"><span data-i18n="total">ยอดรวม</span></label>
+            <input type="number" class="total-qty w-1/2 bg-transparent text-2xl text-right font-black text-emerald-500 outline-none pr-2" readonly tabindex="-1" placeholder="0">
         </div>
 
         <div>
-            <button type="button" data-action="take-photo" class="w-full glass-input hover:bg-[var(--card-hover)] hover:text-sky-500 border border-dashed border-sky-400/50 rounded-xl py-3 text-xs font-bold flex items-center justify-center gap-2 transition-all">
-                <i class="fa-solid fa-camera text-base"></i> <span data-i18n="takePhoto">แนบรูปถ่าย</span>
+            <button type="button" data-action="take-photo" class="w-full glass-input hover:bg-[var(--card-hover)] hover:border-sky-400 border border-dashed rounded-xl py-3 text-xs font-bold text-[var(--text-main)] flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-camera text-base text-sky-500"></i> <span data-i18n="takePhoto">แนบรูปถ่าย</span>
             </button>
             <div class="photo-strip"></div>
         </div>
@@ -265,7 +304,11 @@ container.addEventListener("input", function(e) {
         let input = e.target, val = input.value.trim().toUpperCase(), row = input.closest(".item-row");
         let box = row.querySelector(".suggestions-box"), hiddenInput = row.querySelector(".real-item-code"), nameInput = row.querySelector(".part-name");
         hiddenInput.value = ""; nameInput.value = "";
+        
+        // Reset Search Box colors
         input.classList.remove('border-emerald-400', 'text-emerald-500', 'bg-emerald-500/10');
+        input.classList.add('text-[var(--text-main)]');
+        
         if (val.length < 2) { box.style.display = "none"; return; }
         
         let matches = masterDataList.filter(item => item.item_code.toUpperCase().includes(val) || (item.code_name && item.code_name.toUpperCase().includes(val)) || (item.cl && item.cl.toUpperCase().includes(val))).slice(0, 10);
@@ -278,7 +321,7 @@ container.addEventListener("input", function(e) {
             `).join("");
             box.style.display = "block";
         } else {
-            box.innerHTML = `<div class="p-3 text-xs font-bold text-red-400 text-center bg-red-500/10 rounded-lg m-2">ไม่พบสินค้าในระบบ</div>`;
+            box.innerHTML = `<div class="p-3 text-xs font-bold text-red-500 text-center bg-red-500/10 rounded-lg m-2 border border-red-500/20">ไม่พบสินค้าในระบบ</div>`;
             box.style.display = "block";
         }
     }
@@ -295,9 +338,15 @@ container.addEventListener("click", function(e) {
         let row = suggestion.closest(".item-row");
         let code = suggestion.getAttribute("data-code"), name = suggestion.getAttribute("data-name"), cl = suggestion.getAttribute("data-cl"), pack = suggestion.getAttribute("data-pack") || "";
         let searchInput = row.querySelector(".item-search");
-        searchInput.value = code; searchInput.classList.add('border-emerald-400', 'text-emerald-500', 'bg-emerald-500/10'); 
+        
+        // Active State when selected
+        searchInput.value = code; 
+        searchInput.classList.remove('text-[var(--text-main)]');
+        searchInput.classList.add('border-emerald-400', 'text-emerald-600', 'bg-emerald-500/10'); 
+        
         row.querySelector(".real-item-code").value = code;
         row.querySelector(".part-name").value = `CL: ${cl} | ${name}`;
+        
         let packInput = row.querySelector(".pack-qty");
         if(packInput.value === "") packInput.value = pack.replace(/[^0-9]/g, '');
         row.querySelector(".suggestions-box").style.display = "none";
@@ -313,7 +362,7 @@ container.addEventListener("click", function(e) {
 
 document.addEventListener("click", function(e) { if (!e.target.closest(".relative")) document.querySelectorAll(".suggestions-box").forEach(box => box.style.display = "none"); });
 
-// Upload / Camera / Submit (เหมือนเดิม)
+// Upload / Camera / Submit
 var pendingFiles = {}; var activePhotoRow = null;
 function compressImage(file, callback) {
     var reader = new FileReader();

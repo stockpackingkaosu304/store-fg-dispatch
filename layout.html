@@ -8,12 +8,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 🎨 1. Dynamic Theme Engine */
-        :root{
-            --cell: 22px;      
+        /* 🎨 1. Dynamic Theme Engine (เพิ่มการรองรับ :root ให้ครอบคลุม Light Theme) */
+        :root, [data-theme="light"] {
+            --cell: 22px;      /* grid unit, matches 1 excel column/row */
             --cols: 47;
             --rows: 30;
 
+            /* ☀️ Light Theme: พื้นสว่าง ตัวหนังสือเข้ม */
             --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
             --glass-bg: rgba(255, 255, 255, 0.85);
             --glass-border: rgba(0, 0, 0, 0.1);
@@ -24,6 +25,7 @@
             --glow-color: rgba(14, 165, 233, 0.15);
         }
         [data-theme="dark"] {
+            /* 🌙 Dark Theme: พื้นมืด ตัวหนังสือสว่าง */
             --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
             --glass-bg: rgba(30, 41, 59, 0.7);
             --glass-border: rgba(255, 255, 255, 0.15);
@@ -34,6 +36,7 @@
             --glow-color: rgba(56, 189, 248, 0.15);
         }
         [data-theme="kaosu"] {
+            /* 🔴 Kaosu Theme */
             --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
             --glass-bg: rgba(69, 10, 10, 0.8);
             --glass-border: rgba(250, 204, 21, 0.3);
@@ -57,58 +60,58 @@
         .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
         .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; }
 
-        /* ===== Interactive boxes ===== */
+        /* ===== Interactive boxes (แก้สีให้เปลี่ยนตาม Theme) ===== */
         .rack-box {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-size: 10px; line-height: 1.05; text-align: center;
-            font-weight: 800; color: #0f172a; cursor: pointer; background-color: #ffffff;
-            transition: all 0.15s ease; border: 1.5px solid #475569;
+            font-weight: 800; color: var(--text-main); cursor: pointer; background-color: var(--glass-bg);
+            transition: all 0.15s ease; border: 1.5px solid var(--glass-border);
             box-sizing: border-box; position: relative; z-index: 5; padding: 1px; overflow: hidden;
         }
         .rack-box:hover { background-color: #38bdf8; color: white; z-index: 30; box-shadow: 0 0 10px #0ea5e9; }
         .rack-box.narrow-vert span { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 0.02em; }
         .rack-box .box-icon { font-size: 12px; margin-bottom: 2px; }
 
-        .rack-box.type-lift { background-color: #c4b5fd; color: #312e81; border-color: #7c3aed; }
+        .rack-box.type-lift { background-color: rgba(139, 92, 246, 0.2); color: #8b5cf6; border-color: #8b5cf6; }
         .rack-box.type-lift:hover { background-color: #a78bfa; color: white; box-shadow: 0 0 10px #7c3aed; }
         .rack-box.type-lift .box-icon { color: #4c1d95; font-size: 14px; }
         .rack-box.type-lift:hover .box-icon { color: white; }
 
-        .status-empty { background-color: #4ade80 !important; color: #042f1a; }
-        .status-partial { background-color: #facc15 !important; color: #422006; }
-        .status-full { background-color: #f87171 !important; color: #4c0505; }
-        .status-unknown { background-color: #e2e8f0; color: #64748b; }
+        .status-empty { background-color: #4ade80 !important; color: #042f1a !important; border-color: #166534 !important;}
+        .status-partial { background-color: #facc15 !important; color: #422006 !important; border-color: #854d0e !important;}
+        .status-full { background-color: #f87171 !important; color: #fff !important; border-color: #991b1b !important;}
+        .status-unknown { background-color: var(--input-bg) !important; color: var(--text-sub) !important; }
 
         .highlight-blink { animation: blinker 0.8s linear infinite; background-color: #0ea5e9 !important; color: white !important; box-shadow: 0 0 20px #0ea5e9; z-index: 40 !important; border-color: #0284c7; }
         @keyframes blinker { 50% { opacity: 0.4; } }
 
-        /* ===== Static zone boxes ===== */
-        .zone-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; line-height:1.1; font-weight:700; color:#94a3b8; background: rgba(51,65,85,0.55); border: 1px dashed #475569; box-sizing:border-box; padding:2px; overflow:hidden; border-radius:2px; }
-        .toilet-box { display:flex; align-items:center; justify-content:center; font-size: 8.5px; font-weight:700; color:#94a3b8; background: rgba(30,41,59,0.9); border: 1px solid #334155; box-sizing:border-box; }
-        .void-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; font-weight:700; color:#334155; background: repeating-linear-gradient(45deg, rgba(51,65,85,0.15), rgba(51,65,85,0.15) 10px, transparent 10px, transparent 20px); border: 1px dashed #334155; box-sizing:border-box; border-radius:2px; }
+        /* ===== Static zone boxes (แก้สีให้เปลี่ยนตาม Theme) ===== */
+        .zone-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; line-height:1.1; font-weight:700; color:var(--text-sub); background: var(--input-bg); border: 1px dashed var(--glass-border); box-sizing:border-box; padding:2px; overflow:hidden; border-radius:2px; }
+        .toilet-box { display:flex; align-items:center; justify-content:center; font-size: 8.5px; font-weight:700; color:var(--text-sub); background: var(--glass-bg); border: 1px solid var(--glass-border); box-sizing:border-box; }
+        .void-box { display:flex; align-items:center; justify-content:center; text-align:center; font-size: 8.5px; font-weight:700; color:var(--text-sub); background: repeating-linear-gradient(45deg, var(--input-bg), var(--input-bg) 10px, transparent 10px, transparent 20px); border: 1px dashed var(--glass-border); box-sizing:border-box; border-radius:2px; }
 
         .building-position-wrapper{ position: relative; }
         .floor-badge-outside{ position:absolute; left:2px; top:-30px; z-index:25; padding: 4px 12px; font-size:11px; font-weight:900; border-radius:8px; letter-spacing:.05em; white-space:nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.5); }
 
-        /* ===== 3D scene scaffolding ===== */
+        /* ===== 3D scene scaffolding (แก้สีฐานชั้นให้เข้ากับ Theme) ===== */
         .scene-container { perspective: 2300px; perspective-origin: 50% 50%; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); }
         #scale-wrapper { transition: transform 0.1s ease-out; }
         .building-3d { position: relative; transform-style: preserve-3d; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
-        .floor-layer { position: absolute; top: 0; left: 0; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); background: rgba(30, 41, 59, 0.9); border: 3px solid #64748b; box-shadow: 0 25px 50px rgba(0,0,0,0.8); transform-style: preserve-3d; transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell)); }
-        .floor-layer::before { content: ''; position: absolute; top: 100%; left: -3px; right: -3px; height: 20px; background: #0f172a; transform-origin: top; transform: rotateX(-90deg); border: 1px solid #334155; }
-        .floor-layer::after { content: ''; position: absolute; top: -3px; bottom: -3px; right: -20px; width: 20px; background: #334155; transform-origin: left; transform: rotateY(90deg); border: 1px solid #1e293b; }
+        .floor-layer { position: absolute; top: 0; left: 0; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); background: var(--glass-bg); border: 3px solid var(--glass-border); box-shadow: 0 25px 50px rgba(0,0,0,0.8); transform-style: preserve-3d; transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-template-rows: repeat(var(--rows), var(--cell)); }
+        .floor-layer::before { content: ''; position: absolute; top: 100%; left: -3px; right: -3px; height: 20px; background: var(--input-bg); transform-origin: top; transform: rotateX(-90deg); border: 1px solid var(--glass-border); }
+        .floor-layer::after { content: ''; position: absolute; top: -3px; bottom: -3px; right: -20px; width: 20px; background: var(--glass-border); transform-origin: left; transform: rotateY(90deg); border: 1px solid var(--glass-border); }
 
         .state-3d { transform: rotateX(42deg) rotateZ(-16deg) translateZ(0px) translateY(-20px); }
         .state-3d #floor1-layer { transform: translateZ(-110px); opacity: 1; }
         .state-3d #floor2-layer { transform: translateZ(200px); opacity: 1; }
 
         .state-f1 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
-        .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
+        .state-f1 #floor1-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: var(--glass-bg); }
         .state-f1 #floor2-layer { transform: translateZ(500px); opacity: 0; pointer-events: none; }
 
         .state-f2 { transform: rotateX(0deg) rotateZ(0deg) translateZ(0px); }
         .state-f2 #floor1-layer { transform: translateZ(-500px); opacity: 0; pointer-events: none; }
-        .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: rgba(15, 23, 42, 1); }
+        .state-f2 #floor2-layer { transform: translateZ(0px); opacity: 1; z-index: 10; background: var(--glass-bg); }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; animation: fadeIn 0.3s; }
@@ -162,15 +165,15 @@
         .legend-container.active .legend-content {
             opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
         }
-        .legend-item { display: flex; items-center; gap: 8px; font-size: 11px; font-weight: bold; color: var(--text-main); }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: bold; color: var(--text-main); }
     </style>
 </head>
 <body class="h-screen flex flex-col select-none relative" data-theme="dark">
 
     <div class="mouse-glow"></div>
 
-    <!-- 🌐 Top Navbar -->
-    <div class="glass-panel sticky top-0 p-3 z-[60] border-b-0 m-3 rounded-2xl">
+    <!-- 🌐 Top Navbar (เอา m-3 และ rounded-2xl ออก เพื่อลบกรอบใสที่มองไม่เห็น) -->
+    <div class="glass-panel sticky top-0 p-3 z-[60] border-b border-[var(--glass-border)] w-full">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
             
             <div class="flex items-center gap-4 w-full md:w-auto">
@@ -213,7 +216,8 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 hidden md:flex">
+            <!-- ✅ Theme & Lang Switcher (เอา hidden ออก เพื่อให้แสดงบนมือถือด้วย) -->
+            <div class="flex items-center gap-2 justify-center w-full md:w-auto">
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
                     <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110" title="Light Theme"></button>
                     <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110" title="Dark Theme"></button>
@@ -431,9 +435,9 @@
             if (mode === 'f2') { badge.setAttribute('data-i18n','badgeF2'); badge.textContent = t.badgeF2; badge.className = 'floor-badge-outside bg-amber-900 text-amber-300 border border-amber-500'; }
         }
 
-        // ==========================================
+        // ==========================================================================
         // 🚀 ระบบ Supabase & Smart Filter Data 
-        // ==========================================
+        // ==========================================================================
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);

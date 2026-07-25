@@ -146,17 +146,30 @@
 
     <div class="mouse-glow"></div>
 
-    <!-- 🌐 Top Navbar (เปลี่ยนจากทึบ เป็น Glassmorphism) -->
-    <div class="glass-panel sticky top-0 p-3 z-[60] border-b-0 m-3 rounded-2xl">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 items-center justify-between">
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <!-- ✅ ใช้ตัวแปรสีเพื่อแก้ปัญหาขาวทับขาว -->
-                <a href="menu.html" class="glass-input hover:bg-[var(--card-hover)] px-4 py-2.5 rounded-xl text-[var(--text-main)] text-xs font-bold transition-all flex items-center shadow-sm">
-                    <i class="fa-solid fa-house mr-2"></i> <span data-i18n="navMenu">เมนูหลัก</span>
+   <!-- 🌐 Top Navbar (Glassmorphism + KSS Logo) -->
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
+            
+            <!-- ด้านซ้าย: ปุ่มเมนูหลัก + โลโก้บริษัท -->
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                
+                <!-- 🏠 ปุ่มเมนูหลัก (แก้บั๊กสีดำ เปลี่ยนเป็นกระจกใส) -->
+                <a href="menu.html" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--text-main)] text-xs font-bold border border-[var(--glass-border)] bg-[var(--glass-bg)] hover:bg-[var(--card-hover)] hover:scale-105 shadow-sm transition-all duration-300">
+                    <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">เมนูหลัก</span>
                 </a>
-                <h1 class="text-base font-black tracking-wider text-[var(--text-main)] flex items-center">
-                    <i class="fa-solid fa-cubes text-sky-500 mr-2 drop-shadow-sm"></i>WMS 3D <span class="text-[10px] text-[var(--text-sub)] font-bold ml-1 bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded shadow-inner">[v1.1.2]</span>
-                </h1>
+                
+                <!-- 🏢 โลโก้ KSS + ชื่อระบบ (พร้อม Hover Effect แบบมีมิติ) -->
+                <div class="flex items-center gap-2 group cursor-pointer">
+                    <div class="relative flex items-center justify-center">
+                        <!-- แสงออร่าสีแดงด้านหลัง จะสว่างขึ้นเมื่อเอาเมาส์ชี้ -->
+                        <div class="absolute inset-0 bg-red-500/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <!-- โลโก้ KSS -->
+                        <img src="logo.png" alt="KSS Logo" class="h-7 md:h-8 w-auto object-contain relative z-10 drop-shadow-sm transition-transform duration-300 group-hover:scale-110">
+                    </div>
+                    <h1 class="text-base font-black tracking-widest text-[var(--text-main)] flex items-center transition-colors group-hover:text-red-500">
+                        KAOSU 3D <span class="text-[10px] text-[var(--text-sub)] font-bold ml-1 bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded shadow-inner">[v1.1.2]</span>
+                    </h1>
+                </div>
+
             </div>
 
             <!-- 🔍 Search Box -->

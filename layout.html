@@ -102,7 +102,7 @@
 
         /* ===== 3D scene scaffolding ===== */
         .scene-container { perspective: 2300px; perspective-origin: 50% 50%; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); }
-        #scale-wrapper { transition: transform 0.3s ease; }
+        #scale-wrapper { transition: transform 0.1s ease-out; /* ลดเวลา transition ลงเพื่อให้ซูมนิ้วได้ลื่นขึ้น */ }
         .building-3d { position: relative; transform-style: preserve-3d; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows)); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
         .floor-layer {
             position: absolute; top: 0; left: 0; width: calc(var(--cell) * var(--cols)); height: calc(var(--cell) * var(--rows));
@@ -134,57 +134,84 @@
         .custom-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
 
-        /* ✅ ซ่อน Scrollbar แนวนอนสำหรับมือถือ (แถบสี Legend จะได้ดูคลีนๆ) */
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Search Results Panel */
-        .suggestions-box {
-            position: absolute; z-index: 50; width: 100%; background: var(--input-bg); backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border); border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
-            max-height: 250px; overflow-y: auto; display: none; top: calc(100% + 8px); left: 0;
+        /* ✅ CSS สำหรับกล่องค้นหาแบบย่อได้ (Minimize State) */
+        #searchResultsPanel { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #searchResultsPanel.minimized {
+            top: 85px !important; /* ดันไปหลบใต้ Navbar */
+            left: auto !important;
+            right: 16px !important;
+            width: 140px !important;
+            min-height: 40px !important;
+            height: 44px !important;
+            border-radius: 22px !important;
+            overflow: hidden;
+            display: flex !important;
+            cursor: pointer;
         }
+        #searchResultsPanel.minimized .full-header, 
+        #searchResultsPanel.minimized #searchResultsContent { display: none !important; }
+        #searchResultsPanel.minimized .min-header { display: flex !important; }
+        .min-header { display: none; }
+
+        /* ✅ อนุญาตให้ใช้สองนิ้วซูม และเลื่อนแผนที่ได้อิสระ */
+        #scroll-wrapper { touch-action: pan-x pan-y; }
     </style>
 </head>
 <body class="h-screen flex flex-col select-none relative" data-theme="dark">
 
     <div class="mouse-glow"></div>
 
-    <!-- 🌐 Top Navbar -->
+    <!-- 🌐 Top Navbar (Glassmorphism + KSS Logo) -->
     <div class="glass-panel sticky top-0 p-3 z-[60] border-b-0 m-3 rounded-2xl">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 items-center justify-between">
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <a href="menu.html" class="glass-input hover:bg-[var(--card-hover)] px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-[var(--text-main)] text-xs font-bold transition-all flex items-center shadow-sm">
-                    <i class="fa-solid fa-house mr-2"></i> <span data-i18n="navMenu">เมนูหลัก</span>
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
+            
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <a href="menu.html" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--text-main)] text-xs font-bold border border-[var(--glass-border)] bg-[var(--glass-bg)] hover:bg-[var(--card-hover)] hover:scale-105 shadow-sm transition-all duration-300">
+                    <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">เมนูหลัก</span>
                 </a>
+                
                 <div class="flex items-center gap-2 group cursor-pointer">
-                    <div class="relative">
+                    <div class="relative flex items-center justify-center">
                         <div class="absolute inset-0 bg-red-500/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <img src="logo.png" alt="KSS Logo" class="h-6 md:h-8 w-auto object-contain relative z-10 drop-shadow-sm transition-transform duration-300 group-hover:scale-110">
+                        <img src="logo.png" alt="KSS Logo" class="h-7 md:h-8 w-auto object-contain relative z-10 drop-shadow-sm transition-transform duration-300 group-hover:scale-110">
                     </div>
-                    <h1 class="text-sm md:text-base font-black tracking-widest text-[var(--text-main)] flex items-center transition-colors group-hover:text-red-500">
+                    <h1 class="text-base font-black tracking-widest text-[var(--text-main)] flex items-center transition-colors group-hover:text-red-500">
                         KAOSU 3D <span class="text-[10px] text-[var(--text-sub)] font-bold ml-1 bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded shadow-inner">[v1.1.2]</span>
                     </h1>
                 </div>
             </div>
 
-            <!-- 🔍 Search Box -->
+            <!-- 🔍 Search Box (โครงสร้างกล่องย่อ-ขยายได้) -->
             <div class="relative w-full md:w-96">
                 <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-[var(--text-sub)]"></i>
-                <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง..."
+                <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)..."
                     class="w-full glass-input rounded-full py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-inner font-bold placeholder-[var(--text-sub)]">
                 
-                <!-- ✅ กล่องผลลัพธ์บนมือถือ: ปรับให้ลอยลงมาจากด้านบน ไม่ไปบังปุ่มด้านล่าง -->
+                <!-- ✅ กล่องค้นหาที่อัปเกรดให้ย่อ/ขยายได้ -->
                 <div id="searchResultsPanel" class="fixed top-[130px] md:top-full md:mt-2 left-4 right-4 md:left-0 md:right-0 max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
-                    <div class="bg-[var(--glass-bg)] text-[var(--text-main)] text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-[var(--glass-border)] flex justify-between items-center shadow-sm">
+                    
+                    <!-- โหมดขยาย (Full Header) -->
+                    <div class="full-header bg-[var(--glass-bg)] text-[var(--text-main)] text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-[var(--glass-border)] flex justify-between items-center shadow-sm">
                         <span id="searchPanelTitle" class="text-sky-500"><i class="fa-solid fa-list-ul mr-1.5"></i> <span data-i18n="searchPanelDefaultTitle">สรุปผลการค้นหา</span></span>
-                        <button onclick="document.getElementById('searchResultsPanel').style.display='none'" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-base"></i></button>
+                        <div class="flex gap-2 items-center">
+                            <!-- ปุ่มย่อ (Minimize) -->
+                            <button onclick="toggleMinimizeSearch()" class="text-[var(--text-sub)] hover:text-sky-500 transition-colors p-1" title="ย่อหน้าต่างเก็บ"><i class="fa-solid fa-compress text-sm"></i></button>
+                            <!-- ปุ่มปิด (Close) -->
+                            <button onclick="closeSearchPanel()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-base"></i></button>
+                        </div>
                     </div>
+
+                    <!-- โหมดย่อ (Minimized Header) จะแสดงตอนกดปุ่มย่อเท่านั้น -->
+                    <div class="min-header w-full px-4 py-2 flex justify-between items-center cursor-pointer hover:bg-[var(--card-hover)] transition-colors rounded-full h-full" onclick="toggleMinimizeSearch()">
+                        <span class="text-sky-500 text-[11px] font-bold flex items-center gap-1.5"><i class="fa-solid fa-magnifying-glass"></i> <span id="minSearchCount">0 รายการ</span></span>
+                        <i class="fa-solid fa-expand text-[var(--text-sub)]"></i>
+                    </div>
+
                     <div id="searchResultsContent" class="flex-1 overflow-y-auto p-2 space-y-2 custom-scroll"></div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 hidden md:flex">
                 <!-- Theme Switcher -->
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
                     <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110" title="Light Theme"></button>
@@ -206,7 +233,7 @@
         </div>
     </div>
 
-    <!-- 🕹️ View Controls (✅ บนมือถือย่อขนาดปุ่มให้เล็กลง ไม่บังจอแผนที่) -->
+    <!-- 🕹️ View Controls (ลอยอยู่ด้านล่าง ไม่บังแผนที่) -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-[60] flex justify-center gap-2 glass-panel p-1.5 md:p-2.5 rounded-2xl shadow-2xl border border-[var(--glass-border)] w-[90%] md:w-auto">
         <button onclick="changeView('3d')" id="btn-3d" class="bg-gradient-to-r from-sky-500 to-blue-600 text-white text-[10px] md:text-xs font-black px-3 md:px-5 py-2 md:py-2.5 rounded-xl shadow-lg transition-all active:scale-95 whitespace-nowrap flex-1 md:flex-none">
             <i class="fa-solid fa-layer-group"></i> <span data-i18n="btnOverview">ภาพรวม 3D</span>
@@ -219,17 +246,7 @@
         </button>
     </div>
 
-    <!-- 🎨 Legend Bar (✅ ปรับให้มือถือเลื่อนซ้ายขวาได้ ไม่ตกบรรทัดกินที่) -->
-    <div class="relative z-[50] shadow-md glass-panel py-2 px-4 text-[10px] md:text-[11px] flex justify-start md:justify-center gap-4 text-[var(--text-main)] font-bold border-t-0 border-x-0 flex-nowrap md:flex-wrap mx-3 rounded-b-2xl overflow-x-auto hide-scroll">
-        <div class="flex items-center gap-1.5 shrink-0"><span class="w-3 h-3 rounded-full bg-green-500 shadow"></span> <span data-i18n="legendEmpty">ว่าง (Empty)</span></div>
-        <div class="flex items-center gap-1.5 shrink-0"><span class="w-3 h-3 rounded-full bg-yellow-500 shadow"></span> <span data-i18n="legendPartial">มีบางส่วน (Partial)</span></div>
-        <div class="flex items-center gap-1.5 shrink-0"><span class="w-3 h-3 rounded-full bg-red-500 shadow"></span> <span data-i18n="legendFull">เต็ม (Full)</span></div>
-        <div class="flex items-center gap-1.5 shrink-0"><span class="w-3 h-3 rounded-sm bg-[var(--input-bg)] border border-[var(--glass-border)]"></span> <span data-i18n="legendRackPoint">จุดวางสินค้า</span></div>
-        <div class="flex items-center gap-1.5 shrink-0"><span class="w-3 h-3 rounded-sm" style="background:rgba(139, 92, 246, 0.4);border:1px solid #8b5cf6;"></span> <span data-i18n="legendLift">ลิฟต์ขนของ</span></div>
-        <div class="flex items-center gap-1.5 shrink-0"><span class="w-3 h-3 rounded-sm bg-slate-500/20 border border-dashed border-slate-500"></span> <span data-i18n="legendZone">พื้นที่/เครื่องจักร</span></div>
-    </div>
-
-    <!-- 🗺️ โครงสร้างแผนผัง 3D (คงเดิม 100% ห้ามเปลี่ยน) -->
+    <!-- 🗺️ โครงสร้างแผนผัง 3D (โครงสร้างเดิมที่เพิ่มระบบ 2 นิ้วซูม) -->
     <div id="scroll-wrapper" class="flex-1 w-full overflow-auto relative custom-scroll z-10">
         <div id="spacer" class="relative flex justify-center md:items-center p-4 pt-12 md:p-10 min-w-max min-h-max transition-all">
             <div class="scene-container">
@@ -270,8 +287,7 @@
         document.body.setAttribute('data-theme', localStorage.getItem('wms_theme') || 'dark');
         
         document.addEventListener('mousemove', (e) => { document.documentElement.style.setProperty('--x', e.clientX + 'px'); document.documentElement.style.setProperty('--y', e.clientY + 'px'); });
-        document.addEventListener('touchmove', (e) => { document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px'); document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px'); });
-
+        
         // ==========================================================================
         // ข้อมูลตำแหน่งช่อง/โซน (คงเดิม 100%)
         // ==========================================================================
@@ -320,6 +336,50 @@
             renderFloor('floor2-layer', FLOOR2_DATA);
         }
 
+        // ==========================================
+        // 🔍 ระบบซูมด้วย 2 นิ้ว (Pinch-to-Zoom & Pan)
+        // ==========================================
+        let currentScaleMultiplier = 1;
+        let lastScaleMultiplier = 1;
+        let initialPinchDistance = null;
+
+        const scrollWrapper = document.getElementById('scroll-wrapper');
+        
+        // ดักจับเมื่อเอานิ้วแตะจอ (Touch Start)
+        scrollWrapper.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 2) {
+                // คำนวณระยะห่างระหว่าง 2 นิ้ว
+                initialPinchDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            }
+        }, {passive: false});
+
+        // ดักจับเมื่อขยับนิ้ว (Touch Move) เพื่อซูม
+        scrollWrapper.addEventListener('touchmove', (e) => {
+            if(e.touches.length === 2) {
+                e.preventDefault(); // ป้องกันไม่ให้ Browser ทำการซูมมั่วๆ
+                const currentDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                // คำนวณอัตราส่วนการขยาย
+                const scaleChange = currentDistance / initialPinchDistance;
+                currentScaleMultiplier = Math.max(0.5, Math.min(lastScaleMultiplier * scaleChange, 3)); // ล็อกการซูมไม่ให้เกิน 3 เท่า
+                resize3D(); // เรียกอัปเดตขนาด
+            }
+        }, {passive: false});
+
+        // ดักจับเมื่อเอานิ้วออก (Touch End)
+        scrollWrapper.addEventListener('touchend', (e) => {
+            if(e.touches.length < 2) {
+                initialPinchDistance = null;
+                lastScaleMultiplier = currentScaleMultiplier; // จำค่าสเกลล่าสุดไว้
+            }
+        });
+
+        // ฟังก์ชันคำนวณและปรับสเกล 3D
         function resize3D() {
             const wrapper = document.getElementById('scale-wrapper');
             const spacer = document.getElementById('spacer');
@@ -329,26 +389,28 @@
             const w = window.innerWidth;
             const isMobile = w < 768;
 
-            let targetScale;
+            let baseScale;
             if (isMobile) {
-                targetScale = Math.max((w - 24) / totalWidth, 0.65);
+                baseScale = Math.max((w - 24) / totalWidth, 0.65);
+                let finalScale = baseScale * currentScaleMultiplier; // นำค่าที่ซูมมาคูณ
                 wrapper.style.transformOrigin = "top left";
                 spacer.style.display = "block";
-                spacer.style.width = `${totalWidth * targetScale + 40}px`;
-                spacer.style.height = `${totalHeight * targetScale + 100}px`;
+                spacer.style.width = `${totalWidth * finalScale + 40}px`;
+                spacer.style.height = `${totalHeight * finalScale + 100}px`;
+                wrapper.style.transform = `scale(${finalScale})`;
             } else {
-                targetScale = (w - 24) / totalWidth;
-                targetScale = Math.min(1.3, Math.max(targetScale, 0.48));
+                baseScale = (w - 24) / totalWidth;
+                baseScale = Math.min(1.3, Math.max(baseScale, 0.48));
+                let finalScale = baseScale * currentScaleMultiplier; // นำค่าที่ซูมมาคูณ
                 wrapper.style.transformOrigin = "center center";
                 spacer.style.display = "flex";
                 spacer.style.width = "100%";
                 spacer.style.height = "100%";
+                wrapper.style.transform = `scale(${finalScale})`;
             }
-            wrapper.style.transform = `scale(${targetScale})`;
         }
         window.addEventListener('resize', resize3D);
 
-        // ✅ แก้คลาสปุ่มตาม Responsive Design (ไม่ใช้ค่าคงที่)
         function changeView(mode) {
             const b = document.getElementById('building');
             b.className = "building-3d";
@@ -370,15 +432,15 @@
             if (mode === 'f2') { badge.setAttribute('data-i18n','badgeF2'); badge.textContent = t.badgeF2; badge.className = 'floor-badge-outside bg-amber-900 text-amber-300 border border-amber-500'; }
         }
 
-        // ==========================================================================
-        // 🚀 ระบบ Supabase & Smart Filter Data (Phase 2 Upgrade)
-        // ==========================================================================
+        // ==========================================
+        // 🚀 ระบบ Supabase & Smart Filter Data 
+        // ==========================================
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
 
         let locationData = {};
-        let masterData = {}; // 🆕 เก็บข้อมูลจากตาราง part_master
+        let masterData = {}; 
 
         function boxIdsFor(locId) {
             const ids = ['box-' + locId];
@@ -391,9 +453,7 @@
             return ids;
         }
 
-        // ดึงข้อมูลทั้ง Locations และ Master Data
         async function fetchAllData() {
-            // 1. ดึง Master Data
             const resMaster = await sbClient.from("part_master").select("*");
             if(!resMaster.error) {
                 resMaster.data.forEach(item => {
@@ -401,7 +461,6 @@
                 });
             }
 
-            // 2. ดึง Location Data
             const resLoc = await sbClient.from("locations").select("*");
             if(!resLoc.error) {
                 resLoc.data.forEach(loc => {
@@ -429,7 +488,18 @@
             });
         }
 
-        // --- ระบบค้นหาแบบเจาะจง (Smart Filter) ---
+        // --- ฟังก์ชันย่อ/ขยายกล่องค้นหา ---
+        function toggleMinimizeSearch() {
+            const panel = document.getElementById('searchResultsPanel');
+            panel.classList.toggle('minimized');
+        }
+
+        function closeSearchPanel() {
+            const panel = document.getElementById('searchResultsPanel');
+            panel.classList.add('hidden');
+            panel.classList.remove('minimized'); // เคลียร์สถานะย่อเมื่อกดปิด
+        }
+
         document.getElementById('searchInput').addEventListener('input', e => {
             const term = e.target.value.trim().toUpperCase();
             document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
@@ -437,10 +507,11 @@
             const panel = document.getElementById('searchResultsPanel');
             const content = document.getElementById('searchResultsContent');
             const panelTitle = document.getElementById('searchPanelTitle');
+            const minCount = document.getElementById('minSearchCount'); // ตัวแปรอัปเดตยอดค้นหาตอนย่อ
             const t = translations[currentLang] || translations.th;
 
             if(!term) {
-                panel.classList.add('hidden');
+                closeSearchPanel();
                 return;
             }
 
@@ -462,6 +533,7 @@
                 });
 
                 if(matchedItems.length > 0 || locId.toUpperCase().includes(term)) {
+
                     boxIdsFor(locId).forEach(id => { 
                         const b = document.getElementById(id); 
                         if(b) b.classList.add('highlight-blink'); 
@@ -494,13 +566,18 @@
                 }
             }
 
+            // แสดงกล่องผลลัพธ์แบบขยายเต็มทุกครั้งที่พิมพ์ค้นหาใหม่
+            panel.classList.remove('minimized');
+
             if(foundCount > 0) {
                 content.innerHTML = html;
                 panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchFoundPrefix} ${foundCount} ${t.searchFoundSuffix}`;
+                minCount.innerText = `${foundCount} รายการ`; // อัปเดตตัวเลขในกล่องย่อ
                 panel.classList.remove('hidden');
             } else {
                 content.innerHTML = `<div class="text-center text-[var(--text-sub)] py-6 text-sm font-bold"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>${t.searchNotFoundDesc}</div>`;
                 panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchNotFoundTitle}`;
+                minCount.innerText = `0 รายการ`;
                 panel.classList.remove('hidden');
             }
         });

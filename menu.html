@@ -133,9 +133,12 @@
             <!-- ลูกเล่นวงกลมเบลอหลังโลโก้ -->
             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-sky-500/20 rounded-full blur-2xl"></div>
             
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-tr from-sky-400 to-blue-600 rounded-2xl mb-5 shadow-lg shadow-sky-500/40 transform rotate-3 hover:rotate-0 transition-transform duration-300">
-                <i class="fa-solid fa-boxes-stacked text-4xl text-white"></i>
-            </div>
+           <div class="relative inline-flex items-center justify-center h-24 mb-6 group cursor-pointer">
+            <!-- แสงออร่าพื้นหลัง (Glow Effect) -->
+            <div class="absolute inset-0 bg-red-500/10 blur-xl rounded-full group-hover:bg-red-500/20 transition-colors duration-500"></div>
+            <!-- โลโก้ KSS -->
+            <img src="logo.png" alt="KSS Logo" class="h-full w-auto object-contain relative z-10 drop-shadow-xl transition-all duration-300 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-active:scale-95">
+        </div>
             
             <h1 class="text-3xl font-black tracking-wider mb-2 bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-emerald-400 drop-shadow-sm" data-i18n="appTitle">KAOSU WMS</h1>
             <p class="text-[var(--text-sub)] text-sm font-medium tracking-wide" data-i18n="appDesc">Smart Warehouse & Dispatch System</p>

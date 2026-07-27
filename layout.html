@@ -142,15 +142,14 @@
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
 
         /* ✅ CSS สำหรับกล่องค้นหาแบบย่อได้ (Minimize State) */
-        /* กล่องผลการค้นหา: มือถือ = การ์ดเล็กกะทัดรัดชิดขวา, จอใหญ่ = กว้างเต็มช่องค้นหาอ่านง่าย */
+        /* ✅ จุดที่ 2: เปลี่ยนให้ผลการค้นหากว้าง 100% ตามขนาดช่องค้นหาเป๊ะๆ ไม่กางล้นจอ */
         #searchResultsPanel {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            width: min(88vw, 300px);
-            left: auto !important;
-            right: 0;
+            width: 100%;
         }
         #searchResultsPanel.minimized {
-            top: 85px !important; /* ดันไปหลบใต้ Navbar */
+            position: fixed !important; /* ตอนย่อให้ลอยชิดขวาจอ */
+            top: 75px !important;
             left: auto !important;
             right: 16px !important;
             width: 140px !important;
@@ -166,20 +165,49 @@
         #searchResultsPanel.minimized .min-header { display: flex !important; }
         .min-header { display: none; }
 
-        @media (min-width: 768px) {
-            #searchResultsPanel { width: 100%; right: 0; }
-        }
-
-        /* ✅ อนุญาตให้ใช้สองนิ้วซูม และเลื่อนแผนที่ได้อิสระ */
+        /* อนุญาตให้ใช้สองนิ้วซูม และเลื่อนแผนที่ได้อิสระ */
         #scroll-wrapper { touch-action: pan-x pan-y; }
+
+        /* ✅ จุดที่ 3: CSS สำหรับ Legend แบบพับได้ ล็อกตำแหน่งมุมขวาล่าง และกดคลิกเพื่อเปิดปิด */
+        .legend-container {
+            position: fixed; right: 16px; bottom: 90px; z-index: 90;
+            display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+        }
+        .legend-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            color: var(--text-main); font-size: 18px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px);
+            transition: transform 0.1s ease;
+        }
+        .legend-btn:active { transform: scale(0.9); }
+        
+        .legend-content {
+            background: var(--glass-bg); backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border); border-radius: 16px;
+            padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: flex; flex-direction: column; gap: 10px;
+            
+            /* ซ่อนไว้และตั้งตำแหน่งให้อยู่เหนือปุ่ม */
+            opacity: 0; transform: translateY(20px) scale(0.9); pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: bottom right; width: 220px;
+            position: absolute; bottom: 60px; right: 0;
+        }
+        /* ทำงานต่อเมื่อถูกเพิ่มคลาส .active ผ่าน Javascript เท่านั้น */
+        #legendContainer.active .legend-content {
+            opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: bold; color: var(--text-main); }
     </style>
 </head>
 <body class="h-screen flex flex-col select-none relative" data-theme="dark">
 
     <div class="mouse-glow"></div>
 
-    <!-- 🌐 Top Navbar (Glassmorphism + KSS Logo) -->
-    <div class="glass-panel sticky top-0 p-3 z-[60] border-b-0 m-3 rounded-2xl">
+    <!-- 🌐 Top Navbar (✅ จุดที่ 1: เปลี่ยนจาก m-3 เป็น w-full border-b เพื่อลบกรอบใสล่องหนบัง 3D) -->
+    <div class="glass-panel sticky top-0 p-3 z-[80] w-full border-b border-[var(--glass-border)] shadow-sm">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
             
             <div class="flex items-center gap-4 w-full md:w-auto">
@@ -198,27 +226,22 @@
                 </div>
             </div>
 
-            <!-- 🔍 Search Box (โครงสร้างกล่องย่อ-ขยายได้) -->
-            <div class="relative w-full md:w-96">
+            <!-- 🔍 Search Box (✅ จุดที่ 2: ใส่ z-[100] ให้แม่ และเปลี่ยนลูกเป็น absolute w-full) -->
+            <div class="relative w-full md:w-[28rem] z-[100]">
                 <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-[var(--text-sub)]"></i>
                 <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)..."
                     class="w-full glass-input rounded-full py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-inner font-bold placeholder-[var(--text-sub)]">
                 
-                <!-- ✅ กล่องค้นหาที่อัปเกรดให้ย่อ/ขยายได้ -->
-                <div id="searchResultsPanel" class="fixed top-[130px] md:top-full md:mt-2 md:left-0 max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl z-[100] flex flex-col hidden transition-all duration-300">
-                    
-                    <!-- โหมดขยาย (Full Header) -->
+                <!-- เปลี่ยน class เป็น absolute top-[calc(100%+8px)] เพื่อให้กล่องพอดีใต้ Search -->
+                <div id="searchResultsPanel" class="absolute top-[calc(100%+8px)] left-0 w-full max-h-[40vh] md:max-h-[300px] glass-input backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-2xl flex flex-col hidden transition-all duration-300">
                     <div class="full-header bg-[var(--glass-bg)] text-[var(--text-main)] text-[11px] font-bold px-4 py-2.5 rounded-t-xl border-b border-[var(--glass-border)] flex justify-between items-center shadow-sm">
                         <span id="searchPanelTitle" class="text-sky-500"><i class="fa-solid fa-list-ul mr-1.5"></i> <span data-i18n="searchPanelDefaultTitle">สรุปผลการค้นหา</span></span>
                         <div class="flex gap-2 items-center">
-                            <!-- ปุ่มย่อ (Minimize) -->
                             <button onclick="toggleMinimizeSearch()" class="text-[var(--text-sub)] hover:text-sky-500 transition-colors p-1" title="ย่อหน้าต่างเก็บ"><i class="fa-solid fa-compress text-sm"></i></button>
-                            <!-- ปุ่มปิด (Close) -->
                             <button onclick="closeSearchPanel()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-base"></i></button>
                         </div>
                     </div>
 
-                    <!-- โหมดย่อ (Minimized Header) จะแสดงตอนกดปุ่มย่อเท่านั้น -->
                     <div class="min-header w-full px-4 py-2 flex justify-between items-center cursor-pointer hover:bg-[var(--card-hover)] transition-colors rounded-full h-full" onclick="toggleMinimizeSearch()">
                         <span class="text-sky-500 text-[11px] font-bold flex items-center gap-1.5"><i class="fa-solid fa-magnifying-glass"></i> <span id="minSearchCount">0 รายการ</span></span>
                         <i class="fa-solid fa-expand text-[var(--text-sub)]"></i>
@@ -228,7 +251,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 flex-wrap justify-center w-full md:w-auto">
+            <div class="flex items-center gap-2 flex-wrap justify-center w-full md:w-auto mt-2 md:mt-0">
                 <!-- Theme Switcher -->
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
                     <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Light Theme"></button>
@@ -250,19 +273,6 @@
         </div>
     </div>
 
-    <!-- 🕹️ View Controls (ลอยอยู่ด้านล่าง ไม่บังแผนที่) -->
-    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-[60] flex justify-center gap-2 glass-panel p-1.5 md:p-2.5 rounded-2xl shadow-2xl border border-[var(--glass-border)] w-[90%] md:w-auto">
-        <button onclick="changeView('3d')" id="btn-3d" class="bg-gradient-to-r from-sky-500 to-blue-600 text-white text-[10px] md:text-xs font-black px-3 md:px-5 py-2 md:py-2.5 rounded-xl shadow-lg transition-all active:scale-95 whitespace-nowrap flex-1 md:flex-none">
-            <i class="fa-solid fa-layer-group"></i> <span data-i18n="btnOverview">ภาพรวม 3D</span>
-        </button>
-        <button onclick="changeView('f1')" id="btn-f1" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] text-[10px] md:text-xs font-bold px-3 md:px-5 py-2 md:py-2.5 rounded-xl transition-all shadow-sm whitespace-nowrap flex-1 md:flex-none">
-            <i class="fa-solid fa-arrow-down"></i> <span data-i18n="btnFocusF1">ชั้น 1</span>
-        </button>
-        <button onclick="changeView('f2')" id="btn-f2" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] text-[10px] md:text-xs font-bold px-3 md:px-5 py-2 md:py-2.5 rounded-xl transition-all shadow-sm whitespace-nowrap flex-1 md:flex-none">
-            <i class="fa-solid fa-arrow-up"></i> <span data-i18n="btnFocusF2">ชั้น 2</span>
-        </button>
-    </div>
-
     <!-- 🗺️ โครงสร้างแผนผัง 3D (โครงสร้างเดิมที่เพิ่มระบบ 2 นิ้วซูม) -->
     <div id="scroll-wrapper" class="flex-1 w-full overflow-auto relative custom-scroll z-10">
         <div id="spacer" class="relative flex justify-center md:items-center p-4 pt-12 md:p-10 min-w-max min-h-max transition-all">
@@ -280,6 +290,36 @@
         </div>
     </div>
 
+    <!-- 🕹️ View Controls (ลอยอยู่ด้านล่าง ไม่บังแผนที่) -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-[60] flex justify-center gap-2 glass-panel p-1.5 md:p-2.5 rounded-2xl shadow-2xl border border-[var(--glass-border)] w-[90%] md:w-auto">
+        <button onclick="changeView('3d')" id="btn-3d" class="bg-gradient-to-r from-sky-500 to-blue-600 text-white text-[10px] md:text-xs font-black px-3 md:px-5 py-2 md:py-2.5 rounded-xl shadow-lg transition-all active:scale-95 whitespace-nowrap flex-1 md:flex-none">
+            <i class="fa-solid fa-layer-group"></i> <span data-i18n="btnOverview">ภาพรวม 3D</span>
+        </button>
+        <button onclick="changeView('f1')" id="btn-f1" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] text-[10px] md:text-xs font-bold px-3 md:px-5 py-2 md:py-2.5 rounded-xl transition-all shadow-sm whitespace-nowrap flex-1 md:flex-none">
+            <i class="fa-solid fa-arrow-down"></i> <span data-i18n="btnFocusF1">ชั้น 1</span>
+        </button>
+        <button onclick="changeView('f2')" id="btn-f2" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] text-[10px] md:text-xs font-bold px-3 md:px-5 py-2 md:py-2.5 rounded-xl transition-all shadow-sm whitespace-nowrap flex-1 md:flex-none">
+            <i class="fa-solid fa-arrow-up"></i> <span data-i18n="btnFocusF2">ชั้น 2</span>
+        </button>
+    </div>
+
+    <!-- 💡 ✅ จุดที่ 3: ปุ่ม Legend แบบคลิก (สัญลักษณ์ ?) -->
+    <div id="legendContainer" class="legend-container">
+        <div class="legend-content" onclick="event.stopPropagation()">
+            <div class="text-xs font-black text-sky-500 mb-1 border-b border-[var(--glass-border)] pb-2"><i class="fa-solid fa-circle-info mr-1"></i> คำอธิบายสัญลักษณ์</div>
+            <div class="legend-item"><span class="w-3 h-3 rounded-full bg-green-500 shadow"></span> <span data-i18n="legendEmpty">ว่าง (Empty)</span></div>
+            <div class="legend-item"><span class="w-3 h-3 rounded-full bg-yellow-500 shadow"></span> <span data-i18n="legendPartial">มีบางส่วน (Partial)</span></div>
+            <div class="legend-item"><span class="w-3 h-3 rounded-full bg-red-500 shadow"></span> <span data-i18n="legendFull">เต็ม (Full)</span></div>
+            <div class="legend-item"><span class="w-3 h-3 rounded-sm bg-[var(--input-bg)] border border-[var(--glass-border)]"></span> <span data-i18n="legendRackPoint">จุดวางสินค้า</span></div>
+            <div class="legend-item"><span class="w-3 h-3 rounded-sm" style="background:rgba(139, 92, 246, 0.4);border:1px solid #8b5cf6;"></span> <span data-i18n="legendLift">ลิฟต์ขนของ</span></div>
+            <div class="legend-item"><span class="w-3 h-3 rounded-sm bg-slate-500/20 border border-dashed border-slate-500"></span> <span data-i18n="legendZone">พื้นที่/เครื่องจักร</span></div>
+        </div>
+        <!-- ผูกฟังก์ชัน toggleLegend -->
+        <div class="legend-btn" title="คำอธิบายสี" onclick="toggleLegend(event)">
+            <i class="fa-solid fa-question"></i>
+        </div>
+    </div>
+
     <!-- 🪟 Info Modal -->
     <div id="infoModal" class="modal-overlay" onclick="closeModal(event)">
         <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-sm shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
@@ -294,6 +334,25 @@
     </div>
 
 <script>
+        // ✅ ประกาศตัวแปรนี้ก่อนใช้งาน ไม่งั้น translations[currentLang] จะพังทุกจุด ทำให้ค้นหาหรือกดดูข้อมูลไม่ได้
+        let currentLang = localStorage.getItem('wms_lang') || 'th';
+
+        // ==========================================
+        // 💡 ✅ 3. สคริปต์เปิดปิดกล่อง Legend ด้วยการคลิก
+        // ==========================================
+        function toggleLegend(e) {
+            e.stopPropagation(); 
+            const legend = document.getElementById('legendContainer');
+            if (legend) legend.classList.toggle('active');
+        }
+
+        document.addEventListener('click', (e) => {
+            const legend = document.getElementById('legendContainer');
+            if (legend && legend.classList.contains('active') && !e.target.closest('#legendContainer')) {
+                legend.classList.remove('active');
+            }
+        });
+
         // ==========================================
         // 🎨 Theme Engine
         // ==========================================
@@ -459,9 +518,9 @@
             if (mode === 'f2') { badge.setAttribute('data-i18n','badgeF2'); badge.textContent = t.badgeF2; badge.className = 'floor-badge-outside bg-amber-900 text-amber-300 border border-amber-500'; }
         }
 
-        // ==========================================
+        // ==========================================================================
         // 🚀 ระบบ Supabase & Smart Filter Data 
-        // ==========================================
+        // ==========================================================================
         const SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
         const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
@@ -658,166 +717,35 @@
 
         function closeModal(e) { document.getElementById('infoModal').classList.remove('active'); }
         document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); });
-    </script>
 
-    <!-- ========================================== -->
-    <!-- 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n) -->
-    <!-- ========================================== -->
-    <script>
-    const translations = {
-        th: {
-            navMenu: "เมนูหลัก",
-            searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...",
-            btnOverview: "ภาพรวม 3D",
-            btnFocusF1: "ชั้น 1",
-            btnFocusF2: "ชั้น 2",
-            legendEmpty: "ว่าง (Empty)",
-            legendPartial: "มีบางส่วน (Partial)",
-            legendFull: "เต็ม (Full)",
-            legendRackPoint: "จุดวางสินค้า",
-            legendLift: "ลิฟต์ขนของ",
-            legendZone: "พื้นที่/เครื่องจักร",
-            badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)",
-            badgeF1: "1ST FLOOR",
-            badgeF2: "2ND FLOOR",
-            modalClose: "ปิดหน้าต่าง",
-            modalNoData: "ไม่มีสินค้าในช่องนี้",
-            modalNotFound: "ไม่พบข้อมูล",
-            statusEmpty: "ว่าง (Empty)",
-            statusPartial: "กลาง (Partial)",
-            statusFull: "เต็ม (Full)",
-            statusUnknown: "ไม่มีข้อมูล",
-            searchPanelDefaultTitle: "สรุปผลการค้นหา",
-            searchFoundPrefix: "พบ",
-            searchFoundSuffix: "ตำแหน่ง",
-            searchNotFoundTitle: "ไม่พบรายการ",
-            searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา",
-            labelCode: "Code",
-            labelMaxStack: "Max Stack",
-            labelPack: "แพ็ก",
-            labelCustomer: "ลูกค้า",
-            labelMax: "Max"
-        },
-        zh: {
-            navMenu: "主選單",
-            searchPlaceholder: "搜尋商品代碼、名稱、儲位...",
-            btnOverview: "3D 總覽",
-            btnFocusF1: "1樓",
-            btnFocusF2: "2樓",
-            legendEmpty: "空 (Empty)",
-            legendPartial: "部分 (Partial)",
-            legendFull: "滿 (Full)",
-            legendRackPoint: "儲位",
-            legendLift: "貨梯",
-            legendZone: "區域/機台",
-            badgeOverview: "3D 總覽 (1-2樓)",
-            badgeF1: "1樓",
-            badgeF2: "2樓",
-            modalClose: "關閉視窗",
-            modalNoData: "此儲位無商品",
-            modalNotFound: "找不到資料",
-            statusEmpty: "空 (Empty)",
-            statusPartial: "部分 (Partial)",
-            statusFull: "滿 (Full)",
-            statusUnknown: "無資料",
-            searchPanelDefaultTitle: "搜尋結果",
-            searchFoundPrefix: "找到",
-            searchFoundSuffix: "個位置",
-            searchNotFoundTitle: "找不到結果",
-            searchNotFoundDesc: "找不到符合的資料",
-            labelCode: "代碼",
-            labelMaxStack: "最大堆疊",
-            labelPack: "包裝",
-            labelCustomer: "客戶",
-            labelMax: "最大"
-        },
-        mm: {
-            navMenu: "မီနူးမူ",
-            searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...",
-            btnOverview: "3D ကြည့်ရန်",
-            btnFocusF1: "ပထမထပ်",
-            btnFocusF2: "ဒုတိယထပ်",
-            legendEmpty: "လွတ်",
-            legendPartial: "အချို့",
-            legendFull: "ပြည့်",
-            legendRackPoint: "နေရာ",
-            legendLift: "ဓာတ်လှေကား",
-            legendZone: "နေရာ/စက်",
-            badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)",
-            badgeF1: "ပထမထပ်",
-            badgeF2: "ဒုတိယထပ်",
-            modalClose: "ပိတ်ရန်",
-            modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ",
-            modalNotFound: "ဒေတာမတွေ့ပါ",
-            statusEmpty: "လွတ်",
-            statusPartial: "အချို့",
-            statusFull: "ပြည့်",
-            statusUnknown: "မသိပါ",
-            searchPanelDefaultTitle: "ရလဒ်များ",
-            searchFoundPrefix: "တွေ့ပြီး",
-            searchFoundSuffix: "နေရာ",
-            searchNotFoundTitle: "မတွေ့ပါ",
-            searchNotFoundDesc: "ဒေတာမတွေ့ပါ",
-            labelCode: "ကုဒ်",
-            labelMaxStack: "အများဆုံး",
-            labelPack: "ထုပ်ပိုး",
-            labelCustomer: "ဖောက်သည်",
-            labelMax: "Max"
-        },
-        en: {
-            navMenu: "Main Menu",
-            searchPlaceholder: "Search item, name, location...",
-            btnOverview: "3D Overview",
-            btnFocusF1: "Floor 1",
-            btnFocusF2: "Floor 2",
-            legendEmpty: "Empty",
-            legendPartial: "Partial",
-            legendFull: "Full",
-            legendRackPoint: "Storage",
-            legendLift: "Cargo Lift",
-            legendZone: "Zone/Machine",
-            badgeOverview: "3D Overview (F1-F2)",
-            badgeF1: "1ST FLOOR",
-            badgeF2: "2ND FLOOR",
-            modalClose: "Close",
-            modalNoData: "No items here",
-            modalNotFound: "Not found",
-            statusEmpty: "Empty",
-            statusPartial: "Partial",
-            statusFull: "Full",
-            statusUnknown: "No data",
-            searchPanelDefaultTitle: "Search Results",
-            searchFoundPrefix: "Found",
-            searchFoundSuffix: "location(s)",
-            searchNotFoundTitle: "No results",
-            searchNotFoundDesc: "No matching data",
-            labelCode: "Code",
-            labelMaxStack: "Max Stack",
-            labelPack: "Pack",
-            labelCustomer: "Customer",
-            labelMax: "Max"
+        // ==========================================
+        // 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n)
+        // ==========================================
+        // ... (ลบ let currentLang = ... บรรทัดซ้ำซ้อนออก แล้วเรียกใช้เลย) ...
+        const translations = {
+            th: { navMenu: "เมนูหลัก", searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...", btnOverview: "ภาพรวม 3D", btnFocusF1: "ชั้น 1", btnFocusF2: "ชั้น 2", legendEmpty: "ว่าง (Empty)", legendPartial: "มีบางส่วน (Partial)", legendFull: "เต็ม (Full)", legendRackPoint: "จุดวางสินค้า", legendLift: "ลิฟต์ขนของ", legendZone: "พื้นที่/เครื่องจักร", badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "ปิดหน้าต่าง", modalNoData: "ไม่มีสินค้าในช่องนี้", modalNotFound: "ไม่พบข้อมูล", statusEmpty: "ว่าง (Empty)", statusPartial: "กลาง (Partial)", statusFull: "เต็ม (Full)", statusUnknown: "ไม่มีข้อมูล", searchPanelDefaultTitle: "สรุปผลการค้นหา", searchFoundPrefix: "พบ", searchFoundSuffix: "ตำแหน่ง", searchNotFoundTitle: "ไม่พบรายการ", searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "แพ็ก", labelCustomer: "ลูกค้า", labelMax: "Max" },
+            zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大" },
+            mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max" },
+            en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max" }
+        };
+
+        function changeLanguage(lang) {
+            if (!translations[lang]) return;
+            currentLang = lang;
+            localStorage.setItem('wms_lang', lang);
+
+            document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang);
+
+            const t = translations[lang];
+            document.querySelectorAll("[data-i18n]").forEach(el => {
+                const key = el.getAttribute("data-i18n");
+                if (t[key] !== undefined) el.textContent = t[key];
+            });
+            document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+                const key = el.getAttribute("data-i18n-placeholder");
+                if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
+            });
         }
-    };
-
-    let currentLang = localStorage.getItem('wms_lang') || 'th';
-
-    function changeLanguage(lang) {
-        if (!translations[lang]) return;
-        currentLang = lang;
-        localStorage.setItem('wms_lang', lang);
-
-        document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang);
-
-        const t = translations[lang];
-        document.querySelectorAll("[data-i18n]").forEach(el => {
-            const key = el.getAttribute("data-i18n");
-            if (t[key] !== undefined) el.textContent = t[key];
-        });
-        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
-            const key = el.getAttribute("data-i18n-placeholder");
-            if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
-        });
-    }
-    </script>
+</script>
 </body>
 </html>

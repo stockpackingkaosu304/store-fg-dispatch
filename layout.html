@@ -310,6 +310,12 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap justify-center w-full md:w-auto mt-2 md:mt-0">
+                <!-- 🆕 Staff Status / Logout Button: แสดงเฉพาะตอนมีรหัสพนักงานที่ยืนยันแล้วค้างอยู่ กดเพื่อออกจากระบบ -->
+                <button id="staffStatusBtn" onclick="handleStaffStatusClick()" class="hidden items-center gap-1.5 glass-input rounded-full px-3 py-2 h-10 shadow-inner hover:border-red-400 transition-colors text-[11px] font-bold" title="ออกจากระบบ (ล้างรหัสพนักงาน)">
+                    <i class="fa-solid fa-id-badge text-sky-500"></i>
+                    <span id="staffStatusLabel" class="max-w-[80px] truncate"></span>
+                    <i class="fa-solid fa-right-from-bracket text-[var(--text-sub)]"></i>
+                </button>
                 <!-- 🆕 Issues Bell (สำหรับพนักงาน/หัวหน้างานเข้าไปดูรายการแจ้งปัญหา) -->
                 <button onclick="openIssuesPanel()" class="bell-btn glass-input rounded-full w-10 h-10 flex items-center justify-center shadow-inner hover:border-sky-400 transition-colors" title="รายการแจ้งปัญหา">
                     <i class="fa-solid fa-bell text-amber-400"></i>
@@ -944,8 +950,60 @@
             renderIssueItemButtons(filtered);
         }
 
+        // ==========================================
+        // 🆕 Staff Session: จำรหัสพนักงานไว้ในเครื่อง แต่ถ้าไม่มีการใช้งานเกิน 15 นาที ให้ล้างอัตโนมัติ
+        // ==========================================
+        const STAFF_SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 นาที
+
+        // คืนค่ารหัสพนักงานถ้ายัง "active" อยู่ในช่วง session (ไม่เกิน 15 นาทีนับจากใช้งานล่าสุด)
+        // ถ้าหมดเวลาแล้วจะล้างข้อมูลอัตโนมัติและถือว่ายังไม่ได้ล็อกอิน
         function getStaffId() {
-            return localStorage.getItem('wms_staff_id') || '';
+            const id = localStorage.getItem('wms_staff_id') || '';
+            if (!id) return '';
+            const lastActive = parseInt(localStorage.getItem('wms_staff_last_active') || '0', 10);
+            if (!lastActive || (Date.now() - lastActive) > STAFF_SESSION_TIMEOUT_MS) {
+                clearStaffSession();
+                return '';
+            }
+            return id;
+        }
+
+        // อัปเดตเวลาใช้งานล่าสุด เรียกทุกครั้งที่มีการใช้รหัสพนักงานจริง (ต่ออายุ session แบบ sliding window)
+        function touchStaffSession() {
+            if (localStorage.getItem('wms_staff_id')) {
+                localStorage.setItem('wms_staff_last_active', Date.now().toString());
+            }
+        }
+
+        function clearStaffSession() {
+            localStorage.removeItem('wms_staff_id');
+            localStorage.removeItem('wms_staff_name');
+            localStorage.removeItem('wms_staff_last_active');
+            updateStaffStatusUI();
+        }
+
+        // แสดง/ซ่อนปุ่มสถานะ+ออกจากระบบ ตามว่ามีรหัสพนักงานที่ยัง active อยู่หรือไม่
+        function updateStaffStatusUI() {
+            const btn = document.getElementById('staffStatusBtn');
+            const label = document.getElementById('staffStatusLabel');
+            if (!btn || !label) return;
+            const id = getStaffId();
+            if (id) {
+                label.innerText = localStorage.getItem('wms_staff_name') || id;
+                btn.classList.remove('hidden');
+                btn.classList.add('flex');
+            } else {
+                btn.classList.add('hidden');
+                btn.classList.remove('flex');
+            }
+        }
+
+        function handleStaffStatusClick() {
+            const t = translations[currentLang] || translations.th;
+            if (confirm(t.staffLogoutConfirm || 'ต้องการออกจากระบบ (ล้างรหัสพนักงานที่จำไว้ในเครื่องนี้) หรือไม่?')) {
+                clearStaffSession();
+                alert(t.staffLogoutSuccess || 'ออกจากระบบเรียบร้อยแล้ว');
+            }
         }
 
         function submitIssue(issueType) {
@@ -956,6 +1014,7 @@
                 document.getElementById('staffIdModal').classList.add('active');
                 return;
             }
+            touchStaffSession();
             sendIssueToSupabase(issueType, staffId);
         }
 
@@ -995,9 +1054,11 @@
                     return;
                 }
 
-                // ผ่านการตรวจสอบกับ whitelist แล้ว ค่อยจำไว้ในเครื่อง
+                // ผ่านการตรวจสอบกับ whitelist แล้ว ค่อยจำไว้ในเครื่อง (พร้อมเวลาใช้งานล่าสุด สำหรับนับ session 15 นาที)
                 localStorage.setItem('wms_staff_id', data.staff_id);
                 localStorage.setItem('wms_staff_name', data.name || '');
+                localStorage.setItem('wms_staff_last_active', Date.now().toString());
+                updateStaffStatusUI();
                 document.getElementById('staffIdModal').classList.remove('active');
 
                 if (pendingStaffAction) {
@@ -1090,6 +1151,7 @@
                 document.getElementById('staffIdModal').classList.add('active');
                 return;
             }
+            touchStaffSession();
             openIssuesPanelContent();
         }
 
@@ -1147,6 +1209,7 @@
         }
 
         async function resolveIssue(id) {
+            touchStaffSession();
             const { error } = await sbClient.from('location_issues').update({ status: 'RESOLVED' }).eq('id', id);
             if (error) { console.error(error); return; }
             const item = issuesCache.find(i => i.id === id);
@@ -1180,7 +1243,12 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); refreshIssuesBadge(); });
+        document.addEventListener("DOMContentLoaded", () => {
+            initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); refreshIssuesBadge();
+            updateStaffStatusUI();
+            // ✅ เช็กทุก 30 วินาทีว่ารหัสพนักงานหมดอายุ (idle เกิน 15 นาที) หรือยัง ถ้าหมดจะล้างอัตโนมัติและซ่อนปุ่มออกจากระบบ
+            setInterval(updateStaffStatusUI, 30 * 1000);
+        });
 
         // ==========================================
         // 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n)
@@ -1191,6 +1259,7 @@
                 reportIssueBtn: "แจ้งปัญหา", reportIssueTitle: "แจ้งปัญหา", reportIssuePrompt: "เลือกประเภทปัญหา", issueLocationMismatch: "ตำแหน่ง<br>ไม่ตรง", issueWrongColor: "สีถุง<br>ไม่ตรง", issueOther: "ปัญหา<br>อื่นๆ",
                 staffIdTitle: "กรอกรหัสพนักงาน", staffIdDesc: "กรอกครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนี้", staffIdPlaceholder: "เช่น EMP001", staffIdCancel: "ยกเลิก", staffIdConfirm: "ยืนยัน",
                 staffIdInvalid: "รหัสพนักงานไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน", staffIdCheckError: "ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่",
+                staffLogoutConfirm: "ต้องการออกจากระบบ (ล้างรหัสพนักงานที่จำไว้ในเครื่องนี้) หรือไม่?", staffLogoutSuccess: "ออกจากระบบเรียบร้อยแล้ว",
                 reportIssueSuccess: "ส่งแจ้งปัญหาเรียบร้อยแล้ว", reportIssueError: "เกิดข้อผิดพลาด กรุณาลองใหม่",
                 issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
                 issuesPanelTitle: "รายการแจ้งปัญหา", issuesFilterPending: "รอตรวจสอบ", issuesFilterAll: "ทั้งหมด", noIssues: "ไม่มีรายการแจ้งปัญหา",
@@ -1199,6 +1268,7 @@
                 reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
                 staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
                 staffIdInvalid: "員工編號無效或未獲授權", staffIdCheckError: "驗證失敗，請重試",
+                staffLogoutConfirm: "確定要登出嗎？(將清除本裝置記住的員工編號)", staffLogoutSuccess: "已成功登出",
                 reportIssueSuccess: "問題回報成功", reportIssueError: "發生錯誤，請重試",
                 issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
                 issuesPanelTitle: "問題回報列表", issuesFilterPending: "待處理", issuesFilterAll: "全部", noIssues: "沒有回報項目",
@@ -1207,6 +1277,7 @@
                 reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
                 staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
                 staffIdInvalid: "ဝန်ထမ်းကုဒ် မှားနေသည် သို့မဟုတ် ခွင့်ပြုချက်မရှိပါ", staffIdCheckError: "စစ်ဆေးမှု မအောင်မြင်ပါ ထပ်ကြိုးစားပါ",
+                staffLogoutConfirm: "ထွက်လိုပါသလား? (ဤစက်တွင် မှတ်ထားသော ဝန်ထမ်းကုဒ်ကို ရှင်းလင်းပါမည်)", staffLogoutSuccess: "အောင်မြင်စွာ ထွက်ပြီးပါပြီ",
                 reportIssueSuccess: "ပြဿနာတိုင်ကြားခြင်း အောင်မြင်ပါသည်", reportIssueError: "အမှားဖြစ်ပွားသည် ထပ်ကြိုးစားပါ",
                 issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
                 issuesPanelTitle: "ပြဿနာတိုင်ကြားမှုများ", issuesFilterPending: "စောင့်ဆိုင်းဆဲ", issuesFilterAll: "အားလုံး", noIssues: "တိုင်ကြားမှုမရှိပါ",
@@ -1215,6 +1286,7 @@
                 reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
                 staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
                 staffIdInvalid: "Invalid staff ID or not authorized", staffIdCheckError: "Could not verify staff ID, please try again",
+                staffLogoutConfirm: "Log out? (This will clear the staff ID remembered on this device)", staffLogoutSuccess: "Logged out successfully",
                 reportIssueSuccess: "Issue reported successfully", reportIssueError: "An error occurred, please try again",
                 issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",
                 issuesPanelTitle: "Reported Issues", issuesFilterPending: "Pending", issuesFilterAll: "All", noIssues: "No issues reported",

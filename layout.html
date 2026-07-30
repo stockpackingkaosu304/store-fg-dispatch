@@ -964,14 +964,49 @@
             document.getElementById('staffIdModal').classList.remove('active');
         }
 
-        function confirmStaffId() {
+        // ✅ เช็กรหัสพนักงานกับตาราง staff (whitelist) ใน Supabase ก่อนบันทึกเสมอ
+        //    - ต้องเจอ record ที่ staff_id ตรงกัน และ active = true เท่านั้นถึงจะผ่าน
+        //    - ถ้าไม่ผ่าน จะไม่บันทึกลง localStorage และแจ้งเตือนผู้ใช้ทันที
+        async function confirmStaffId() {
             const val = document.getElementById('staffIdInput').value.trim();
             if (!val) return;
-            localStorage.setItem('wms_staff_id', val);
-            document.getElementById('staffIdModal').classList.remove('active');
-            if (pendingIssueType) {
-                sendIssueToSupabase(pendingIssueType, val);
-                pendingIssueType = null;
+
+            const t = translations[currentLang] || translations.th;
+            const confirmBtn = document.querySelector('#staffIdModal button[onclick="confirmStaffId()"]');
+            const originalText = confirmBtn.innerText;
+            confirmBtn.disabled = true;
+            confirmBtn.innerText = '...';
+
+            try {
+                const { data, error } = await sbClient
+                    .from('staff')
+                    .select('staff_id, name, active')
+                    .eq('staff_id', val)
+                    .eq('active', true)
+                    .maybeSingle();
+
+                if (error) {
+                    alert(t.staffIdCheckError || 'ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่');
+                    console.error(error);
+                    return;
+                }
+                if (!data) {
+                    alert(t.staffIdInvalid || 'รหัสพนักงานไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน');
+                    return;
+                }
+
+                // ผ่านการตรวจสอบกับ whitelist แล้ว ค่อยจำไว้ในเครื่อง
+                localStorage.setItem('wms_staff_id', data.staff_id);
+                localStorage.setItem('wms_staff_name', data.name || '');
+                document.getElementById('staffIdModal').classList.remove('active');
+
+                if (pendingIssueType) {
+                    sendIssueToSupabase(pendingIssueType, data.staff_id);
+                    pendingIssueType = null;
+                }
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.innerText = originalText;
             }
         }
 
@@ -1138,6 +1173,7 @@
             th: { navMenu: "เมนูหลัก", searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...", btnOverview: "ภาพรวม 3D", btnFocusF1: "ชั้น 1", btnFocusF2: "ชั้น 2", legendEmpty: "ว่าง (Empty)", legendPartial: "มีบางส่วน (Partial)", legendFull: "เต็ม (Full)", legendRackPoint: "จุดวางสินค้า", legendLift: "ลิฟต์ขนของ", legendZone: "พื้นที่/เครื่องจักร", badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "ปิดหน้าต่าง", modalNoData: "ไม่มีสินค้าในช่องนี้", modalNotFound: "ไม่พบข้อมูล", statusEmpty: "ว่าง (Empty)", statusPartial: "กลาง (Partial)", statusFull: "เต็ม (Full)", statusUnknown: "ไม่มีข้อมูล", searchPanelDefaultTitle: "สรุปผลการค้นหา", searchFoundPrefix: "พบ", searchFoundSuffix: "ตำแหน่ง", searchNotFoundTitle: "ไม่พบรายการ", searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "แพ็ก", labelCustomer: "ลูกค้า", labelMax: "Max",
                 reportIssueBtn: "แจ้งปัญหา", reportIssueTitle: "แจ้งปัญหา", reportIssuePrompt: "เลือกประเภทปัญหา", issueLocationMismatch: "ตำแหน่ง<br>ไม่ตรง", issueWrongColor: "สีถุง<br>ไม่ตรง", issueOther: "ปัญหา<br>อื่นๆ",
                 staffIdTitle: "กรอกรหัสพนักงาน", staffIdDesc: "กรอกครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนี้", staffIdPlaceholder: "เช่น EMP001", staffIdCancel: "ยกเลิก", staffIdConfirm: "ยืนยัน",
+                staffIdInvalid: "รหัสพนักงานไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน", staffIdCheckError: "ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่",
                 reportIssueSuccess: "ส่งแจ้งปัญหาเรียบร้อยแล้ว", reportIssueError: "เกิดข้อผิดพลาด กรุณาลองใหม่",
                 issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
                 issuesPanelTitle: "รายการแจ้งปัญหา", issuesFilterPending: "รอตรวจสอบ", issuesFilterAll: "ทั้งหมด", noIssues: "ไม่มีรายการแจ้งปัญหา",
@@ -1145,6 +1181,7 @@
             zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
                 reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
                 staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
+                staffIdInvalid: "員工編號無效或未獲授權", staffIdCheckError: "驗證失敗，請重試",
                 reportIssueSuccess: "問題回報成功", reportIssueError: "發生錯誤，請重試",
                 issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
                 issuesPanelTitle: "問題回報列表", issuesFilterPending: "待處理", issuesFilterAll: "全部", noIssues: "沒有回報項目",
@@ -1152,6 +1189,7 @@
             mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
                 reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
                 staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
+                staffIdInvalid: "ဝန်ထမ်းကုဒ် မှားနေသည် သို့မဟုတ် ခွင့်ပြုချက်မရှိပါ", staffIdCheckError: "စစ်ဆေးမှု မအောင်မြင်ပါ ထပ်ကြိုးစားပါ",
                 reportIssueSuccess: "ပြဿနာတိုင်ကြားခြင်း အောင်မြင်ပါသည်", reportIssueError: "အမှားဖြစ်ပွားသည် ထပ်ကြိုးစားပါ",
                 issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
                 issuesPanelTitle: "ပြဿနာတိုင်ကြားမှုများ", issuesFilterPending: "စောင့်ဆိုင်းဆဲ", issuesFilterAll: "အားလုံး", noIssues: "တိုင်ကြားမှုမရှိပါ",
@@ -1159,6 +1197,7 @@
             en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
                 reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
                 staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
+                staffIdInvalid: "Invalid staff ID or not authorized", staffIdCheckError: "Could not verify staff ID, please try again",
                 reportIssueSuccess: "Issue reported successfully", reportIssueError: "An error occurred, please try again",
                 issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",
                 issuesPanelTitle: "Reported Issues", issuesFilterPending: "Pending", issuesFilterAll: "All", noIssues: "No issues reported",

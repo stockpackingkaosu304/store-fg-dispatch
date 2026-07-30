@@ -200,6 +200,64 @@
             opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
         }
         .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: bold; color: var(--text-main); }
+
+        /* ===== 🆕 Report Issue UI ===== */
+        .report-issue-btn {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: rgba(248, 113, 113, 0.12); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.35);
+            font-weight: 900; font-size: 12px; padding: 10px; border-radius: 12px;
+            cursor: pointer; transition: all 0.2s ease; margin-top: 10px;
+        }
+        .report-issue-btn:hover { background: rgba(248, 113, 113, 0.22); }
+        .report-issue-btn:active { transform: scale(0.97); }
+
+        .issue-type-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+            padding: 16px 8px; border-radius: 16px; cursor: pointer;
+            background: var(--input-bg); border: 1px solid var(--glass-border);
+            transition: all 0.15s ease; text-align: center;
+        }
+        .issue-type-btn:hover { background: var(--card-hover); border-color: #38bdf8; }
+        .issue-type-btn:active { transform: scale(0.95); }
+        .issue-type-btn i { font-size: 26px; }
+        .issue-type-btn span { font-size: 11px; font-weight: 800; color: var(--text-main); }
+
+        .staff-id-prompt input { text-align: center; letter-spacing: 0.1em; font-weight: 900; }
+
+        /* ===== 🆕 Item Quick-Pick (smart select, no typing/searching needed) ===== */
+        .item-pick-scroll { max-height: 200px; overflow-y: auto; }
+        .item-pick-btn {
+            display: flex; align-items: center; gap: 8px; width: 100%;
+            padding: 9px 10px; border-radius: 12px; cursor: pointer; text-align: left;
+            background: var(--input-bg); border: 1px solid var(--glass-border);
+            transition: all 0.15s ease; margin-bottom: 6px;
+        }
+        .item-pick-btn:hover { border-color: #38bdf8; }
+        .item-pick-btn.selected { background: rgba(56, 189, 248, 0.15); border-color: #0ea5e9; box-shadow: 0 0 0 1px #0ea5e9 inset; }
+        .item-pick-btn .ip-icon { width: 30px; height: 30px; min-width:30px; border-radius: 9px; display:flex; align-items:center; justify-content:center; background: rgba(56,189,248,0.12); color:#38bdf8; font-size: 13px; }
+        .item-pick-btn.selected .ip-icon { background:#0ea5e9; color:#fff; }
+        .item-pick-btn .ip-text { flex: 1; min-width: 0; }
+        .item-pick-btn .ip-name { font-size: 11.5px; font-weight: 800; color: var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .item-pick-btn .ip-code { font-size: 9.5px; color: var(--text-sub); font-family: monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .item-pick-btn .ip-check { font-size: 14px; color: #0ea5e9; opacity: 0; }
+        .item-pick-btn.selected .ip-check { opacity: 1; }
+
+        /* ===== 🆕 Notification bell (Issues) ===== */
+        .bell-btn { position: relative; }
+        .issues-badge {
+            position: absolute; top: -4px; right: -4px; background: #ef4444; color: #fff;
+            font-size: 9px; font-weight: 900; border-radius: 999px; min-width: 16px; height: 16px;
+            padding: 0 4px; display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--glass-bg); animation: blinker 1.4s linear infinite;
+        }
+
+        .issue-card { background: var(--input-bg); border: 1px solid var(--glass-border); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+        .issue-card .ic-loc { font-weight: 900; color: #38bdf8; font-size: 13px; }
+        .issue-card .ic-type-badge { font-size: 9px; font-weight: 900; padding: 3px 8px; border-radius: 999px; }
+        .issue-card .ic-meta { font-size: 10px; color: var(--text-sub); margin-top: 4px; }
+        .issue-card .ic-resolve-btn { margin-top: 8px; width: 100%; padding: 7px; border-radius: 10px; font-size: 11px; font-weight: 900; background: linear-gradient(to right, #22c55e, #16a34a); color: #fff; cursor: pointer; transition: all 0.15s ease; }
+        .issue-card .ic-resolve-btn:active { transform: scale(0.97); }
+        .issue-card.resolved { opacity: 0.55; }
     </style>
 </head>
 <body class="h-screen flex flex-col select-none relative" data-theme="dark">
@@ -252,6 +310,11 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap justify-center w-full md:w-auto mt-2 md:mt-0">
+                <!-- 🆕 Issues Bell (สำหรับพนักงาน/หัวหน้างานเข้าไปดูรายการแจ้งปัญหา) -->
+                <button onclick="openIssuesPanel()" class="bell-btn glass-input rounded-full w-10 h-10 flex items-center justify-center shadow-inner hover:border-sky-400 transition-colors" title="รายการแจ้งปัญหา">
+                    <i class="fa-solid fa-bell text-amber-400"></i>
+                    <span id="issuesBadge" class="issues-badge hidden">0</span>
+                </button>
                 <!-- Theme Switcher -->
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
                     <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Light Theme"></button>
@@ -263,7 +326,7 @@
                     <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
                     <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
                         <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
-                        <option value="zh" class="bg-slate-800 text-white">🇨🇳 ZH</option>
+                        <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
                         <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
                         <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
                     </select>
@@ -329,44 +392,81 @@
                 <span id="modalStatusBadge" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase border border-[var(--glass-border)] shadow-sm">Status</span>
             </div>
             <div class="glass-input p-3 md:p-4 rounded-2xl mb-4 min-h-[120px] max-h-[40vh] overflow-y-auto custom-scroll relative z-10 shadow-inner" id="modalBodyContent"></div>
-            
-            <!-- 🚨 เพิ่มปุ่มแจ้งปัญหา ตรงนี้ -->
-            <div class="flex gap-2 relative z-10">
-                <button onclick="closeModal(event)" class="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-[var(--card-hover)] text-[var(--text-main)] font-black py-3 rounded-xl transition-all shadow-sm active:scale-95 text-sm" data-i18n="modalClose">ปิดหน้าต่าง</button>
-                <button onclick="openReportModal()" class="w-full bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-white text-red-500 font-black py-3 rounded-xl transition-all shadow-sm active:scale-95 text-sm">
-                    <i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="btnReportIssue">แจ้งปัญหา</span>
-                </button>
+            <button onclick="closeModal(event)" class="relative z-10 w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-sky-500/30 active:scale-95 text-sm" data-i18n="modalClose">ปิดหน้าต่าง</button>
+            <button onclick="openReportIssue(event)" class="report-issue-btn relative z-10">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span data-i18n="reportIssueBtn">แจ้งปัญหา</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 🆕 Report Issue Modal -->
+    <div id="reportIssueModal" class="modal-overlay" onclick="closeReportIssue(event)">
+        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-sm shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-500/20 rounded-full blur-2xl"></div>
+            <div class="flex justify-between items-center mb-1 relative z-10">
+                <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-red-500"></i> <span data-i18n="reportIssueTitle">แจ้งปัญหา</span></h3>
+                <button onclick="closeReportIssue(event)" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="reportIssueLocLabel" class="text-sky-500 font-black text-sm mb-3 relative z-10">A1-00</div>
+
+            <!-- 🆕 Item Quick-Pick: เลือก SKU ที่มีปัญหาด้วยไอคอน ไม่ต้องพิมพ์ค้นหาหรือย้อนไปกด layout -->
+            <div id="issueItemPickerWrap" class="relative z-10 mb-4 hidden">
+                <div class="text-[11px] font-bold text-[var(--text-sub)] mb-2" data-i18n="issueSelectItemLabel">เลือกสินค้า (SKU) ที่มีปัญหา</div>
+                <div class="relative mb-2">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
+                    <input type="text" id="issueItemSearch" oninput="filterIssueItems(this.value)" data-i18n-placeholder="issueSearchItemPlaceholder" placeholder="พิมพ์เพื่อกรอง SKU..." class="w-full glass-input rounded-full py-2 pl-8 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div id="issueItemList" class="item-pick-scroll custom-scroll"></div>
+            </div>
+
+            <div class="relative z-10">
+                <div class="text-[11px] font-bold text-[var(--text-sub)] mb-2" data-i18n="reportIssuePrompt">เลือกประเภทปัญหา</div>
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <div class="issue-type-btn" onclick="submitIssue('LOCATION_MISMATCH')">
+                        <i class="fa-solid fa-location-crosshairs text-amber-500"></i>
+                        <span data-i18n="issueLocationMismatch">ตำแหน่ง<br>ไม่ตรง</span>
+                    </div>
+                    <div class="issue-type-btn" onclick="submitIssue('WRONG_COLOR')">
+                        <i class="fa-solid fa-palette text-pink-500"></i>
+                        <span data-i18n="issueWrongColor">สีถุง<br>ไม่ตรง</span>
+                    </div>
+                    <div class="issue-type-btn" onclick="submitIssue('OTHER')">
+                        <i class="fa-solid fa-circle-question text-slate-400"></i>
+                        <span data-i18n="issueOther">ปัญหา<br>อื่นๆ</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 🚨 Report Issue Modal (หน้าต่างแจ้งปัญหาใหม่) -->
-    <div id="reportModal" class="modal-overlay" onclick="closeReportModal(event)">
-        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-sm shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-500/20 rounded-full blur-2xl"></div>
+    <!-- 🆕 Issues Panel Modal (สำหรับพนักงาน/หัวหน้างานเข้าไปดูและแก้ปัญหาที่ถูกแจ้งเข้ามา) -->
+    <div id="issuesPanelModal" class="modal-overlay" onclick="closeIssuesPanel(event)">
+        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-lg shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl"></div>
             <div class="flex justify-between items-center mb-4 relative z-10">
-                <h3 class="text-xl font-black text-red-500 tracking-wider flex items-center gap-2">
-                    <i class="fa-solid fa-bullhorn"></i> <span data-i18n="reportTitle">แจ้งปัญหา</span> <span id="reportLocId" class="text-[var(--text-main)]"></span>
-                </h3>
+                <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-bell text-amber-400"></i> <span data-i18n="issuesPanelTitle">รายการแจ้งปัญหา</span></h3>
+                <button onclick="closeIssuesPanel(event)" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <p class="text-xs font-bold text-[var(--text-sub)] mb-4" data-i18n="reportDesc">ระบบจะส่งข้อมูลให้หัวหน้างานตรวจสอบทันที</p>
-            
-            <div class="space-y-3 relative z-10 mb-5">
-                <button onclick="submitIssue('LOCATION_MISMATCH')" class="w-full text-left glass-input hover:bg-sky-500/10 hover:border-sky-500 p-3 rounded-xl transition-colors shadow-sm flex items-center gap-3 active:scale-95">
-                    <div class="w-8 h-8 shrink-0 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center text-lg"><i class="fa-solid fa-map-pin"></i></div>
-                    <span class="font-bold text-sm text-[var(--text-main)]" data-i18n="reportMismatch">ตำแหน่งไม่ตรงกับระบบ</span>
-                </button>
-                <button onclick="submitIssue('WRONG_COLOR')" class="w-full text-left glass-input hover:bg-amber-500/10 hover:border-amber-500 p-3 rounded-xl transition-colors shadow-sm flex items-center gap-3 active:scale-95">
-                    <div class="w-8 h-8 shrink-0 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center text-lg"><i class="fa-solid fa-palette"></i></div>
-                    <span class="font-bold text-sm text-[var(--text-main)]" data-i18n="reportColor">สีถุงผิดจากข้อมูลในเว็บ</span>
-                </button>
-                <button onclick="submitIssue('OTHER')" class="w-full text-left glass-input hover:bg-red-500/10 hover:border-red-500 p-3 rounded-xl transition-colors shadow-sm flex items-center gap-3 active:scale-95">
-                    <div class="w-8 h-8 shrink-0 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-lg"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                    <span class="font-bold text-sm text-[var(--text-main)]" data-i18n="reportOther">ปัญหาอื่นๆ</span>
-                </button>
+            <div class="flex gap-2 mb-3 relative z-10">
+                <button onclick="setIssuesFilter('PENDING')" id="issuesFilterBtnPENDING" class="flex-1 py-2 rounded-xl text-[11px] font-black transition-all"></button>
+                <button onclick="setIssuesFilter('ALL')" id="issuesFilterBtnALL" class="flex-1 py-2 rounded-xl text-[11px] font-black transition-all"></button>
             </div>
+            <div id="issuesListContent" class="relative z-10 max-h-[55vh] overflow-y-auto custom-scroll pr-1"></div>
+        </div>
+    </div>
 
-            <button onclick="closeReportModal()" class="relative z-10 w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-[var(--card-hover)] text-[var(--text-main)] font-black py-3 rounded-xl transition-all shadow-sm active:scale-95 text-sm" data-i18n="btnCancel">ยกเลิก</button>
+    <!-- 🆕 Staff ID Prompt Modal -->
+    <div id="staffIdModal" class="modal-overlay">
+        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-xs shadow-2xl m-auto relative overflow-hidden staff-id-prompt" onclick="event.stopPropagation()">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-sky-500/20 rounded-full blur-2xl"></div>
+            <h3 class="text-base font-black text-[var(--text-main)] mb-1 relative z-10 flex items-center gap-2"><i class="fa-solid fa-id-badge text-sky-500"></i> <span data-i18n="staffIdTitle">กรอกรหัสพนักงาน</span></h3>
+            <p class="text-[11px] text-[var(--text-sub)] mb-3 relative z-10" data-i18n="staffIdDesc">กรอกครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนี้</p>
+            <input type="text" id="staffIdInput" data-i18n-placeholder="staffIdPlaceholder" placeholder="เช่น EMP001" class="w-full glass-input rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mb-3 relative z-10">
+            <div class="flex gap-2 relative z-10">
+                <button onclick="cancelStaffIdPrompt()" class="flex-1 glass-input text-[var(--text-main)] font-bold py-2.5 rounded-xl text-sm" data-i18n="staffIdCancel">ยกเลิก</button>
+                <button onclick="confirmStaffId()" class="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black py-2.5 rounded-xl text-sm shadow-lg" data-i18n="staffIdConfirm">ยืนยัน</button>
+            </div>
         </div>
     </div>
 
@@ -418,7 +518,7 @@
             const widthCols = loc.c2 - loc.c1 + 1;
             const narrow = widthCols === 1 && loc.val.length >= 4;
             const typeClass = loc.type === 'lift' ? ' type-lift' : '';
-            return `<div class="rack-box${narrow ? ' narrow-vert' : ''}${typeClass}" id="box-${id}" onclick="openModal('${id}')"
+            return `<div class="rack-box${narrow ? ' narrow-vert' : ''}${typeClass}" id="box-${id}"
                 style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1};">${iconFor(loc.type)}<span>${loc.val}</span></div>`;
         }
         function otherHtml(loc){
@@ -429,7 +529,7 @@
         function rackGroupHtml(loc){
             const inner = loc.items.map(it => {
                 const narrow = it.val.length >= 4;
-                return `<div class="rack-box${narrow ? ' narrow-vert' : ''}" id="box-${it.id}" onclick="openModal('${it.id}')"><span>${it.val}</span></div>`;
+                return `<div class="rack-box${narrow ? ' narrow-vert' : ''}" id="box-${it.id}"><span>${it.val}</span></div>`;
             }).join('');
             return `<div style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1}; display:grid; grid-template-columns:repeat(${loc.items.length}, 1fr);">${inner}</div>`;
         }
@@ -462,6 +562,7 @@
         // ดักจับเมื่อเอานิ้วแตะจอ (Touch Start)
         scrollWrapper.addEventListener('touchstart', (e) => {
             if(e.touches.length === 2) {
+                // คำนวณระยะห่างระหว่าง 2 นิ้ว
                 initialPinchDistance = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
@@ -472,14 +573,17 @@
         // ดักจับเมื่อขยับนิ้ว (Touch Move) เพื่อซูม
         scrollWrapper.addEventListener('touchmove', (e) => {
             if(e.touches.length === 2 && initialPinchDistance) {
-                e.preventDefault(); 
+                e.preventDefault(); // ป้องกันไม่ให้ Browser ทำการซูมมั่วๆ
                 const currentDistance = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
+                // คำนวณอัตราส่วนการขยาย
                 const scaleChange = currentDistance / initialPinchDistance;
-                currentScaleMultiplier = Math.max(0.5, Math.min(lastScaleMultiplier * scaleChange, 3)); 
+                currentScaleMultiplier = Math.max(0.5, Math.min(lastScaleMultiplier * scaleChange, 3)); // ล็อกการซูมไม่ให้เกิน 3 เท่า
 
+                // ✅ รวมหลาย touchmove ที่ยิงถี่ๆ ให้อัปเดตแค่ 1 ครั้งต่อเฟรม (requestAnimationFrame)
+                // ช่วยลดอาการกระตุก/หน่วงตอนบีบนิ้วซูมบนมือถือ
                 if (!pinchRafPending) {
                     pinchRafPending = true;
                     requestAnimationFrame(() => {
@@ -494,7 +598,7 @@
         scrollWrapper.addEventListener('touchend', (e) => {
             if(e.touches.length < 2) {
                 initialPinchDistance = null;
-                lastScaleMultiplier = currentScaleMultiplier; 
+                lastScaleMultiplier = currentScaleMultiplier; // จำค่าสเกลล่าสุดไว้
             }
         });
 
@@ -511,7 +615,7 @@
             let baseScale;
             if (isMobile) {
                 baseScale = Math.max((w - 24) / totalWidth, 0.65);
-                let finalScale = baseScale * currentScaleMultiplier; 
+                let finalScale = baseScale * currentScaleMultiplier; // นำค่าที่ซูมมาคูณ
                 wrapper.style.transformOrigin = "top left";
                 spacer.style.display = "block";
                 spacer.style.width = `${totalWidth * finalScale + 40}px`;
@@ -520,7 +624,7 @@
             } else {
                 baseScale = (w - 24) / totalWidth;
                 baseScale = Math.min(1.3, Math.max(baseScale, 0.48));
-                let finalScale = baseScale * currentScaleMultiplier; 
+                let finalScale = baseScale * currentScaleMultiplier; // นำค่าที่ซูมมาคูณ
                 wrapper.style.transformOrigin = "center center";
                 spacer.style.display = "flex";
                 spacer.style.width = "100%";
@@ -573,33 +677,38 @@
         }
 
         async function fetchAllData() {
-            try {
-                const resMaster = await sbClient.from("part_master").select("*");
-                if(!resMaster.error && resMaster.data) {
-                    resMaster.data.forEach(item => {
-                        masterData[String(item.item_code).toUpperCase()] = item;
-                    });
-                }
-
-                const resLoc = await sbClient.from("locations").select("*");
-                if(!resLoc.error && resLoc.data) {
-                    resLoc.data.forEach(loc => {
-                        locationData[loc.location_id] = loc;
-                        boxIdsFor(loc.location_id).forEach(id => {
-                            const box = document.getElementById(id);
-                            if(box) {
-                                box.classList.remove('status-unknown', 'status-empty', 'status-partial', 'status-full');
-                                if(loc.status === 'Empty') box.classList.add('status-empty');
-                                else if(loc.status === 'Partial') box.classList.add('status-partial');
-                                else if(loc.status === 'Full') box.classList.add('status-full');
-                                else box.classList.add('status-unknown');
-                            }
-                        });
-                    });
-                }
-            } catch (error) {
-                console.error("Database fetch error:", error);
+            const resMaster = await sbClient.from("part_master").select("*");
+            if(!resMaster.error) {
+                resMaster.data.forEach(item => {
+                    masterData[item.item_code.toUpperCase()] = item;
+                });
             }
+
+            const resLoc = await sbClient.from("locations").select("*");
+            if(!resLoc.error) {
+                resLoc.data.forEach(loc => {
+                    locationData[loc.location_id] = loc;
+                    boxIdsFor(loc.location_id).forEach(id => {
+                        const box = document.getElementById(id);
+                        if(box) {
+                            box.onclick = () => openModal(loc.location_id);
+                            box.classList.remove('status-unknown', 'status-empty', 'status-partial', 'status-full');
+                            if(loc.status === 'Empty') box.classList.add('status-empty');
+                            else if(loc.status === 'Partial') box.classList.add('status-partial');
+                            else if(loc.status === 'Full') box.classList.add('status-full');
+                            else box.classList.add('status-unknown');
+                        }
+                    });
+                });
+            }
+
+            document.querySelectorAll('.rack-box').forEach(box => {
+                if(!box.onclick){
+                    let id = box.id.replace('box-','');
+                    if(id.endsWith('-B')) id = id.replace('-B',''); 
+                    box.onclick = () => openModal(id);
+                }
+            });
         }
 
         // --- ฟังก์ชันย่อ/ขยายกล่องค้นหา ---
@@ -611,116 +720,98 @@
         function closeSearchPanel() {
             const panel = document.getElementById('searchResultsPanel');
             panel.classList.add('hidden');
-            panel.classList.remove('minimized'); 
+            panel.classList.remove('minimized'); // เคลียร์สถานะย่อเมื่อกดปิด
         }
 
         document.getElementById('searchInput').addEventListener('input', e => {
-            try {
-                const term = String(e.target.value).trim().toUpperCase();
-                document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
+            const term = e.target.value.trim().toUpperCase();
+            document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
 
-                const panel = document.getElementById('searchResultsPanel');
-                const content = document.getElementById('searchResultsContent');
-                const panelTitle = document.getElementById('searchPanelTitle');
-                const minCount = document.getElementById('minSearchCount'); 
-                const t = translations[currentLang] || translations.th;
+            const panel = document.getElementById('searchResultsPanel');
+            const content = document.getElementById('searchResultsContent');
+            const panelTitle = document.getElementById('searchPanelTitle');
+            const minCount = document.getElementById('minSearchCount'); // ตัวแปรอัปเดตยอดค้นหาตอนย่อ
+            const t = translations[currentLang] || translations.th;
 
-                if(!term) {
-                    closeSearchPanel();
-                    return;
-                }
+            if(!term) {
+                closeSearchPanel();
+                return;
+            }
 
-                let html = '';
-                let foundCount = 0;
+            let html = '';
+            let foundCount = 0;
 
-                let allLocs = new Set();
-                [...FLOOR1_DATA, ...FLOOR2_DATA].forEach(loc => {
-                    if(loc.type === 'rackgroup' && loc.items) {
-                        loc.items.forEach(i => { if(i.val) allLocs.add(i.val); });
-                    } else if(loc.val) {
-                        allLocs.add(loc.val);
-                    }
+            for(const [locId, data] of Object.entries(locationData)) {
+                let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
+
+                let matchedItems = iArr.filter(itemCode => {
+                    let mData = masterData[itemCode.toUpperCase()] || {};
+                    let codeName = (mData.code_name || "").toUpperCase();
+                    let cl = (mData.cl || "").toUpperCase();
+
+                    return itemCode.toUpperCase().includes(term) || 
+                           codeName.includes(term) || 
+                           cl.includes(term) || 
+                           locId.toUpperCase().includes(term);
                 });
 
-                allLocs.forEach(locId => {
-                    const data = locationData[locId] || { items_list: "" };
-                    let iArr = String(data.items_list || "").split(',').map(s=>String(s).trim()).filter(s=>s!=="");
+                if(matchedItems.length > 0 || locId.toUpperCase().includes(term)) {
 
-                    let matchedItems = iArr.filter(itemCode => {
-                        let mData = masterData[String(itemCode).toUpperCase()] || {};
-                        let codeName = String(mData.code_name || "").toUpperCase();
-                        let cl = String(mData.cl || "").toUpperCase();
-                        let iCode = String(itemCode).toUpperCase();
-
-                        return iCode.includes(term) || codeName.includes(term) || cl.includes(term);
+                    boxIdsFor(locId).forEach(id => { 
+                        const b = document.getElementById(id); 
+                        if(b) b.classList.add('highlight-blink'); 
                     });
 
-                    let strLocId = String(locId).toUpperCase();
+                    let itemsToDisplay = matchedItems.length > 0 ? matchedItems : iArr;
 
-                    if(matchedItems.length > 0 || strLocId.includes(term)) {
-                        boxIdsFor(locId).forEach(id => { 
-                            const b = document.getElementById(id); 
-                            if(b) b.classList.add('highlight-blink'); 
-                        });
+                    html += `
+                    <div class="glass-input hover:bg-[var(--card-hover)] p-3 rounded border border-[var(--glass-border)] cursor-pointer transition-colors shadow-md mb-2" onclick="openModal('${locId}')">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sky-500 font-black text-sm tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
+                        </div>`;
 
-                        let itemsToDisplay = matchedItems.length > 0 ? matchedItems : iArr;
+                    itemsToDisplay.forEach((itemCode) => {
+                        let mData = masterData[itemCode.toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
 
                         html += `
-                        <div class="glass-input hover:bg-[var(--card-hover)] p-3 rounded border border-[var(--glass-border)] cursor-pointer transition-colors shadow-md mb-2" onclick="openModal('${locId}')">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-sky-500 font-black text-sm tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
-                            </div>`;
+                        <div class="mb-2 pl-3 border-l-2 border-slate-500 space-y-1">
+                            <div class="text-[11px] font-bold text-[var(--text-main)]"><i class="fa-solid fa-tag text-xs text-amber-500 mr-1"></i> ${t.labelCode}: ${mData.code_name} <span class="text-[10px] text-[var(--text-sub)] ml-1">(${mData.cl})</span></div>
+                            <div class="text-[10px] text-[var(--text-sub)]">ITEM: ${itemCode}</div>
+                            <div class="text-[10px] text-[var(--text-sub)] font-medium mt-1">
+                                <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></span>
+                                <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
+                            </div>
+                        </div>`;
+                    });
 
-                        if(itemsToDisplay.length > 0) {
-                            itemsToDisplay.forEach((itemCode) => {
-                                let mData = masterData[String(itemCode).toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
-                                html += `
-                                <div class="mb-2 pl-3 border-l-2 border-slate-500 space-y-1">
-                                    <div class="text-[11px] font-bold text-[var(--text-main)]"><i class="fa-solid fa-tag text-xs text-amber-500 mr-1"></i> ${t.labelCode}: ${mData.code_name} <span class="text-[10px] text-[var(--text-sub)] ml-1">(${mData.cl})</span></div>
-                                    <div class="text-[10px] text-[var(--text-sub)]">ITEM: ${itemCode}</div>
-                                    <div class="text-[10px] text-[var(--text-sub)] font-medium mt-1">
-                                        <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></span>
-                                        <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
-                                    </div>
-                                </div>`;
-                            });
-                        } else {
-                            html += `<div class="text-[10px] text-[var(--text-sub)] pl-3 mb-1">-- ${t.statusEmpty} --</div>`;
-                        }
-
-                        html += `</div>`;
-                        foundCount++;
-                    }
-                });
-
-                panel.classList.remove('minimized');
-
-                if(foundCount > 0) {
-                    content.innerHTML = html;
-                    panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchFoundPrefix} ${foundCount} ${t.searchFoundSuffix}`;
-                    if(minCount) minCount.innerText = `${foundCount} รายการ`; 
-                    panel.classList.remove('hidden');
-                } else {
-                    content.innerHTML = `<div class="text-center text-[var(--text-sub)] py-6 text-sm font-bold"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>${t.searchNotFoundDesc}</div>`;
-                    panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchNotFoundTitle}`;
-                    if(minCount) minCount.innerText = `0 รายการ`;
-                    panel.classList.remove('hidden');
+                    html += `</div>`;
+                    foundCount++;
                 }
-            } catch (err) {
-                console.error("Search Error: ", err); 
+            }
+
+            // แสดงกล่องผลลัพธ์แบบขยายเต็มทุกครั้งที่พิมพ์ค้นหาใหม่
+            panel.classList.remove('minimized');
+
+            if(foundCount > 0) {
+                content.innerHTML = html;
+                panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchFoundPrefix} ${foundCount} ${t.searchFoundSuffix}`;
+                minCount.innerText = `${foundCount} รายการ`; // อัปเดตตัวเลขในกล่องย่อ
+                panel.classList.remove('hidden');
+            } else {
+                content.innerHTML = `<div class="text-center text-[var(--text-sub)] py-6 text-sm font-bold"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>${t.searchNotFoundDesc}</div>`;
+                panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchNotFoundTitle}`;
+                minCount.innerText = `0 รายการ`;
+                panel.classList.remove('hidden');
             }
         });
 
-        // ==========================================
-        // 🚨 ✅ 4. เพิ่มฟังก์ชันแจ้งปัญหาหน้างาน (Report Issue)
-        // ==========================================
-        let currentReportLoc = ""; // เก็บค่าช่องปัจจุบันที่เปิดดูอยู่
+        // --- อัปเกรดหน้าต่าง Modal ---
+        let currentModalLocId = null;
 
         function openModal(locId) {
+            currentModalLocId = locId;
             const t = translations[currentLang] || translations.th;
             document.getElementById('modalTitle').innerText = locId;
-            currentReportLoc = locId; // จำรหัสช่องนี้เอาไว้ เผื่อพนักงานจะกดปุ่มแจ้งปัญหา
-            
             const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '' };
             const badge = document.getElementById('modalStatusBadge');
 
@@ -731,14 +822,14 @@
                  data.status === 'Full' ? "bg-red-500/20 text-red-500 border-red-500/30" : 
                  "bg-[var(--input-bg)] text-[var(--text-sub)] border-[var(--glass-border)]");
 
-            let iArr = String(data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
+            let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
 
             if (iArr.length === 0) {
                 document.getElementById('modalBodyContent').innerHTML = `<div class="text-center text-[var(--text-sub)] py-8"><i class="fa-solid fa-box-open text-4xl mb-3 block opacity-50"></i><span class="text-sm font-bold">${t.modalNoData}</span></div>`;
             } else {
                 let html = '<div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scroll">';
                 for (let i = 0; i < iArr.length; i++) {
-                    let itemCode = String(iArr[i]).toUpperCase();
+                    let itemCode = iArr[i].toUpperCase();
                     let mData = masterData[itemCode] || { code_name: t.modalNotFound, cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
 
                     html += `
@@ -766,89 +857,312 @@
 
         function closeModal(e) { document.getElementById('infoModal').classList.remove('active'); }
 
-        // ฟังก์ชันสลับไปหน้าแจ้งปัญหา
-        function openReportModal() {
-            document.getElementById('infoModal').classList.remove('active');
-            document.getElementById('reportLocId').innerText = currentReportLoc;
-            document.getElementById('reportModal').classList.add('active');
-        }
+        // ==========================================
+        // 🆕 ระบบแจ้งปัญหา (Report Issue) + Item Quick-Pick
+        // ==========================================
+        let pendingIssueType = null;
+        let currentIssueItems = [];   // [{code, name, cl}] items in currentModalLocId
+        let selectedIssueItemCode = null; // null = ไม่ระบุ SKU (ทั้งช่อง)
 
-        function closeReportModal() {
-            document.getElementById('reportModal').classList.remove('active');
-        }
-
-        // ฟังก์ชันส่งข้อมูลเข้า Supabase (1 Click Submit)
-        async function submitIssue(issueType) {
+        function openReportIssue(e) {
+            if (e) e.stopPropagation();
+            if (!currentModalLocId) return;
             const t = translations[currentLang] || translations.th;
-            
-            // เช็กรหัสพนักงาน ถ้าไม่มีให้กรอกก่อน
-            let staffId = localStorage.getItem("savedStaffId");
+            document.getElementById('reportIssueLocLabel').innerText = currentModalLocId;
+
+            // เตรียมรายการ SKU ในช่องนี้ ให้กดเลือกได้เลยแบบเดียวกับผลค้นหาหน้าแรก
+            const data = locationData[currentModalLocId] || { items_list: '' };
+            const codes = (data.items_list || '').split(',').map(s => s.trim()).filter(s => s !== '');
+            currentIssueItems = codes.map(code => {
+                const m = masterData[code.toUpperCase()] || {};
+                return { code: code, name: m.code_name || code, cl: m.cl || '-' };
+            });
+            selectedIssueItemCode = null;
+
+            const wrap = document.getElementById('issueItemPickerWrap');
+            const searchInput = document.getElementById('issueItemSearch');
+            if (searchInput) searchInput.value = '';
+            if (currentIssueItems.length > 0) {
+                wrap.classList.remove('hidden');
+                renderIssueItemButtons(currentIssueItems);
+            } else {
+                wrap.classList.add('hidden');
+            }
+
+            document.getElementById('infoModal').classList.remove('active');
+            document.getElementById('reportIssueModal').classList.add('active');
+        }
+
+        function closeReportIssue(e) {
+            document.getElementById('reportIssueModal').classList.remove('active');
+        }
+
+        // สร้างปุ่มไอคอนให้กดเลือก SKU ได้ทันที ไม่ต้องพิมพ์ค้นหาหรือย้อนกลับไปกดที่ layout
+        function renderIssueItemButtons(items) {
+            const t = translations[currentLang] || translations.th;
+            const list = document.getElementById('issueItemList');
+            let html = `
+                <div class="item-pick-btn${selectedIssueItemCode === null ? ' selected' : ''}" onclick="selectIssueItem(null)">
+                    <div class="ip-icon"><i class="fa-solid fa-layer-group"></i></div>
+                    <div class="ip-text">
+                        <div class="ip-name" data-i18n="issueNoItemOption">ไม่ระบุ SKU (ทั้งช่อง)</div>
+                    </div>
+                    <i class="fa-solid fa-circle-check ip-check"></i>
+                </div>`;
+            items.forEach(it => {
+                const sel = selectedIssueItemCode === it.code;
+                html += `
+                <div class="item-pick-btn${sel ? ' selected' : ''}" onclick="selectIssueItem('${it.code.replace(/'/g, "\\'")}')">
+                    <div class="ip-icon"><i class="fa-solid fa-box"></i></div>
+                    <div class="ip-text">
+                        <div class="ip-name">${it.name} <span style="opacity:.6">(${it.cl})</span></div>
+                        <div class="ip-code">${it.code}</div>
+                    </div>
+                    <i class="fa-solid fa-circle-check ip-check"></i>
+                </div>`;
+            });
+            list.innerHTML = html;
+            // แปลข้อความ "ไม่ระบุ SKU" ตามภาษาปัจจุบันทันที (เผื่อ innerHTML เขียนทับ data-i18n)
+            const noItemEl = list.querySelector('[data-i18n="issueNoItemOption"]');
+            if (noItemEl && t.issueNoItemOption) noItemEl.textContent = t.issueNoItemOption;
+        }
+
+        function selectIssueItem(code) {
+            selectedIssueItemCode = code;
+            const term = document.getElementById('issueItemSearch').value;
+            filterIssueItems(term);
+        }
+
+        function filterIssueItems(term) {
+            const q = (term || '').trim().toUpperCase();
+            if (!q) { renderIssueItemButtons(currentIssueItems); return; }
+            const filtered = currentIssueItems.filter(it =>
+                it.code.toUpperCase().includes(q) ||
+                (it.name || '').toUpperCase().includes(q) ||
+                (it.cl || '').toUpperCase().includes(q)
+            );
+            renderIssueItemButtons(filtered);
+        }
+
+        function getStaffId() {
+            return localStorage.getItem('wms_staff_id') || '';
+        }
+
+        function submitIssue(issueType) {
+            const staffId = getStaffId();
             if (!staffId) {
-                staffId = prompt(t.promptStaffId || "กรุณากรอกรหัสพนักงาน (Staff ID) เพื่อแจ้งปัญหา:");
-                if (!staffId || staffId.trim() === "") {
-                    alert(t.errStaffIdReq || "ต้องระบุรหัสพนักงานเพื่อแจ้งปัญหาครับ");
+                pendingIssueType = issueType;
+                document.getElementById('staffIdInput').value = '';
+                document.getElementById('staffIdModal').classList.add('active');
+                return;
+            }
+            sendIssueToSupabase(issueType, staffId);
+        }
+
+        function cancelStaffIdPrompt() {
+            pendingIssueType = null;
+            document.getElementById('staffIdModal').classList.remove('active');
+        }
+
+        function confirmStaffId() {
+            const val = document.getElementById('staffIdInput').value.trim();
+            if (!val) return;
+            localStorage.setItem('wms_staff_id', val);
+            document.getElementById('staffIdModal').classList.remove('active');
+            if (pendingIssueType) {
+                sendIssueToSupabase(pendingIssueType, val);
+                pendingIssueType = null;
+            }
+        }
+
+        async function sendIssueToSupabase(issueType, staffId) {
+            const t = translations[currentLang] || translations.th;
+            if (!currentModalLocId) return;
+            try {
+                const { error } = await sbClient.from('location_issues').insert({
+                    location_id: currentModalLocId,
+                    item_code: selectedIssueItemCode,
+                    issue_type: issueType,
+                    reporter_id: staffId,
+                    status: 'PENDING'
+                });
+                if (error) {
+                    alert(t.reportIssueError || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+                    console.error(error);
                     return;
                 }
-                localStorage.setItem("savedStaffId", staffId.trim().toUpperCase());
-            }
-
-            try {
-                // Table: location_issues ที่สร้างไว้
-                const { data, error } = await sbClient.from('location_issues').insert([
-                    { 
-                        location_id: currentReportLoc, 
-                        issue_type: issueType, 
-                        reporter_id: staffId.toUpperCase(),
-                        status: 'PENDING' 
-                    }
-                ]);
-                
-                if (error) {
-                    console.error(error);
-                    alert(t.errSubmit || "Error: ส่งข้อมูลไม่ได้ กรุณาลองใหม่");
-                } else {
-                    alert(`✅ ${t.reportSuccess}`);
-                    closeReportModal();
-                }
+                document.getElementById('reportIssueModal').classList.remove('active');
+                alert(t.reportIssueSuccess || 'ส่งแจ้งปัญหาเรียบร้อยแล้ว');
+                refreshIssuesBadge();
             } catch (err) {
                 console.error(err);
+                alert(t.reportIssueError || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
             }
         }
 
-        document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); });
+        // ==========================================
+        // 🆕 Issues Panel — สำหรับพนักงาน/หัวหน้างานเข้าไปดูรายการแจ้งปัญหาเพื่อแก้ไข
+        // ==========================================
+        let issuesFilterMode = 'PENDING';
+        let issuesCache = [];
+
+        function issueTypeLabel(code, t) {
+            if (code === 'LOCATION_MISMATCH') return (t.issueLocationMismatch || '').replace('<br>', ' ');
+            if (code === 'WRONG_COLOR') return (t.issueWrongColor || '').replace('<br>', ' ');
+            return (t.issueOther || '').replace('<br>', ' ');
+        }
+
+        function issueTypeBadgeClass(code) {
+            if (code === 'LOCATION_MISMATCH') return 'bg-amber-500/20 text-amber-500 border border-amber-500/30';
+            if (code === 'WRONG_COLOR') return 'bg-pink-500/20 text-pink-500 border border-pink-500/30';
+            return 'bg-slate-500/20 text-slate-400 border border-slate-500/30';
+        }
+
+        function formatIssueTime(iso) {
+            try {
+                const d = new Date(iso);
+                return d.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            } catch (e) { return iso || ''; }
+        }
+
+        function setIssuesFilter(mode) {
+            issuesFilterMode = mode;
+            updateIssuesFilterButtons();
+            renderIssuesList();
+        }
+
+        function updateIssuesFilterButtons() {
+            const t = translations[currentLang] || translations.th;
+            const pBtn = document.getElementById('issuesFilterBtnPENDING');
+            const aBtn = document.getElementById('issuesFilterBtnALL');
+            pBtn.innerHTML = `<i class="fa-solid fa-clock mr-1"></i> ${t.issuesFilterPending || 'รอตรวจสอบ'}`;
+            aBtn.innerHTML = `<i class="fa-solid fa-list mr-1"></i> ${t.issuesFilterAll || 'ทั้งหมด'}`;
+            pBtn.className = 'flex-1 py-2 rounded-xl text-[11px] font-black transition-all ' + (issuesFilterMode === 'PENDING' ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg' : 'glass-input text-[var(--text-main)]');
+            aBtn.className = 'flex-1 py-2 rounded-xl text-[11px] font-black transition-all ' + (issuesFilterMode === 'ALL' ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg' : 'glass-input text-[var(--text-main)]');
+        }
+
+        async function openIssuesPanel() {
+            document.getElementById('issuesPanelModal').classList.add('active');
+            updateIssuesFilterButtons();
+            await fetchIssuesList();
+        }
+
+        function closeIssuesPanel(e) {
+            document.getElementById('issuesPanelModal').classList.remove('active');
+        }
+
+        async function fetchIssuesList() {
+            const content = document.getElementById('issuesListContent');
+            content.innerHTML = '<div class="text-center text-[var(--text-sub)] py-8 text-xs font-bold"><i class="fa-solid fa-spinner fa-spin text-xl mb-2 block"></i>Loading...</div>';
+            const { data, error } = await sbClient.from('location_issues').select('*').order('created_at', { ascending: false });
+            if (error) { console.error(error); issuesCache = []; }
+            else { issuesCache = data || []; }
+            renderIssuesList();
+            refreshIssuesBadgeFromCache();
+        }
+
+        function renderIssuesList() {
+            const t = translations[currentLang] || translations.th;
+            const content = document.getElementById('issuesListContent');
+            let list = issuesCache;
+            if (issuesFilterMode === 'PENDING') list = list.filter(i => i.status === 'PENDING');
+
+            if (list.length === 0) {
+                content.innerHTML = `<div class="text-center text-[var(--text-sub)] py-8 text-xs font-bold"><i class="fa-solid fa-circle-check text-2xl mb-2 block opacity-50"></i>${t.noIssues || 'ไม่มีรายการ'}</div>`;
+                return;
+            }
+
+            let html = '';
+            list.forEach(issue => {
+                const resolved = issue.status === 'RESOLVED';
+                html += `
+                <div class="issue-card${resolved ? ' resolved' : ''}">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span class="ic-loc"><i class="fa-solid fa-location-dot mr-1"></i>${issue.location_id}</span>
+                            ${issue.item_code ? `<div class="text-[10px] text-[var(--text-sub)] font-mono mt-0.5">SKU: ${issue.item_code}</div>` : ''}
+                        </div>
+                        <span class="ic-type-badge ${issueTypeBadgeClass(issue.issue_type)}">${issueTypeLabel(issue.issue_type, t)}</span>
+                    </div>
+                    <div class="ic-meta"><i class="fa-solid fa-user mr-1"></i>${t.issueCardReporter || 'ผู้แจ้ง'}: ${issue.reporter_id} &nbsp;•&nbsp; <i class="fa-solid fa-clock mr-1"></i>${formatIssueTime(issue.created_at)}</div>
+                    ${resolved
+                        ? `<div class="ic-meta mt-2 text-green-500 font-black"><i class="fa-solid fa-circle-check mr-1"></i>${t.issueResolved || 'แก้ไขแล้ว'}</div>`
+                        : `<button class="ic-resolve-btn" onclick="resolveIssue('${issue.id}')"><i class="fa-solid fa-check mr-1"></i>${t.issueCardResolve || 'ทำเครื่องหมายว่าแก้ไขแล้ว'}</button>`
+                    }
+                </div>`;
+            });
+            content.innerHTML = html;
+        }
+
+        async function resolveIssue(id) {
+            const { error } = await sbClient.from('location_issues').update({ status: 'RESOLVED' }).eq('id', id);
+            if (error) { console.error(error); return; }
+            const item = issuesCache.find(i => i.id === id);
+            if (item) item.status = 'RESOLVED';
+            renderIssuesList();
+            refreshIssuesBadgeFromCache();
+        }
+
+        function refreshIssuesBadgeFromCache() {
+            const badge = document.getElementById('issuesBadge');
+            const count = issuesCache.filter(i => i.status === 'PENDING').length;
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        async function refreshIssuesBadge() {
+            const { data, error } = await sbClient.from('location_issues').select('id').eq('status', 'PENDING');
+            const badge = document.getElementById('issuesBadge');
+            if (error) { console.error(error); return; }
+            const count = (data || []).length;
+            issuesCache = issuesCache.length ? issuesCache : []; // no-op, cache refreshed on panel open
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); refreshIssuesBadge(); });
 
         // ==========================================
-        // 🌍 ระบบแปลภาษา 4 ชาติ (เพิ่มคำแปลใหม่สำหรับ Report)
+        // 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n)
         // ==========================================
+        // ... (ลบ let currentLang = ... บรรทัดซ้ำซ้อนออก แล้วเรียกใช้เลย) ...
         const translations = {
-            th: { 
-                navMenu: "เมนูหลัก", searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...", btnOverview: "ภาพรวม 3D", btnFocusF1: "ชั้น 1", btnFocusF2: "ชั้น 2", 
-                legendEmpty: "ว่าง (Empty)", legendPartial: "มีบางส่วน (Partial)", legendFull: "เต็ม (Full)", legendRackPoint: "จุดวางสินค้า", legendLift: "ลิฟต์ขนของ", legendZone: "พื้นที่/เครื่องจักร", 
-                badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "ปิดหน้าต่าง", modalNoData: "ไม่มีสินค้าในช่องนี้", modalNotFound: "ไม่พบข้อมูล", 
-                statusEmpty: "ว่าง (Empty)", statusPartial: "กลาง (Partial)", statusFull: "เต็ม (Full)", statusUnknown: "ไม่มีข้อมูล", searchPanelDefaultTitle: "สรุปผลการค้นหา", searchFoundPrefix: "พบ", searchFoundSuffix: "ตำแหน่ง", searchNotFoundTitle: "ไม่พบรายการ", searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "แพ็ก", labelCustomer: "ลูกค้า", labelMax: "Max",
-                btnReportIssue: "แจ้งปัญหา", reportTitle: "แจ้งปัญหา", reportDesc: "เลือกหัวข้อปัญหา ระบบจะแจ้งหัวหน้างานทันที", reportMismatch: "ตำแหน่งไม่ตรงกับระบบ", reportColor: "สีถุงผิดจากข้อมูลในเว็บ", reportOther: "ปัญหาอื่นๆ", btnCancel: "ยกเลิก", reportSuccess: "แจ้งปัญหาให้หัวหน้างานทราบเรียบร้อยแล้ว!", promptStaffId: "กรุณากรอกรหัสพนักงาน (Staff ID) เพื่อแจ้งปัญหา:", errStaffIdReq: "คุณต้องระบุรหัสพนักงานก่อนส่งข้อมูลครับ", errSubmit: "เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่"
-            },
-            zh: { 
-                navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", 
-                legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", 
-                badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", 
-                statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
-                btnReportIssue: "回報異常", reportTitle: "回報異常", reportDesc: "選擇異常類型，系統將立即通知主管", reportMismatch: "儲位不符", reportColor: "顏色不符", reportOther: "其他問題", btnCancel: "取消", reportSuccess: "回報成功！已通知主管。", promptStaffId: "請輸入您的員工編號 (Staff ID)：", errStaffIdReq: "必須輸入員工編號才能回報", errSubmit: "發送失敗，請重試"
-            },
-            mm: { 
-                navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", 
-                legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", 
-                badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", 
-                statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
-                btnReportIssue: "ပြဿနာတင်ပြရန်", reportTitle: "ပြဿနာတင်ပြရန်", reportDesc: "ပြဿနာကိုရွေးချယ်ပါ၊ မန်နေဂျာထံ ချက်ချင်းအကြောင်းကြားမည်", reportMismatch: "နေရာမကိုက်ညီပါ", reportColor: "အရောင်မှားနေပါသည်", reportOther: "အခြားပြဿနာ", btnCancel: "ပယ်ဖျက်ရန်", reportSuccess: "အောင်မြင်ပါသည်! မန်နေဂျာထံ ပို့ပြီးပါပြီ။", promptStaffId: "ဝန်ထမ်းကုဒ်ထည့်ပါ (Staff ID):", errStaffIdReq: "ဝန်ထမ်းကုဒ်ထည့်ရန် လိုအပ်ပါသည်", errSubmit: "အမှားဖြစ်ပွားသည်၊ ထပ်မံကြိုးစားပါ"
-            },
-            en: { 
-                navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", 
-                legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", 
-                badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", 
-                statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
-                btnReportIssue: "Report Issue", reportTitle: "Report Issue", reportDesc: "Select issue type, Admin will be notified", reportMismatch: "Location Mismatch", reportColor: "Wrong Color", reportOther: "Other Issues", btnCancel: "Cancel", reportSuccess: "Reported successfully!", promptStaffId: "Please enter your Staff ID:", errStaffIdReq: "Staff ID is required to report.", errSubmit: "Failed to submit, please try again."
-            }
+            th: { navMenu: "เมนูหลัก", searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...", btnOverview: "ภาพรวม 3D", btnFocusF1: "ชั้น 1", btnFocusF2: "ชั้น 2", legendEmpty: "ว่าง (Empty)", legendPartial: "มีบางส่วน (Partial)", legendFull: "เต็ม (Full)", legendRackPoint: "จุดวางสินค้า", legendLift: "ลิฟต์ขนของ", legendZone: "พื้นที่/เครื่องจักร", badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "ปิดหน้าต่าง", modalNoData: "ไม่มีสินค้าในช่องนี้", modalNotFound: "ไม่พบข้อมูล", statusEmpty: "ว่าง (Empty)", statusPartial: "กลาง (Partial)", statusFull: "เต็ม (Full)", statusUnknown: "ไม่มีข้อมูล", searchPanelDefaultTitle: "สรุปผลการค้นหา", searchFoundPrefix: "พบ", searchFoundSuffix: "ตำแหน่ง", searchNotFoundTitle: "ไม่พบรายการ", searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "แพ็ก", labelCustomer: "ลูกค้า", labelMax: "Max",
+                reportIssueBtn: "แจ้งปัญหา", reportIssueTitle: "แจ้งปัญหา", reportIssuePrompt: "เลือกประเภทปัญหา", issueLocationMismatch: "ตำแหน่ง<br>ไม่ตรง", issueWrongColor: "สีถุง<br>ไม่ตรง", issueOther: "ปัญหา<br>อื่นๆ",
+                staffIdTitle: "กรอกรหัสพนักงาน", staffIdDesc: "กรอกครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนี้", staffIdPlaceholder: "เช่น EMP001", staffIdCancel: "ยกเลิก", staffIdConfirm: "ยืนยัน",
+                reportIssueSuccess: "ส่งแจ้งปัญหาเรียบร้อยแล้ว", reportIssueError: "เกิดข้อผิดพลาด กรุณาลองใหม่",
+                issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
+                issuesPanelTitle: "รายการแจ้งปัญหา", issuesFilterPending: "รอตรวจสอบ", issuesFilterAll: "ทั้งหมด", noIssues: "ไม่มีรายการแจ้งปัญหา",
+                issueCardReporter: "ผู้แจ้ง", issueCardResolve: "ทำเครื่องหมายว่าแก้ไขแล้ว", issueResolved: "แก้ไขแล้ว" },
+            zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
+                reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
+                staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
+                reportIssueSuccess: "問題回報成功", reportIssueError: "發生錯誤，請重試",
+                issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
+                issuesPanelTitle: "問題回報列表", issuesFilterPending: "待處理", issuesFilterAll: "全部", noIssues: "沒有回報項目",
+                issueCardReporter: "回報人", issueCardResolve: "標記為已解決", issueResolved: "已解決" },
+            mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
+                reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
+                staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
+                reportIssueSuccess: "ပြဿနာတိုင်ကြားခြင်း အောင်မြင်ပါသည်", reportIssueError: "အမှားဖြစ်ပွားသည် ထပ်ကြိုးစားပါ",
+                issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
+                issuesPanelTitle: "ပြဿနာတိုင်ကြားမှုများ", issuesFilterPending: "စောင့်ဆိုင်းဆဲ", issuesFilterAll: "အားလုံး", noIssues: "တိုင်ကြားမှုမရှိပါ",
+                issueCardReporter: "တိုင်ကြားသူ", issueCardResolve: "ပြီးမြောက်ကြောင်းအမှတ်အသားပြုရန်", issueResolved: "ပြီးမြောက်ပါပြီ" },
+            en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
+                reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
+                staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
+                reportIssueSuccess: "Issue reported successfully", reportIssueError: "An error occurred, please try again",
+                issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",
+                issuesPanelTitle: "Reported Issues", issuesFilterPending: "Pending", issuesFilterAll: "All", noIssues: "No issues reported",
+                issueCardReporter: "Reporter", issueCardResolve: "Mark as resolved", issueResolved: "Resolved" }
         };
 
         function changeLanguage(lang) {
@@ -861,13 +1175,13 @@
             const t = translations[lang];
             document.querySelectorAll("[data-i18n]").forEach(el => {
                 const key = el.getAttribute("data-i18n");
-                if (t[key] !== undefined) el.textContent = t[key];
+                if (t[key] !== undefined) el.innerHTML = t[key];
             });
             document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
                 const key = el.getAttribute("data-i18n-placeholder");
                 if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
             });
         }
-    </script>
+</script>
 </body>
 </html>

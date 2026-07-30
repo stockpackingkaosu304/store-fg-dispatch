@@ -392,11 +392,13 @@
                 <span id="modalStatusBadge" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase border border-[var(--glass-border)] shadow-sm">Status</span>
             </div>
             <div class="glass-input p-3 md:p-4 rounded-2xl mb-4 min-h-[120px] max-h-[40vh] overflow-y-auto custom-scroll relative z-10 shadow-inner" id="modalBodyContent"></div>
-            <button onclick="closeModal(event)" class="relative z-10 w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-sky-500/30 active:scale-95 text-sm" data-i18n="modalClose">ปิดหน้าต่าง</button>
-            <button onclick="openReportIssue(event)" class="report-issue-btn relative z-10">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                <span data-i18n="reportIssueBtn">แจ้งปัญหา</span>
-            </button>
+            
+            <div class="flex gap-2 relative z-10">
+                <button onclick="closeModal(event)" class="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-[var(--card-hover)] text-[var(--text-main)] font-black py-3 rounded-xl transition-all shadow-sm active:scale-95 text-sm" data-i18n="modalClose">ปิดหน้าต่าง</button>
+                <button onclick="openReportIssue(event)" class="w-full bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-white text-red-500 font-black py-3 rounded-xl transition-all shadow-sm active:scale-95 text-sm">
+                    <i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="reportIssueBtn">แจ้งปัญหา</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -518,7 +520,7 @@
             const widthCols = loc.c2 - loc.c1 + 1;
             const narrow = widthCols === 1 && loc.val.length >= 4;
             const typeClass = loc.type === 'lift' ? ' type-lift' : '';
-            return `<div class="rack-box${narrow ? ' narrow-vert' : ''}${typeClass}" id="box-${id}"
+            return `<div class="rack-box${narrow ? ' narrow-vert' : ''}${typeClass}" id="box-${id}" onclick="openModal('${id}')"
                 style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1};">${iconFor(loc.type)}<span>${loc.val}</span></div>`;
         }
         function otherHtml(loc){
@@ -529,7 +531,7 @@
         function rackGroupHtml(loc){
             const inner = loc.items.map(it => {
                 const narrow = it.val.length >= 4;
-                return `<div class="rack-box${narrow ? ' narrow-vert' : ''}" id="box-${it.id}"><span>${it.val}</span></div>`;
+                return `<div class="rack-box${narrow ? ' narrow-vert' : ''}" id="box-${it.id}" onclick="openModal('${it.id}')"><span>${it.val}</span></div>`;
             }).join('');
             return `<div style="grid-column:${loc.c1} / ${loc.c2+1}; grid-row:${loc.r1} / ${loc.r2+1}; display:grid; grid-template-columns:repeat(${loc.items.length}, 1fr);">${inner}</div>`;
         }
@@ -573,17 +575,14 @@
         // ดักจับเมื่อขยับนิ้ว (Touch Move) เพื่อซูม
         scrollWrapper.addEventListener('touchmove', (e) => {
             if(e.touches.length === 2 && initialPinchDistance) {
-                e.preventDefault(); // ป้องกันไม่ให้ Browser ทำการซูมมั่วๆ
+                e.preventDefault(); 
                 const currentDistance = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
-                // คำนวณอัตราส่วนการขยาย
                 const scaleChange = currentDistance / initialPinchDistance;
-                currentScaleMultiplier = Math.max(0.5, Math.min(lastScaleMultiplier * scaleChange, 3)); // ล็อกการซูมไม่ให้เกิน 3 เท่า
+                currentScaleMultiplier = Math.max(0.5, Math.min(lastScaleMultiplier * scaleChange, 3)); 
 
-                // ✅ รวมหลาย touchmove ที่ยิงถี่ๆ ให้อัปเดตแค่ 1 ครั้งต่อเฟรม (requestAnimationFrame)
-                // ช่วยลดอาการกระตุก/หน่วงตอนบีบนิ้วซูมบนมือถือ
                 if (!pinchRafPending) {
                     pinchRafPending = true;
                     requestAnimationFrame(() => {
@@ -598,7 +597,7 @@
         scrollWrapper.addEventListener('touchend', (e) => {
             if(e.touches.length < 2) {
                 initialPinchDistance = null;
-                lastScaleMultiplier = currentScaleMultiplier; // จำค่าสเกลล่าสุดไว้
+                lastScaleMultiplier = currentScaleMultiplier; 
             }
         });
 
@@ -615,7 +614,7 @@
             let baseScale;
             if (isMobile) {
                 baseScale = Math.max((w - 24) / totalWidth, 0.65);
-                let finalScale = baseScale * currentScaleMultiplier; // นำค่าที่ซูมมาคูณ
+                let finalScale = baseScale * currentScaleMultiplier; 
                 wrapper.style.transformOrigin = "top left";
                 spacer.style.display = "block";
                 spacer.style.width = `${totalWidth * finalScale + 40}px`;
@@ -624,7 +623,7 @@
             } else {
                 baseScale = (w - 24) / totalWidth;
                 baseScale = Math.min(1.3, Math.max(baseScale, 0.48));
-                let finalScale = baseScale * currentScaleMultiplier; // นำค่าที่ซูมมาคูณ
+                let finalScale = baseScale * currentScaleMultiplier; 
                 wrapper.style.transformOrigin = "center center";
                 spacer.style.display = "flex";
                 spacer.style.width = "100%";
@@ -677,38 +676,33 @@
         }
 
         async function fetchAllData() {
-            const resMaster = await sbClient.from("part_master").select("*");
-            if(!resMaster.error) {
-                resMaster.data.forEach(item => {
-                    masterData[item.item_code.toUpperCase()] = item;
-                });
-            }
-
-            const resLoc = await sbClient.from("locations").select("*");
-            if(!resLoc.error) {
-                resLoc.data.forEach(loc => {
-                    locationData[loc.location_id] = loc;
-                    boxIdsFor(loc.location_id).forEach(id => {
-                        const box = document.getElementById(id);
-                        if(box) {
-                            box.onclick = () => openModal(loc.location_id);
-                            box.classList.remove('status-unknown', 'status-empty', 'status-partial', 'status-full');
-                            if(loc.status === 'Empty') box.classList.add('status-empty');
-                            else if(loc.status === 'Partial') box.classList.add('status-partial');
-                            else if(loc.status === 'Full') box.classList.add('status-full');
-                            else box.classList.add('status-unknown');
-                        }
+            try {
+                const resMaster = await sbClient.from("part_master").select("*");
+                if(!resMaster.error && resMaster.data) {
+                    resMaster.data.forEach(item => {
+                        masterData[String(item.item_code).toUpperCase()] = item;
                     });
-                });
-            }
-
-            document.querySelectorAll('.rack-box').forEach(box => {
-                if(!box.onclick){
-                    let id = box.id.replace('box-','');
-                    if(id.endsWith('-B')) id = id.replace('-B',''); 
-                    box.onclick = () => openModal(id);
                 }
-            });
+
+                const resLoc = await sbClient.from("locations").select("*");
+                if(!resLoc.error && resLoc.data) {
+                    resLoc.data.forEach(loc => {
+                        locationData[loc.location_id] = loc;
+                        boxIdsFor(loc.location_id).forEach(id => {
+                            const box = document.getElementById(id);
+                            if(box) {
+                                box.classList.remove('status-unknown', 'status-empty', 'status-partial', 'status-full');
+                                if(loc.status === 'Empty') box.classList.add('status-empty');
+                                else if(loc.status === 'Partial') box.classList.add('status-partial');
+                                else if(loc.status === 'Full') box.classList.add('status-full');
+                                else box.classList.add('status-unknown');
+                            }
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error("Database fetch error:", error);
+            }
         }
 
         // --- ฟังก์ชันย่อ/ขยายกล่องค้นหา ---
@@ -720,98 +714,126 @@
         function closeSearchPanel() {
             const panel = document.getElementById('searchResultsPanel');
             panel.classList.add('hidden');
-            panel.classList.remove('minimized'); // เคลียร์สถานะย่อเมื่อกดปิด
+            panel.classList.remove('minimized'); 
         }
 
         document.getElementById('searchInput').addEventListener('input', e => {
-            const term = e.target.value.trim().toUpperCase();
-            document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
+            try {
+                const term = String(e.target.value).trim().toUpperCase();
+                document.querySelectorAll('.highlight-blink').forEach(el => el.classList.remove('highlight-blink'));
 
-            const panel = document.getElementById('searchResultsPanel');
-            const content = document.getElementById('searchResultsContent');
-            const panelTitle = document.getElementById('searchPanelTitle');
-            const minCount = document.getElementById('minSearchCount'); // ตัวแปรอัปเดตยอดค้นหาตอนย่อ
-            const t = translations[currentLang] || translations.th;
+                const panel = document.getElementById('searchResultsPanel');
+                const content = document.getElementById('searchResultsContent');
+                const panelTitle = document.getElementById('searchPanelTitle');
+                const minCount = document.getElementById('minSearchCount'); 
+                const t = translations[currentLang] || translations.th;
 
-            if(!term) {
-                closeSearchPanel();
-                return;
-            }
+                if(!term) {
+                    closeSearchPanel();
+                    return;
+                }
 
-            let html = '';
-            let foundCount = 0;
+                let html = '';
+                let foundCount = 0;
 
-            for(const [locId, data] of Object.entries(locationData)) {
-                let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
-
-                let matchedItems = iArr.filter(itemCode => {
-                    let mData = masterData[itemCode.toUpperCase()] || {};
-                    let codeName = (mData.code_name || "").toUpperCase();
-                    let cl = (mData.cl || "").toUpperCase();
-
-                    return itemCode.toUpperCase().includes(term) || 
-                           codeName.includes(term) || 
-                           cl.includes(term) || 
-                           locId.toUpperCase().includes(term);
+                let allLocs = new Set();
+                [...FLOOR1_DATA, ...FLOOR2_DATA].forEach(loc => {
+                    if(loc.type === 'rackgroup' && loc.items) {
+                        loc.items.forEach(i => { if(i.val) allLocs.add(i.val); });
+                    } else if(loc.val) {
+                        allLocs.add(loc.val);
+                    }
                 });
 
-                if(matchedItems.length > 0 || locId.toUpperCase().includes(term)) {
+                allLocs.forEach(locId => {
+                    const data = locationData[locId] || { items_list: "" };
+                    let iArr = String(data.items_list || "").split(',').map(s=>String(s).trim()).filter(s=>s!=="");
 
-                    boxIdsFor(locId).forEach(id => { 
-                        const b = document.getElementById(id); 
-                        if(b) b.classList.add('highlight-blink'); 
+                    let matchedItems = iArr.filter(itemCode => {
+                        let mData = masterData[String(itemCode).toUpperCase()] || {};
+                        let codeName = String(mData.code_name || "").toUpperCase();
+                        let cl = String(mData.cl || "").toUpperCase();
+                        let iCode = String(itemCode).toUpperCase();
+
+                        return iCode.includes(term) || codeName.includes(term) || cl.includes(term);
                     });
 
-                    let itemsToDisplay = matchedItems.length > 0 ? matchedItems : iArr;
+                    let strLocId = String(locId).toUpperCase();
 
-                    html += `
-                    <div class="glass-input hover:bg-[var(--card-hover)] p-3 rounded border border-[var(--glass-border)] cursor-pointer transition-colors shadow-md mb-2" onclick="openModal('${locId}')">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sky-500 font-black text-sm tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
-                        </div>`;
+                    if(matchedItems.length > 0 || strLocId.includes(term)) {
+                        
+                        let ids = ['box-' + locId];
+                        FLOOR1_DATA.concat(FLOOR2_DATA).forEach(z => {
+                            if (z.loc === locId && z.id !== locId) ids.push('box-' + z.id);
+                            if (z.type === 'rackgroup') {
+                                z.items.forEach(it => { if (it.val === locId) ids.push('box-' + it.id); });
+                            }
+                        });
 
-                    itemsToDisplay.forEach((itemCode) => {
-                        let mData = masterData[itemCode.toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
+                        ids.forEach(id => { 
+                            const b = document.getElementById(id); 
+                            if(b) b.classList.add('highlight-blink'); 
+                        });
+
+                        let itemsToDisplay = matchedItems.length > 0 ? matchedItems : iArr;
 
                         html += `
-                        <div class="mb-2 pl-3 border-l-2 border-slate-500 space-y-1">
-                            <div class="text-[11px] font-bold text-[var(--text-main)]"><i class="fa-solid fa-tag text-xs text-amber-500 mr-1"></i> ${t.labelCode}: ${mData.code_name} <span class="text-[10px] text-[var(--text-sub)] ml-1">(${mData.cl})</span></div>
-                            <div class="text-[10px] text-[var(--text-sub)]">ITEM: ${itemCode}</div>
-                            <div class="text-[10px] text-[var(--text-sub)] font-medium mt-1">
-                                <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></span>
-                                <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
-                            </div>
-                        </div>`;
-                    });
+                        <div class="glass-input hover:bg-[var(--card-hover)] p-3 rounded border border-[var(--glass-border)] cursor-pointer transition-colors shadow-md mb-2" onclick="openModal('${locId}')">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sky-500 font-black text-sm tracking-wider"><i class="fa-solid fa-location-dot mr-1"></i> ${locId}</span>
+                            </div>`;
 
-                    html += `</div>`;
-                    foundCount++;
+                        if(itemsToDisplay.length > 0) {
+                            itemsToDisplay.forEach((itemCode) => {
+                                let mData = masterData[String(itemCode).toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
+                                html += `
+                                <div class="mb-2 pl-3 border-l-2 border-slate-500 space-y-1">
+                                    <div class="text-[11px] font-bold text-[var(--text-main)]"><i class="fa-solid fa-tag text-xs text-amber-500 mr-1"></i> ${t.labelCode}: ${mData.code_name} <span class="text-[10px] text-[var(--text-sub)] ml-1">(${mData.cl})</span></div>
+                                    <div class="text-[10px] text-[var(--text-sub)]">ITEM: ${itemCode}</div>
+                                    <div class="text-[10px] text-[var(--text-sub)] font-medium mt-1">
+                                        <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></span>
+                                        <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
+                                    </div>
+                                </div>`;
+                            });
+                        } else {
+                            html += `<div class="text-[10px] text-[var(--text-sub)] pl-3 mb-1">-- ${t.statusEmpty} --</div>`;
+                        }
+
+                        html += `</div>`;
+                        foundCount++;
+                    }
+                });
+
+                panel.classList.remove('minimized');
+
+                if(foundCount > 0) {
+                    content.innerHTML = html;
+                    panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchFoundPrefix} ${foundCount} ${t.searchFoundSuffix}`;
+                    if(minCount) minCount.innerText = `${foundCount} รายการ`; 
+                    panel.classList.remove('hidden');
+                } else {
+                    content.innerHTML = `<div class="text-center text-[var(--text-sub)] py-6 text-sm font-bold"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>${t.searchNotFoundDesc}</div>`;
+                    panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchNotFoundTitle}`;
+                    if(minCount) minCount.innerText = `0 รายการ`;
+                    panel.classList.remove('hidden');
                 }
-            }
-
-            // แสดงกล่องผลลัพธ์แบบขยายเต็มทุกครั้งที่พิมพ์ค้นหาใหม่
-            panel.classList.remove('minimized');
-
-            if(foundCount > 0) {
-                content.innerHTML = html;
-                panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchFoundPrefix} ${foundCount} ${t.searchFoundSuffix}`;
-                minCount.innerText = `${foundCount} รายการ`; // อัปเดตตัวเลขในกล่องย่อ
-                panel.classList.remove('hidden');
-            } else {
-                content.innerHTML = `<div class="text-center text-[var(--text-sub)] py-6 text-sm font-bold"><i class="fa-solid fa-magnifying-glass-minus text-2xl mb-2 block"></i>${t.searchNotFoundDesc}</div>`;
-                panelTitle.innerHTML = `<i class="fa-solid fa-list-ul mr-1.5"></i> ${t.searchNotFoundTitle}`;
-                minCount.innerText = `0 รายการ`;
-                panel.classList.remove('hidden');
+            } catch (err) {
+                console.error("Search Error: ", err); 
             }
         });
 
-        // --- อัปเกรดหน้าต่าง Modal ---
-        let currentModalLocId = null;
+        // ==========================================
+        // 🚨 ✅ 4. เพิ่มฟังก์ชันจัดการหน้าต่างแจ้งปัญหา (Report Issue) พร้อมการเช็ก Staff ID จาก Database
+        // ==========================================
+        let currentReportLoc = "";
+        let pendingIssueType = null; // เก็บปัญหาไว้ชั่วคราวตอนถามรหัสพนักงาน
 
         function openModal(locId) {
-            currentModalLocId = locId;
             const t = translations[currentLang] || translations.th;
             document.getElementById('modalTitle').innerText = locId;
+            currentReportLoc = locId; 
+            
             const data = locationData[locId] || { status: 'ไม่มีข้อมูล', items_list: '' };
             const badge = document.getElementById('modalStatusBadge');
 
@@ -822,14 +844,14 @@
                  data.status === 'Full' ? "bg-red-500/20 text-red-500 border-red-500/30" : 
                  "bg-[var(--input-bg)] text-[var(--text-sub)] border-[var(--glass-border)]");
 
-            let iArr = (data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
+            let iArr = String(data.items_list || "").split(',').map(s=>s.trim()).filter(s=>s!=="");
 
             if (iArr.length === 0) {
                 document.getElementById('modalBodyContent').innerHTML = `<div class="text-center text-[var(--text-sub)] py-8"><i class="fa-solid fa-box-open text-4xl mb-3 block opacity-50"></i><span class="text-sm font-bold">${t.modalNoData}</span></div>`;
             } else {
                 let html = '<div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scroll">';
                 for (let i = 0; i < iArr.length; i++) {
-                    let itemCode = iArr[i].toUpperCase();
+                    let itemCode = String(iArr[i]).toUpperCase();
                     let mData = masterData[itemCode] || { code_name: t.modalNotFound, cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
 
                     html += `
@@ -857,105 +879,27 @@
 
         function closeModal(e) { document.getElementById('infoModal').classList.remove('active'); }
 
-        // ==========================================
-        // 🆕 ระบบแจ้งปัญหา (Report Issue) + Item Quick-Pick
-        // ==========================================
-        let pendingIssueType = null;
-        let currentIssueItems = [];   // [{code, name, cl}] items in currentModalLocId
-        let selectedIssueItemCode = null; // null = ไม่ระบุ SKU (ทั้งช่อง)
-
-        function openReportIssue(e) {
-            if (e) e.stopPropagation();
-            if (!currentModalLocId) return;
-            const t = translations[currentLang] || translations.th;
-            document.getElementById('reportIssueLocLabel').innerText = currentModalLocId;
-
-            // เตรียมรายการ SKU ในช่องนี้ ให้กดเลือกได้เลยแบบเดียวกับผลค้นหาหน้าแรก
-            const data = locationData[currentModalLocId] || { items_list: '' };
-            const codes = (data.items_list || '').split(',').map(s => s.trim()).filter(s => s !== '');
-            currentIssueItems = codes.map(code => {
-                const m = masterData[code.toUpperCase()] || {};
-                return { code: code, name: m.code_name || code, cl: m.cl || '-' };
-            });
-            selectedIssueItemCode = null;
-
-            const wrap = document.getElementById('issueItemPickerWrap');
-            const searchInput = document.getElementById('issueItemSearch');
-            if (searchInput) searchInput.value = '';
-            if (currentIssueItems.length > 0) {
-                wrap.classList.remove('hidden');
-                renderIssueItemButtons(currentIssueItems);
-            } else {
-                wrap.classList.add('hidden');
-            }
-
+        function openReportModal() {
             document.getElementById('infoModal').classList.remove('active');
-            document.getElementById('reportIssueModal').classList.add('active');
+            document.getElementById('reportLocId').innerText = currentReportLoc;
+            document.getElementById('reportModal').classList.add('active');
         }
 
-        function closeReportIssue(e) {
-            document.getElementById('reportIssueModal').classList.remove('active');
+        function closeReportModal() {
+            document.getElementById('reportModal').classList.remove('active');
         }
 
-        // สร้างปุ่มไอคอนให้กดเลือก SKU ได้ทันที ไม่ต้องพิมพ์ค้นหาหรือย้อนกลับไปกดที่ layout
-        function renderIssueItemButtons(items) {
-            const t = translations[currentLang] || translations.th;
-            const list = document.getElementById('issueItemList');
-            let html = `
-                <div class="item-pick-btn${selectedIssueItemCode === null ? ' selected' : ''}" onclick="selectIssueItem(null)">
-                    <div class="ip-icon"><i class="fa-solid fa-layer-group"></i></div>
-                    <div class="ip-text">
-                        <div class="ip-name" data-i18n="issueNoItemOption">ไม่ระบุ SKU (ทั้งช่อง)</div>
-                    </div>
-                    <i class="fa-solid fa-circle-check ip-check"></i>
-                </div>`;
-            items.forEach(it => {
-                const sel = selectedIssueItemCode === it.code;
-                html += `
-                <div class="item-pick-btn${sel ? ' selected' : ''}" onclick="selectIssueItem('${it.code.replace(/'/g, "\\'")}')">
-                    <div class="ip-icon"><i class="fa-solid fa-box"></i></div>
-                    <div class="ip-text">
-                        <div class="ip-name">${it.name} <span style="opacity:.6">(${it.cl})</span></div>
-                        <div class="ip-code">${it.code}</div>
-                    </div>
-                    <i class="fa-solid fa-circle-check ip-check"></i>
-                </div>`;
-            });
-            list.innerHTML = html;
-            // แปลข้อความ "ไม่ระบุ SKU" ตามภาษาปัจจุบันทันที (เผื่อ innerHTML เขียนทับ data-i18n)
-            const noItemEl = list.querySelector('[data-i18n="issueNoItemOption"]');
-            if (noItemEl && t.issueNoItemOption) noItemEl.textContent = t.issueNoItemOption;
-        }
-
-        function selectIssueItem(code) {
-            selectedIssueItemCode = code;
-            const term = document.getElementById('issueItemSearch').value;
-            filterIssueItems(term);
-        }
-
-        function filterIssueItems(term) {
-            const q = (term || '').trim().toUpperCase();
-            if (!q) { renderIssueItemButtons(currentIssueItems); return; }
-            const filtered = currentIssueItems.filter(it =>
-                it.code.toUpperCase().includes(q) ||
-                (it.name || '').toUpperCase().includes(q) ||
-                (it.cl || '').toUpperCase().includes(q)
-            );
-            renderIssueItemButtons(filtered);
-        }
-
-        function getStaffId() {
-            return localStorage.getItem('wms_staff_id') || '';
-        }
-
+        // 💡 เปลี่ยนมาเรียกฟังก์ชันนี้เวลากดเลือกปัญหา
         function submitIssue(issueType) {
-            const staffId = getStaffId();
+            let staffId = localStorage.getItem("wms_staff_id");
             if (!staffId) {
+                // ถ้ายังไม่มีรหัสในเครื่อง ให้เปิดหน้าต่างกรอกรหัสพนักงาน
                 pendingIssueType = issueType;
                 document.getElementById('staffIdInput').value = '';
                 document.getElementById('staffIdModal').classList.add('active');
                 return;
             }
+            // ถ้ามีอยู่แล้ว ส่งข้อมูลเลย
             sendIssueToSupabase(issueType, staffId);
         }
 
@@ -964,11 +908,9 @@
             document.getElementById('staffIdModal').classList.remove('active');
         }
 
-        // ✅ เช็กรหัสพนักงานกับตาราง staff (whitelist) ใน Supabase ก่อนบันทึกเสมอ
-        //    - ต้องเจอ record ที่ staff_id ตรงกัน และ active = true เท่านั้นถึงจะผ่าน
-        //    - ถ้าไม่ผ่าน จะไม่บันทึกลง localStorage และแจ้งเตือนผู้ใช้ทันที
+        // 💡 ✅ ตรวจสอบรหัสพนักงานกับฐานข้อมูล (Database Validation) ก่อนส่งปัญหา
         async function confirmStaffId() {
-            const val = document.getElementById('staffIdInput').value.trim();
+            const val = document.getElementById('staffIdInput').value.trim().toUpperCase();
             if (!val) return;
 
             const t = translations[currentLang] || translations.th;
@@ -977,7 +919,8 @@
             confirmBtn.disabled = true;
             confirmBtn.innerText = '...';
 
-            try {
+            try {        
+                // ✅ เช็กกับตาราง staff (whitelist) ว่ารหัสนี้ได้รับอนุญาตและยัง active อยู่จริง
                 const { data, error } = await sbClient
                     .from('staff')
                     .select('staff_id, name, active')
@@ -987,19 +930,19 @@
 
                 if (error) {
                     alert(t.staffIdCheckError || 'ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่');
-                    console.error(error);
                     return;
                 }
                 if (!data) {
                     alert(t.staffIdInvalid || 'รหัสพนักงานไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน');
                     return;
-                }
+                }        
 
-                // ผ่านการตรวจสอบกับ whitelist แล้ว ค่อยจำไว้ในเครื่อง
+                // ✅ ผ่านการตรวจสอบแล้ว ค่อยจำไว้ในเครื่อง
                 localStorage.setItem('wms_staff_id', data.staff_id);
                 localStorage.setItem('wms_staff_name', data.name || '');
                 document.getElementById('staffIdModal').classList.remove('active');
 
+                // ดำเนินการแจ้งปัญหาที่ค้างไว้ต่อทันที
                 if (pendingIssueType) {
                     sendIssueToSupabase(pendingIssueType, data.staff_id);
                     pendingIssueType = null;
@@ -1012,31 +955,32 @@
 
         async function sendIssueToSupabase(issueType, staffId) {
             const t = translations[currentLang] || translations.th;
-            if (!currentModalLocId) return;
             try {
-                const { error } = await sbClient.from('location_issues').insert({
-                    location_id: currentModalLocId,
-                    item_code: selectedIssueItemCode,
-                    issue_type: issueType,
-                    reporter_id: staffId,
-                    status: 'PENDING'
-                });
+                // ยิงเข้าตาราง location_issues โดยแนบรหัสคนที่ผ่านการตรวจสอบแล้ว
+                const { data, error } = await sbClient.from('location_issues').insert([
+                    { 
+                        location_id: currentReportLoc, 
+                        issue_type: issueType, 
+                        reporter_id: staffId,
+                        status: 'PENDING' 
+                    }
+                ]);
+                
                 if (error) {
-                    alert(t.reportIssueError || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
                     console.error(error);
-                    return;
+                    alert("Error: ส่งข้อมูลไม่ได้ กรุณาลองใหม่");
+                } else {
+                    alert(`✅ ${t.reportSuccess || 'แจ้งปัญหาให้หัวหน้างานทราบเรียบร้อยแล้ว!'}`);
+                    closeReportModal();
+                    // ถ้าคุณมีการทำกระดิ่งแจ้งเตือน จะเรียกคำสั่ง refreshIssuesBadge() ตรงนี้เพิ่มได้ครับ
                 }
-                document.getElementById('reportIssueModal').classList.remove('active');
-                alert(t.reportIssueSuccess || 'ส่งแจ้งปัญหาเรียบร้อยแล้ว');
-                refreshIssuesBadge();
             } catch (err) {
                 console.error(err);
-                alert(t.reportIssueError || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
             }
         }
 
         // ==========================================
-        // 🆕 Issues Panel — สำหรับพนักงาน/หัวหน้างานเข้าไปดูรายการแจ้งปัญหาเพื่อแก้ไข
+        // 🆕 Issues Panel Modal (เปิดดูรายการปัญหาสำหรับหัวหน้างาน)
         // ==========================================
         let issuesFilterMode = 'PENDING';
         let issuesCache = [];
@@ -1077,6 +1021,7 @@
         }
 
         async function openIssuesPanel() {
+            // ระบบตรวจสอบสิทธิ์ สามารถทำเพิ่มได้ที่นี่ (เช่น ให้เฉพาะ Manager เข้าได้)
             document.getElementById('issuesPanelModal').classList.add('active');
             updateIssuesFilterButtons();
             await fetchIssuesList();
@@ -1129,6 +1074,7 @@
             content.innerHTML = html;
         }
 
+        // อัปเดตสถานะปัญหาใน Supabase
         async function resolveIssue(id) {
             const { error } = await sbClient.from('location_issues').update({ status: 'RESOLVED' }).eq('id', id);
             if (error) { console.error(error); return; }
@@ -1140,6 +1086,7 @@
 
         function refreshIssuesBadgeFromCache() {
             const badge = document.getElementById('issuesBadge');
+            if(!badge) return;
             const count = issuesCache.filter(i => i.status === 'PENDING').length;
             if (count > 0) {
                 badge.textContent = count > 99 ? '99+' : count;
@@ -1150,11 +1097,11 @@
         }
 
         async function refreshIssuesBadge() {
-            const { data, error } = await sbClient.from('location_issues').select('id').eq('status', 'PENDING');
             const badge = document.getElementById('issuesBadge');
+            if(!badge) return;
+            const { data, error } = await sbClient.from('location_issues').select('id').eq('status', 'PENDING');
             if (error) { console.error(error); return; }
             const count = (data || []).length;
-            issuesCache = issuesCache.length ? issuesCache : []; // no-op, cache refreshed on panel open
             if (count > 0) {
                 badge.textContent = count > 99 ? '99+' : count;
                 badge.classList.remove('hidden');
@@ -1166,42 +1113,53 @@
         document.addEventListener("DOMContentLoaded", () => { initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); refreshIssuesBadge(); });
 
         // ==========================================
-        // 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n)
+        // 🌍 ระบบแปลภาษา 4 ชาติ (เพิ่มส่วนตรวจสอบรหัสพนักงาน)
         // ==========================================
-        // ... (ลบ let currentLang = ... บรรทัดซ้ำซ้อนออก แล้วเรียกใช้เลย) ...
         const translations = {
             th: { navMenu: "เมนูหลัก", searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...", btnOverview: "ภาพรวม 3D", btnFocusF1: "ชั้น 1", btnFocusF2: "ชั้น 2", legendEmpty: "ว่าง (Empty)", legendPartial: "มีบางส่วน (Partial)", legendFull: "เต็ม (Full)", legendRackPoint: "จุดวางสินค้า", legendLift: "ลิฟต์ขนของ", legendZone: "พื้นที่/เครื่องจักร", badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "ปิดหน้าต่าง", modalNoData: "ไม่มีสินค้าในช่องนี้", modalNotFound: "ไม่พบข้อมูล", statusEmpty: "ว่าง (Empty)", statusPartial: "กลาง (Partial)", statusFull: "เต็ม (Full)", statusUnknown: "ไม่มีข้อมูล", searchPanelDefaultTitle: "สรุปผลการค้นหา", searchFoundPrefix: "พบ", searchFoundSuffix: "ตำแหน่ง", searchNotFoundTitle: "ไม่พบรายการ", searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "แพ็ก", labelCustomer: "ลูกค้า", labelMax: "Max",
+                
+                /* ✅ หมวดแจ้งปัญหาและการล็อกอิน */
                 reportIssueBtn: "แจ้งปัญหา", reportIssueTitle: "แจ้งปัญหา", reportIssuePrompt: "เลือกประเภทปัญหา", issueLocationMismatch: "ตำแหน่ง<br>ไม่ตรง", issueWrongColor: "สีถุง<br>ไม่ตรง", issueOther: "ปัญหา<br>อื่นๆ",
                 staffIdTitle: "กรอกรหัสพนักงาน", staffIdDesc: "กรอกครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนี้", staffIdPlaceholder: "เช่น EMP001", staffIdCancel: "ยกเลิก", staffIdConfirm: "ยืนยัน",
-                staffIdInvalid: "รหัสพนักงานไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน", staffIdCheckError: "ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่",
-                reportIssueSuccess: "ส่งแจ้งปัญหาเรียบร้อยแล้ว", reportIssueError: "เกิดข้อผิดพลาด กรุณาลองใหม่",
-                issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
+                reportSuccess: "แจ้งปัญหาให้หัวหน้างานทราบเรียบร้อยแล้ว!",
+                staffIdInvalid: "รหัสพนักงานไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน",
+                staffIdCheckError: "ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่",
                 issuesPanelTitle: "รายการแจ้งปัญหา", issuesFilterPending: "รอตรวจสอบ", issuesFilterAll: "ทั้งหมด", noIssues: "ไม่มีรายการแจ้งปัญหา",
-                issueCardReporter: "ผู้แจ้ง", issueCardResolve: "ทำเครื่องหมายว่าแก้ไขแล้ว", issueResolved: "แก้ไขแล้ว" },
+                issueCardReporter: "ผู้แจ้ง", issueCardResolve: "ทำเครื่องหมายว่าแก้ไขแล้ว", issueResolved: "แก้ไขแล้ว" 
+            },
             zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
+                
+                /* ✅ หมวดแจ้งปัญหาและการล็อกอิน */
                 reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
                 staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
-                staffIdInvalid: "員工編號無效或未獲授權", staffIdCheckError: "驗證失敗，請重試",
-                reportIssueSuccess: "問題回報成功", reportIssueError: "發生錯誤，請重試",
-                issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
+                reportSuccess: "問題回報成功！已通知主管。",
+                staffIdInvalid: "員工編號無效或未獲授權",
+                staffIdCheckError: "驗證失敗，請重試",
                 issuesPanelTitle: "問題回報列表", issuesFilterPending: "待處理", issuesFilterAll: "全部", noIssues: "沒有回報項目",
-                issueCardReporter: "回報人", issueCardResolve: "標記為已解決", issueResolved: "已解決" },
+                issueCardReporter: "回報人", issueCardResolve: "標記為已解決", issueResolved: "已解決" 
+            },
             mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
-                reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
+                
+                /* ✅ หมวดแจ้งปัญหาและการล็อกอิน */
+                reportIssueBtn: "ပြဿနာတင်ပြရန်", reportIssueTitle: "ပြဿနာတင်ပြရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
                 staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
-                staffIdInvalid: "ဝန်ထမ်းကုဒ် မှားနေသည် သို့မဟုတ် ခွင့်ပြုချက်မရှိပါ", staffIdCheckError: "စစ်ဆေးမှု မအောင်မြင်ပါ ထပ်ကြိုးစားပါ",
-                reportIssueSuccess: "ပြဿနာတိုင်ကြားခြင်း အောင်မြင်ပါသည်", reportIssueError: "အမှားဖြစ်ပွားသည် ထပ်ကြိုးစားပါ",
-                issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
+                reportSuccess: "အောင်မြင်ပါသည်! မန်နေဂျာထံ ပို့ပြီးပါပြီ။",
+                staffIdInvalid: "ဝန်ထမ်းကုဒ် မှားနေသည် သို့မဟုတ် ခွင့်ပြုချက်မရှိပါ",
+                staffIdCheckError: "စစ်ဆေးမှု မအောင်မြင်ပါ ထပ်ကြိုးစားပါ",
                 issuesPanelTitle: "ပြဿနာတိုင်ကြားမှုများ", issuesFilterPending: "စောင့်ဆိုင်းဆဲ", issuesFilterAll: "အားလုံး", noIssues: "တိုင်ကြားမှုမရှိပါ",
-                issueCardReporter: "တိုင်ကြားသူ", issueCardResolve: "ပြီးမြောက်ကြောင်းအမှတ်အသားပြုရန်", issueResolved: "ပြီးမြောက်ပါပြီ" },
+                issueCardReporter: "တိုင်ကြားသူ", issueCardResolve: "ပြီးမြောက်ကြောင်းအမှတ်အသားပြုရန်", issueResolved: "ပြီးမြောက်ပါပြီ" 
+            },
             en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
+                
+                /* ✅ หมวดแจ้งปัญหาและการล็อกอิน */
                 reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
                 staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
-                staffIdInvalid: "Invalid staff ID or not authorized", staffIdCheckError: "Could not verify staff ID, please try again",
-                reportIssueSuccess: "Issue reported successfully", reportIssueError: "An error occurred, please try again",
-                issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",
+                reportSuccess: "Reported successfully!",
+                staffIdInvalid: "Invalid staff ID or not authorized",
+                staffIdCheckError: "Could not verify staff ID, please try again",
                 issuesPanelTitle: "Reported Issues", issuesFilterPending: "Pending", issuesFilterAll: "All", noIssues: "No issues reported",
-                issueCardReporter: "Reporter", issueCardResolve: "Mark as resolved", issueResolved: "Resolved" }
+                issueCardReporter: "Reporter", issueCardResolve: "Mark as resolved", issueResolved: "Resolved" 
+            }
         };
 
         function changeLanguage(lang) {

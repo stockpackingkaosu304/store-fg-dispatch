@@ -968,6 +968,12 @@
             return id;
         }
 
+        // ✅ คืนค่า true เฉพาะเมื่อรหัสพนักงานที่จำไว้ "ผ่านการตรวจสอบกับ whitelist" แล้วเท่านั้น
+        // ใช้แยกสิทธิ์การเข้าดูรายการแจ้งปัญหา (ต้อง verified) ออกจากการส่งแจ้งปัญหา (ไม่ต้อง verified)
+        function isStaffVerified() {
+            return !!getStaffId() && localStorage.getItem('wms_staff_verified') === 'true';
+        }
+
         // อัปเดตเวลาใช้งานล่าสุด เรียกทุกครั้งที่มีการใช้รหัสพนักงานจริง (ต่ออายุ session แบบ sliding window)
         function touchStaffSession() {
             if (localStorage.getItem('wms_staff_id')) {
@@ -979,6 +985,7 @@
             localStorage.removeItem('wms_staff_id');
             localStorage.removeItem('wms_staff_name');
             localStorage.removeItem('wms_staff_last_active');
+            localStorage.removeItem('wms_staff_verified');
             updateStaffStatusUI();
         }
 
@@ -1006,6 +1013,7 @@
             }
         }
 
+        // ✅ ตอนแจ้งปัญหา: ใครก็สามารถส่งได้ ใส่รหัสอะไรก็ได้ ไม่เช็คกับ whitelist ตาราง staff
         function submitIssue(issueType) {
             const staffId = getStaffId();
             if (!staffId) {
@@ -1023,9 +1031,10 @@
             document.getElementById('staffIdModal').classList.remove('active');
         }
 
-        // ✅ เช็กรหัสพนักงานกับตาราง staff (whitelist) ใน Supabase ก่อนบันทึกเสมอ
-        //    - ต้องเจอ record ที่ staff_id ตรงกัน และ active = true เท่านั้นถึงจะผ่าน
-        //    - ถ้าไม่ผ่าน จะไม่บันทึกลง localStorage และแจ้งเตือนผู้ใช้ทันที
+        // ✅ แยกเส้นทางตามประเภทการใช้งาน:
+        //    - แจ้งปัญหา (type: 'issue') → ไม่เช็ค whitelist รับรหัสอะไรก็ได้ที่ผู้ใช้พิมพ์
+        //    - ดูรายการแจ้งปัญหา (type: 'viewIssues') → ต้องเช็กับตาราง staff (whitelist) เหมือนเดิม
+        //      ต้องเจอ record ที่ staff_id ตรงกัน และ active = true เท่านั้นถึงจะผ่าน
         async function confirmStaffId() {
             const val = document.getElementById('staffIdInput').value.trim();
             if (!val) return;
@@ -1033,6 +1042,23 @@
             const t = translations[currentLang] || translations.th;
             const confirmBtn = document.querySelector('#staffIdModal button[onclick="confirmStaffId()"]');
             const originalText = confirmBtn.innerText;
+
+            // ✅ กรณีแจ้งปัญหา — ใครก็ใส่รหัสอะไรก็ได้ ไม่ต้องตรวจสอบกับ whitelist
+            if (pendingStaffAction && pendingStaffAction.type === 'issue') {
+                localStorage.setItem('wms_staff_id', val);
+                localStorage.setItem('wms_staff_name', '');
+                localStorage.setItem('wms_staff_last_active', Date.now().toString());
+                // ⚠️ ไม่ set wms_staff_verified เพราะรหัสนี้ยังไม่ผ่านการตรวจสอบกับ whitelist
+                updateStaffStatusUI();
+                document.getElementById('staffIdModal').classList.remove('active');
+
+                const action = pendingStaffAction;
+                pendingStaffAction = null;
+                sendIssueToSupabase(action.issueType, val);
+                return;
+            }
+
+            // กรณีดูรายการแจ้งปัญหา (กระดิ่ง) — ต้องเช็กับ whitelist เหมือนเดิม
             confirmBtn.disabled = true;
             confirmBtn.innerText = '...';
 
@@ -1058,15 +1084,14 @@
                 localStorage.setItem('wms_staff_id', data.staff_id);
                 localStorage.setItem('wms_staff_name', data.name || '');
                 localStorage.setItem('wms_staff_last_active', Date.now().toString());
+                localStorage.setItem('wms_staff_verified', 'true');
                 updateStaffStatusUI();
                 document.getElementById('staffIdModal').classList.remove('active');
 
                 if (pendingStaffAction) {
                     const action = pendingStaffAction;
                     pendingStaffAction = null;
-                    if (action.type === 'issue') {
-                        sendIssueToSupabase(action.issueType, data.staff_id);
-                    } else if (action.type === 'viewIssues') {
+                    if (action.type === 'viewIssues') {
                         openIssuesPanelContent();
                     }
                 }
@@ -1142,10 +1167,10 @@
             aBtn.className = 'flex-1 py-2 rounded-xl text-[11px] font-black transition-all ' + (issuesFilterMode === 'ALL' ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg' : 'glass-input text-[var(--text-main)]');
         }
 
-        // ✅ ต้องมีรหัสพนักงานที่ผ่านการตรวจสอบแล้วก่อน ถึงจะเปิดดูรายการแจ้งปัญหาได้
+        // ✅ ต้องมีรหัสพนักงานที่ "ผ่านการตรวจสอบกับ whitelist" แล้วเท่านั้น ถึงจะเปิดดูรายการแจ้งปัญหาได้
+        //    แม้จะเคยพิมพ์รหัสอะไรไว้ตอนแจ้งปัญหาแล้วก็ตาม (รหัสนั้นยังไม่ verified)
         function openIssuesPanel() {
-            const staffId = getStaffId();
-            if (!staffId) {
+            if (!isStaffVerified()) {
                 pendingStaffAction = { type: 'viewIssues' };
                 document.getElementById('staffIdInput').value = '';
                 document.getElementById('staffIdModal').classList.add('active');

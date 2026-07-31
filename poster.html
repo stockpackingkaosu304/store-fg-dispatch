@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAOSU 3D WMS - Manual Poster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ตั้งค่าหน้ากระดาษ A4 */
+        @page { size: A4; margin: 0; }
+        
+        body { 
+            margin: 0; padding: 0; 
+            background: #0f172a; 
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* กรอบขนาด A4 (210 x 297 mm) */
+        .a4-canvas {
+            width: 210mm; 
+            height: 297mm; 
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
+            position: relative; 
+            overflow: hidden; 
+            box-sizing: border-box; 
+            padding: 12mm;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Glassmorphism Classes (จาก Theme Engine ของเรา) */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+        }
+
+        /* แสงออร่าตกแต่งพื้นหลัง */
+        .glow-orb-1 { position: absolute; top: -50px; left: -50px; width: 400px; height: 400px; background: rgba(14, 165, 233, 0.2); filter: blur(80px); z-index: 0; }
+        .glow-orb-2 { position: absolute; bottom: -100px; right: -50px; width: 500px; height: 500px; background: rgba(56, 189, 248, 0.15); filter: blur(100px); z-index: 0; }
+        
+        /* สไตล์ภาพหน้าจอมือถือ */
+        .phone-mockup {
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+            object-fit: contain;
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="a4-canvas">
+        <!-- เอฟเฟกต์แสงพื้นหลัง -->
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+
+        <!-- 🔹 ส่วนหัว (Header & QR Code) -->
+        <div class="relative z-10 flex justify-between items-center border-b border-slate-700/50 pb-6 mb-8">
+            <div class="flex items-center gap-5">
+                <!-- โลโก้ KSS -->
+                <div class="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 backdrop-blur-md shadow-lg p-2">
+                    <img src="logo.png" alt="KSS" class="w-full h-auto object-contain" onerror="this.src='https://via.placeholder.com/150?text=KSS'">
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black tracking-widest text-white drop-shadow-md">KAOSU 3D WMS</h1>
+                    <h2 class="text-xl font-bold text-sky-400 mt-1">ระบบค้นหาตำแหน่งสินค้า 3 มิติ</h2>
+                </div>
+            </div>
+            
+            <!-- 🔲 กรอบวาง QR Code -->
+            <div class="w-36 h-36 bg-white rounded-2xl flex flex-col items-center justify-center border-4 border-dashed border-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.3)] relative overflow-hidden">
+                <i class="fa-solid fa-qrcode text-5xl text-slate-200 mb-2"></i>
+                <span class="text-xs font-black text-slate-400 text-center tracking-widest">วาง QR CODE<br>ที่นี่</span>
+                <div class="absolute inset-0 bg-sky-500/5"></div>
+            </div>
+        </div>
+
+        <!-- 🔹 3 ขั้นตอนการใช้งาน -->
+        <div class="relative z-10 flex flex-col gap-6">
+            
+            <!-- ขั้นตอนที่ 1 -->
+            <div class="glass-panel rounded-3xl p-5 flex items-center gap-6">
+                <div class="flex-1 pl-2">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-12 h-12 rounded-full bg-sky-500 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-sky-500/40 border border-sky-400">1</div>
+                        <h3 class="text-2xl font-bold text-white tracking-wide">สแกนและตั้งค่าภาษา</h3>
+                    </div>
+                    <p class="text-slate-300 text-base ml-16 leading-relaxed font-medium">
+                        สแกน QR Code เพื่อเข้าสู่ระบบ<br>
+                        สามารถเลือกเปลี่ยนภาษาได้ 4 ภาษา (ไทย, จีน, พม่า, อังกฤษ) เพื่อความสะดวกของพนักงานแต่ละชาติ
+                    </p>
+                </div>
+                <div class="w-48 shrink-0">
+                    <!-- โหลดภาพ มือถือ3.jpg ที่คุณแคปไว้ -->
+                    <img src="มือถือ3.jpg" class="w-full h-[220px] phone-mockup" alt="ขั้นตอนที่ 1">
+                </div>
+            </div>
+
+            <!-- ขั้นตอนที่ 2 -->
+            <div class="glass-panel rounded-3xl p-5 flex items-center gap-6">
+                <div class="flex-1 pl-2">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-12 h-12 rounded-full bg-sky-500 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-sky-500/40 border border-sky-400">2</div>
+                        <h3 class="text-2xl font-bold text-white tracking-wide">ค้นหาตำแหน่งรวดเร็ว</h3>
+                    </div>
+                    <p class="text-slate-300 text-base ml-16 leading-relaxed font-medium">
+                        พิมพ์รหัสสินค้า (ITEM), ชื่อลูกค้า, หรือรหัสช่อง (เช่น A1-05)<br>
+                        <span class="text-sky-400 font-bold bg-sky-500/10 px-2 py-1 rounded-md mt-1 inline-block border border-sky-500/20">
+                            <i class="fa-solid fa-crosshairs"></i> ระบบจะซูมและแสดงแสงกระพริบชี้ตำแหน่งบนแผนที่ 3 มิติทันที
+                        </span>
+                    </p>
+                </div>
+                <div class="w-48 shrink-0">
+                    <!-- โหลดภาพ มือถือ2.jpg หรือ มือถือ1.jpg -->
+                    <img src="มือถือ2.jpg" class="w-full h-[220px] phone-mockup" alt="ขั้นตอนที่ 2">
+                </div>
+            </div>
+
+            <!-- ขั้นตอนที่ 3 -->
+            <div class="glass-panel rounded-3xl p-5 flex items-center gap-6">
+                <div class="flex-1 pl-2">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-12 h-12 rounded-full bg-red-500 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-red-500/40 border border-red-400">3</div>
+                        <h3 class="text-2xl font-bold text-white tracking-wide">ดูข้อมูลและแจ้งปัญหา</h3>
+                    </div>
+                    <p class="text-slate-300 text-base ml-16 leading-relaxed font-medium">
+                        แตะที่กล่องบนแผนผังเพื่อดูรายละเอียดจำนวนสินค้า<br>
+                        หากพบว่าของไม่ตรงกับหน้างานจริง สามารถกดปุ่ม <span class="bg-red-500/20 text-red-400 px-2 py-1 rounded font-bold border border-red-500/30 inline-flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> แจ้งปัญหา</span> ได้ทันที
+                    </p>
+                </div>
+                <!-- แสดง 2 ภาพซ้อนกันเพื่อแสดงให้เห็นทั้งหน้าต่างรายละเอียด และหน้าต่างแจ้งปัญหา -->
+                <div class="w-56 shrink-0 flex gap-3 relative h-[220px]">
+                    <img src="มือถือ4.jpg" class="w-[120px] absolute left-0 bottom-0 z-10 phone-mockup h-[200px] object-cover object-top" alt="รายละเอียด">
+                    <img src="มือถือ5.jpg" class="w-[120px] absolute right-0 top-0 z-20 phone-mockup h-[200px] object-cover object-top shadow-[0_10px_30px_rgba(0,0,0,0.8)]" alt="แจ้งปัญหา">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 🔹 Footer -->
+        <div class="absolute bottom-5 left-0 w-full text-center z-10">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                <i class="fa-solid fa-shield-halved"></i> 
+                <span>KAOSU LOGISTICS • SMART WMS VER 1.1.2</span>
+            </p>
+        </div>
+
+    </div>
+
+</body>
+</html>

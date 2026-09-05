@@ -181,6 +181,14 @@
                 </button>
             </div>
 
+            <!-- Button: Job Notices (Minimal) -->
+            <div class="pt-0 pb-2 text-center">
+                <button onclick="openLoginModal('notices.html')" class="group relative inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors py-2 px-4 rounded-full hover:bg-black/5">
+                    <i class="fa-solid fa-file-lines group-hover:animate-pulse"></i>
+                    <span data-i18n="menuNoticeLink">สำหรับหัวหน้างาน: ใบติดต่องาน (Job Notices)</span>
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -244,10 +252,13 @@
 
 
         /* =============================================================
-           ⚙️ Core Logic (คงเดิมจากเวอร์ชันคุณปิยนาถ)
+           ⚙️ Core Logic
         ============================================================= */
         let targetPage = ""; 
         let modalDescKey = "loginDescDispatch"; 
+
+        // หน้าที่ต้องมี role = supervisor เท่านั้นถึงจะเข้าได้ (เพิ่มหน้าใหม่ต่อท้าย array นี้ได้เลย)
+        const SUPERVISOR_ONLY_PAGES = ['report.html', 'notices.html'];
 
         // Supabase Init
         var sbClient = null;
@@ -261,7 +272,7 @@
 
         function openLoginModal(page) {
             targetPage = page;
-            modalDescKey = (page === 'report.html') ? 'loginDescReport' : 'loginDescDispatch';
+            modalDescKey = SUPERVISOR_ONLY_PAGES.includes(page) ? 'loginDescReport' : 'loginDescDispatch';
             var desc = document.getElementById('loginModalDesc');
             desc.setAttribute('data-i18n', modalDescKey);
             var t = translations[currentLang] || translations.th;
@@ -308,7 +319,7 @@
                 const { data, error } = await sbClient.from('staff').select('staff_id, role, active').eq('staff_id', staffId).maybeSingle();
                 if (error) throw error;
                 if (!data || !data.active) return showLoginError(t.errInvalid);
-                if (targetPage === 'report.html' && data.role !== 'supervisor') return showLoginError(t.errReportOnly);
+                if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && data.role !== 'supervisor') return showLoginError(t.errReportOnly);
 
                 localStorage.setItem("savedStaffId", staffId);
                 // แอนิเมชันตอนผ่าน
@@ -329,7 +340,7 @@
         });
 
         /* =============================================================
-           🌍 i18n Translation (คงเดิม)
+           🌍 i18n Translation
         ============================================================= */
         const translations = {
             th: {
@@ -337,17 +348,19 @@
                 menuLayout: "แผนผังคลังสินค้า", menuLayoutDesc: "ดูสถานะพื้นที่ว่างแบบ Real-time",
                 menuDispatch: "บันทึกจ่ายงาน", menuDispatchDesc: "ระบบสแกนและตัดสต็อกสินค้า",
                 menuReportLink: "สำหรับหัวหน้างาน: ดูรายงาน (Report)",
+                menuNoticeLink: "สำหรับหัวหน้างาน: ใบติดต่องาน (Job Notices)",
                 loginTitle: "ยืนยันตัวตน", loginDescDispatch: "กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณเพื่อเข้าใช้งาน",
                 loginDescReport: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณากรอกรหัสพนักงานของท่าน",
                 staffIdPh: "เช่น EMP001", btnLogin: "เข้าสู่ระบบ", btnLoginLoading: "ตรวจสอบข้อมูล...",
                 errStaffRequired: "กรุณากรอกรหัสพนักงานครับ!", errSystemNotReady: "ระบบไม่พร้อมใช้งาน",
-                errInvalid: "รหัสไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน", errReportOnly: "หน้ารายงานสำหรับหัวหน้างานเท่านั้น", errGeneral: "เกิดข้อผิดพลาด กรุณาลองใหม่"
+                errInvalid: "รหัสไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน", errReportOnly: "หน้านี้สำหรับหัวหน้างานเท่านั้น", errGeneral: "เกิดข้อผิดพลาด กรุณาลองใหม่"
             },
             zh: {
                 appTitle: "KAOSU 倉儲系統", appDesc: "智能庫存管理與發貨",
                 menuLayout: "倉庫佈局", menuLayoutDesc: "實時查看可用空間",
                 menuDispatch: "發貨記錄", menuDispatchDesc: "掃描並扣減庫存",
                 menuReportLink: "主管專用：查看報告",
+                menuNoticeLink: "主管專用：工作通知單 (Job Notices)",
                 loginTitle: "身份驗證", loginDescDispatch: "請輸入您的員工編號 (Staff ID)",
                 loginDescReport: "此頁面僅供主管使用，請輸入編號",
                 staffIdPh: "例如 EMP001", btnLogin: "登入系統", btnLoginLoading: "驗證中...",
@@ -359,17 +372,19 @@
                 menuLayout: "ကုန်လှောင်ရုံပုံစံ", menuLayoutDesc: "နေရာလွတ်များကို အချိန်နှင့်တပြေးညီ ကြည့်ရန်",
                 menuDispatch: "ထုတ်ပေးမှုမှတ်တမ်း", menuDispatchDesc: "ကုန်ပစ္စည်းထုတ်ပေးခြင်း မှတ်တမ်းတင်ရန်",
                 menuReportLink: "မန်နေဂျာအတွက်: အစီရင်ခံစာကြည့်ရန်",
+                menuNoticeLink: "မန်နေဂျာအတွက်: အလုပ်ဆက်သွယ်ရေးစာများ",
                 loginTitle: "အကောင့်ဝင်ရန်", loginDescDispatch: "သင်၏ ဝန်ထမ်းကုဒ် (Staff ID) ကို ထည့်ပါ",
                 loginDescReport: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။",
                 staffIdPh: "ဥပမာ EMP001", btnLogin: "စနစ်ထဲသို့ဝင်ရန်", btnLoginLoading: "စစ်ဆေးနေသည်...",
                 errStaffRequired: "ဝန်ထမ်းကုဒ်ထည့်ပါ!", errSystemNotReady: "စနစ်အဆင်သင့်မဖြစ်သေးပါ",
-                errInvalid: "ကုဒ်မှားနေသည် (သို့) ခွင့်ပြုချက်မရှိပါ", errReportOnly: "မန်နေဂျာများအတွက်သာ", errGeneral: "အမှားတစ်ခုဖြစ်ပွားသည်"
+                errInvalid: "ကုဒ်မှားနေသည် (သို့) ခွင့်ပြုချက်မရှိပါ", errReportOnly: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ", errGeneral: "အမှားတစ်ခုဖြစ်ပွားသည်"
             },
             en: {
                 appTitle: "KAOSU WMS", appDesc: "Smart Warehouse & Dispatch System",
                 menuLayout: "Store Layout", menuLayoutDesc: "View real-time space status",
                 menuDispatch: "Dispatch Record", menuDispatchDesc: "Scan and update inventory",
                 menuReportLink: "For Supervisor: View Report",
+                menuNoticeLink: "For Supervisor: Job Notices",
                 loginTitle: "Authentication", loginDescDispatch: "Please enter your Staff ID to continue",
                 loginDescReport: "Supervisors only. Please enter your Staff ID",
                 staffIdPh: "e.g. EMP001", btnLogin: "Login", btnLoginLoading: "Checking...",

@@ -319,7 +319,8 @@
                 const { data, error } = await sbClient.from('staff').select('staff_id, role, active').eq('staff_id', staffId).maybeSingle();
                 if (error) throw error;
                 if (!data || !data.active) return showLoginError(t.errInvalid);
-                if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && data.role !== 'supervisor') return showLoginError(t.errReportOnly);
+               const allowedRoles = ['supervisor', 'manager'];
+if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && !allowedRoles.includes(data.role)) return showLoginError(t.errReportOnly);
 
                 localStorage.setItem("savedStaffId", staffId);
                 // แอนิเมชันตอนผ่าน

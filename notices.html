@@ -137,8 +137,15 @@
         }
         @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .sheet-handle { width: 40px; height: 5px; border-radius: 999px; background: var(--glass-border); margin: 4px auto 14px; }
-        .img-lightbox { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); }
+        .img-lightbox { position: fixed; inset: 0; z-index: 10000; display: none; flex-direction: column; background: rgba(0,0,0,0.9); }
         .img-lightbox.active { display: flex; animation: fadeIn 0.2s ease; }
+        .lightbox-toolbar { position: fixed; top: max(16px, env(safe-area-inset-top)); right: 16px; z-index: 10001; display: flex; gap: 8px; }
+        .lightbox-toolbar button { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.14); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); font-size: 14px; transition: transform 0.15s ease, background 0.15s ease; }
+        .lightbox-toolbar button:active { transform: scale(0.9); background: rgba(255,255,255,0.25); }
+        .lightbox-viewport { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: grab; touch-action: pinch-zoom; }
+        .lightbox-viewport.dragging { cursor: grabbing; }
+        #modalImg { max-width: 92vw; max-height: 85vh; object-fit: contain; border-radius: 12px; user-select: none; -webkit-user-drag: none; transform-origin: center center; }
+        .lightbox-hint { position: fixed; bottom: max(16px, env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center; color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 600; pointer-events: none; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         @media (min-width: 768px) {
@@ -170,8 +177,18 @@
 </div>
 
 <!-- Image Lightbox -->
-<div id="imgModal" class="img-lightbox" onclick="closeImgModal()">
-    <img id="modalImg" class="max-w-[92vw] max-h-[85vh] rounded-2xl object-contain" src="" alt="photo">
+<div id="imgModal" class="img-lightbox">
+    <div class="lightbox-toolbar">
+        <button onclick="lbZoom(-0.5)" title="ซูมออก"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+        <button onclick="lbResetZoom()" title="ขนาดจริง"><i class="fa-solid fa-arrows-to-dot"></i></button>
+        <button onclick="lbZoom(0.5)" title="ซูมเข้า"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+        <button onclick="downloadCurrentImage()" title="ดาวน์โหลด"><i class="fa-solid fa-download"></i></button>
+        <button onclick="closeImgModal()" title="ปิด"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="lightboxViewport" class="lightbox-viewport" onclick="closeImgModal()">
+        <img id="modalImg" src="" alt="photo" draggable="false" onclick="event.stopPropagation()">
+    </div>
+    <p class="lightbox-hint hidden md:block">เลื่อนล้อเมาส์เพื่อซูม • ดับเบิลคลิกซูมเร็ว • ลากเพื่อเลื่อนภาพตอนซูม</p>
 </div>
 
 <div id="mainWrap" class="max-w-2xl mx-auto px-4 pt-4 md:pt-6 space-y-4 relative z-10">
@@ -688,8 +705,73 @@ function openDetail(id) {
 }
 function closeDetailModal(e) { document.getElementById('detailModal').classList.remove('active'); }
 
-function openImgModal(url) { document.getElementById('modalImg').src = url; document.getElementById('imgModal').classList.add('active'); }
-function closeImgModal() { document.getElementById('imgModal').classList.remove('active'); setTimeout(() => document.getElementById('modalImg').src = "", 300); }
+/* --- Lightbox: zoom / pan / download --- */
+let lbScale = 1, lbX = 0, lbY = 0, lbDragging = false, lbStartX = 0, lbStartY = 0, lbCurrentUrl = '';
+
+function openImgModal(url) {
+    lbCurrentUrl = url;
+    document.getElementById('modalImg').src = url;
+    resetLbTransform();
+    document.getElementById('imgModal').classList.add('active');
+}
+function closeImgModal() {
+    document.getElementById('imgModal').classList.remove('active');
+    setTimeout(() => { document.getElementById('modalImg').src = ""; }, 300);
+}
+function applyLbTransform() {
+    document.getElementById('modalImg').style.transform = `translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+}
+function resetLbTransform() { lbScale = 1; lbX = 0; lbY = 0; applyLbTransform(); }
+function lbZoom(delta) {
+    lbScale = Math.min(4, Math.max(1, +(lbScale + delta).toFixed(2)));
+    if (lbScale === 1) { lbX = 0; lbY = 0; }
+    applyLbTransform();
+}
+function lbResetZoom() { resetLbTransform(); }
+
+document.getElementById('modalImg').addEventListener('wheel', function (e) {
+    e.preventDefault();
+    lbZoom(e.deltaY < 0 ? 0.25 : -0.25);
+}, { passive: false });
+
+document.getElementById('modalImg').addEventListener('dblclick', function () {
+    if (lbScale > 1) resetLbTransform(); else { lbScale = 2.5; applyLbTransform(); }
+});
+
+document.getElementById('modalImg').addEventListener('mousedown', function (e) {
+    if (lbScale <= 1) return;
+    e.preventDefault();
+    lbDragging = true;
+    lbStartX = e.clientX - lbX; lbStartY = e.clientY - lbY;
+    document.getElementById('lightboxViewport').classList.add('dragging');
+});
+document.addEventListener('mousemove', function (e) {
+    if (!lbDragging) return;
+    lbX = e.clientX - lbStartX; lbY = e.clientY - lbStartY;
+    applyLbTransform();
+});
+document.addEventListener('mouseup', function () {
+    lbDragging = false;
+    document.getElementById('lightboxViewport').classList.remove('dragging');
+});
+
+async function downloadCurrentImage() {
+    if (!lbCurrentUrl) return;
+    try {
+        const res = await fetch(lbCurrentUrl);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = 'job-notice-' + Date.now() + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+    } catch (err) {
+        window.open(lbCurrentUrl, '_blank');
+    }
+}
 
 function clearFilters() {
     activeCategoryFilter = '';

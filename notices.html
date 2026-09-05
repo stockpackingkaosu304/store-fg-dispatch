@@ -2,242 +2,334 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>WMS Job Notices - ใบติดต่องาน</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 🎨 Dynamic Theme Engine (เหมือนหน้าอื่นๆ ในระบบ) */
+        /* =========================================================
+           🎨 Theme tokens — ค่าสีเดิมทั้งหมด ไม่เปลี่ยน (ตามธีมระบบ)
+        ========================================================= */
         :root {
             --bg-gradient: linear-gradient(-45deg, #f1f5f9, #e2e8f0, #cbd5e1, #f8fafc);
             --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(0, 0, 0, 0.15);
+            --glass-border: rgba(0, 0, 0, 0.12);
             --input-bg: rgba(255, 255, 255, 0.95);
             --text-main: #0f172a;
-            --text-sub: #475569;
+            --text-sub: #6b7280;
             --card-hover: rgba(241, 245, 249, 1);
-            --glow-color: rgba(14, 165, 233, 0.15);
+            --glow-color: rgba(14, 165, 233, 0.12);
+            --accent: #0ea5e9;
+            --accent-2: #10b981;
+            --accent-soft: rgba(14, 165, 233, 0.14);
+            --accent-shadow: rgba(14, 165, 233, 0.45);
         }
         [data-theme="dark"] {
             --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
-            --glass-bg: rgba(30, 41, 59, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --input-bg: rgba(15, 23, 42, 0.8);
+            --glass-bg: rgba(30, 41, 59, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --input-bg: rgba(15, 23, 42, 0.75);
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
             --card-hover: rgba(51, 65, 85, 0.9);
-            --glow-color: rgba(56, 189, 248, 0.15);
+            --glow-color: rgba(56, 189, 248, 0.12);
         }
         [data-theme="kaosu"] {
             --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
-            --glass-bg: rgba(69, 10, 10, 0.8);
-            --glass-border: rgba(250, 204, 21, 0.3);
-            --input-bg: rgba(0, 0, 0, 0.6);
+            --glass-bg: rgba(69, 10, 10, 0.75);
+            --glass-border: rgba(250, 204, 21, 0.28);
+            --input-bg: rgba(0, 0, 0, 0.55);
             --text-main: #fef08a;
             --text-sub: #fca5a5;
             --card-hover: rgba(127, 29, 29, 0.9);
-            --glow-color: rgba(250, 204, 21, 0.15);
+            --glow-color: rgba(250, 204, 21, 0.12);
+            --accent: #f59e0b;
+            --accent-soft: rgba(245, 158, 11, 0.16);
+            --accent-shadow: rgba(245, 158, 11, 0.45);
         }
+
+        /* =========================================================
+           ✍️ Typography — system font stack (Apple / macOS feel)
+        ========================================================= */
+        * { -webkit-tap-highlight-color: transparent; }
         body {
             background: var(--bg-gradient); background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite; color: var(--text-main);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: all 0.5s ease;
+            animation: gradientBG 22s ease infinite; color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 0.4s ease, color 0.4s ease;
+            padding-bottom: env(safe-area-inset-bottom);
         }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); transition: all 0.3s ease; }
-        .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); backdrop-filter: blur(8px); transition: all 0.3s ease; }
-        .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
+        .text-largetitle { font-size: clamp(22px, 5vw, 30px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+        .text-title { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+        .text-subhead { font-size: 12px; font-weight: 600; color: var(--text-sub); }
+        .text-footnote { font-size: 11px; color: var(--text-sub); }
 
-        .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; transition: width 0.2s, height 0.2s; }
+        /* =========================================================
+           🪟 Materials (iOS-style translucency)
+        ========================================================= */
+        .material { background: var(--glass-bg); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); border: 1px solid var(--glass-border); }
+        .card { border-radius: 22px; box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 12px 28px -12px rgba(0,0,0,0.25); }
+        .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); }
+        .glass-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
-        .custom-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .mouse-glow { position: fixed; top: var(--y, 30%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 560px; height: 560px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; }
+
+        .custom-scroll::-webkit-scrollbar { height: 0; width: 5px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
 
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 16px; }
-        .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from{opacity:0; transform:scale(0.97)} to{opacity:1; transform:scale(1)} }
+        /* Buttons — flatter, macOS-style solid with subtle top highlight */
+        .btn-solid { background: var(--accent); color: #fff; box-shadow: 0 1px 1px rgba(255,255,255,0.25) inset, 0 6px 14px -6px var(--accent-shadow); transition: transform 0.15s ease, filter 0.15s ease; }
+        .btn-solid:active { transform: scale(0.96); filter: brightness(0.95); }
+        .btn-solid.green { background: var(--accent-2); box-shadow: 0 1px 1px rgba(255,255,255,0.25) inset, 0 6px 14px -6px rgba(16,185,129,0.55); }
+        .btn-ghost { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); transition: all 0.15s ease; }
+        .btn-ghost:active { transform: scale(0.96); }
 
-        .notice-card { cursor: pointer; transition: all 0.2s ease; }
-        .notice-card:hover { transform: translateY(-3px); }
+        /* Chips (category filter) */
+        .chip { flex: 0 0 auto; padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-sub); white-space: nowrap; transition: all 0.15s ease; }
+        .chip.active { background: var(--accent); color: #fff; border-color: transparent; }
+
+        /* Notice card */
+        .notice-card { cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+        .notice-card:active { transform: scale(0.98); }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .cat-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--accent); display: inline-block; }
 
-        .photo-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 1px solid var(--glass-border); }
+        /* =========================================================
+           📱 Bottom Tab Bar (mobile only)
+        ========================================================= */
+        .tab-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100; display: flex; justify-content: space-around; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0 4px; color: var(--text-sub); text-decoration: none; }
+        .tab-item i { font-size: 20px; }
+        .tab-item span { font-size: 10px; font-weight: 600; }
+        .tab-item.active { color: var(--accent); }
+        .tab-item.active i { transform: translateY(-1px); }
+
+        .desktop-nav { display: none; }
+        @media (min-width: 768px) {
+            .desktop-nav { display: flex; }
+            .tab-bar { display: none; }
+            .fab { display: none !important; }
+            body { padding-bottom: 0; }
+        }
+        @media (max-width: 767px) {
+            #mainWrap { padding-bottom: 92px; }
+        }
+
+        /* Floating action button (mobile) */
+        .fab { position: fixed; right: 18px; bottom: calc(78px + env(safe-area-inset-bottom)); z-index: 90; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; background: var(--accent-2); box-shadow: 0 10px 24px -6px rgba(16,185,129,0.55); transition: transform 0.15s ease; }
+        .fab:active { transform: scale(0.92); }
+
+        /* =========================================================
+           🪟 Sheets / Modals — bottom sheet on mobile, centered card on desktop
+        ========================================================= */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(6px); z-index: 9999; }
+        .modal-overlay.active { display: block; }
+        .sheet {
+            position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto;
+            width: 100%; max-height: 90vh; overflow-y: auto;
+            border-radius: 22px 22px 0 0;
+            padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+            animation: sheetUp 0.32s cubic-bezier(.32,.72,0,1);
+        }
+        @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .sheet-handle { width: 40px; height: 5px; border-radius: 999px; background: var(--glass-border); margin: 4px auto 14px; }
+        .img-lightbox { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); }
+        .img-lightbox.active { display: flex; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (min-width: 768px) {
+            .modal-overlay.active { display: flex; align-items: center; justify-content: center; padding: 20px; }
+            .sheet { position: static; width: 100%; max-width: 480px; border-radius: 22px; animation: popIn 0.2s ease; max-height: 88vh; }
+            .sheet-handle { display: none; }
+            @keyframes popIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+        }
+
+        .photo-thumb { width: 68px; height: 68px; object-fit: cover; border-radius: 14px; border: 1px solid var(--glass-border); }
         .photo-thumb-wrap { position: relative; }
-        .photo-thumb-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #ef4444; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .photo-thumb-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #ef4444; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
 
-        .cust-check-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--input-bg); border: 1px solid var(--glass-border); margin-bottom: 6px; cursor: pointer; }
-        .cust-check-item:hover { border-color: #38bdf8; }
-        .cust-check-item.checked { background: rgba(56, 189, 248, 0.12); border-color: #0ea5e9; }
-
-        .tag-badge { font-size: 9px; font-weight: 800; background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-sub); padding: 2px 8px; border-radius: 999px; }
+        .cust-check-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--input-bg); border: 1px solid var(--glass-border); margin-bottom: 6px; }
+        .cust-check-item.checked { background: var(--accent-soft); border-color: var(--accent); }
     </style>
 </head>
-<body class="min-h-screen p-3 md:p-6 relative" data-theme="dark">
+<body class="min-h-screen relative" data-theme="dark">
 
 <div class="mouse-glow"></div>
 
-<!-- 🔒 Access Gate (แสดงถ้ายังไม่ผ่าน login หัวหน้างานจากหน้าเมนู) -->
+<!-- 🔒 Access Gate -->
 <div id="accessGate" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-    <div class="glass-panel rounded-3xl p-8 max-w-sm text-center">
-        <i class="fa-solid fa-lock text-4xl text-amber-400 mb-4"></i>
-        <p class="text-sm font-bold text-[var(--text-main)] mb-4" data-i18n="accessDeniedMsg">หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณาเข้าจากหน้าเมนูหลักแล้วยืนยันตัวตนก่อน</p>
-        <a href="menu.html" class="inline-block bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black px-6 py-3 rounded-xl text-sm" data-i18n="backToMenu">กลับหน้าเมนูหลัก</a>
+    <div class="material card p-8 max-w-sm text-center">
+        <i class="fa-solid fa-lock text-3xl text-amber-400 mb-4"></i>
+        <p class="text-sm font-semibold text-[var(--text-main)] mb-5" data-i18n="accessDeniedMsg">หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณาเข้าจากหน้าเมนูหลักแล้วยืนยันตัวตนก่อน</p>
+        <a href="menu.html" class="inline-block btn-solid font-bold px-6 py-3 rounded-2xl text-sm" data-i18n="backToMenu">กลับหน้าเมนูหลัก</a>
     </div>
 </div>
 
 <!-- Image Lightbox -->
-<div id="imgModal" class="modal-overlay" onclick="closeImgModal()">
-    <img id="modalImg" class="max-w-[90vw] max-h-[90vh] rounded-2xl shadow-2xl border border-[var(--glass-border)]" src="" alt="photo">
+<div id="imgModal" class="img-lightbox" onclick="closeImgModal()">
+    <img id="modalImg" class="max-w-[92vw] max-h-[85vh] rounded-2xl object-contain" src="" alt="photo">
 </div>
 
-<div id="mainWrap" class="max-w-6xl mx-auto space-y-5 relative z-10">
+<div id="mainWrap" class="max-w-2xl mx-auto px-4 pt-4 md:pt-6 space-y-4 relative z-10">
 
     <!-- 🌐 Header -->
-    <div class="glass-panel p-5 md:p-6 rounded-3xl relative overflow-hidden shadow-xl">
-        <div class="flex justify-end gap-2 mb-4 relative z-[60]">
-            <div class="glass-input rounded-full px-2 py-1 flex items-center gap-1.5 shadow-inner">
-                <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110" title="Light Theme"></button>
-                <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110" title="Dark Theme"></button>
-                <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110" title="Kaosu Theme"></button>
+    <div class="material card p-4 md:p-6 relative overflow-hidden">
+        <div class="flex justify-end gap-2 mb-3 relative z-10">
+            <div class="glass-input rounded-full px-2 py-1 flex items-center gap-1.5">
+                <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 transition-transform active:scale-90" title="Light"></button>
+                <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 transition-transform active:scale-90" title="Dark"></button>
+                <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 transition-transform active:scale-90" title="Kaosu"></button>
             </div>
-            <div class="glass-input rounded-full px-3 py-1 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
-                <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
-                <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
-                    <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
-                    <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
-                    <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
-                    <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+            <div class="glass-input rounded-full px-3 py-1 flex items-center gap-1.5">
+                <i class="fa-solid fa-earth-asia text-sky-500 text-xs"></i>
+                <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1">
+                    <option value="th">TH</option>
+                    <option value="zh">ZH</option>
+                    <option value="mm">MM</option>
+                    <option value="en">EN</option>
                 </select>
-                <i class="fa-solid fa-chevron-down text-[var(--text-sub)] text-[9px] pointer-events-none ml-1"></i>
             </div>
         </div>
 
-        <div class="flex items-center gap-4 mb-6">
-            <div class="group relative cursor-pointer flex items-center justify-center shrink-0">
-                <div class="absolute inset-0 bg-red-500/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <img src="logo.png" alt="KSS Logo" class="h-10 md:h-12 w-auto object-contain relative z-10 drop-shadow-md transition-all duration-300 group-hover:scale-110 group-active:scale-95">
+        <div class="flex items-center gap-3">
+            <img src="logo.png" alt="KSS Logo" class="h-9 md:h-11 w-auto object-contain drop-shadow-sm">
+            <div class="flex-1 min-w-0">
+                <h1 class="text-largetitle text-[var(--text-main)]" data-i18n="appTitle">ใบติดต่องาน</h1>
+                <p class="text-subhead" data-i18n="appDesc">Job Notices · Packing Store</p>
             </div>
-            <div class="flex-1">
-                <h1 class="text-2xl md:text-3xl font-black text-[var(--text-main)] tracking-wider" data-i18n="appTitle">JOB NOTICES</h1>
-                <p class="text-xs font-bold text-[var(--text-sub)] tracking-widest uppercase mt-1" data-i18n="appDesc">ใบติดต่องาน Packing Store</p>
-            </div>
-            <div id="staffBadge" class="hidden md:flex items-center gap-1.5 glass-input rounded-full px-3 py-2 text-[11px] font-bold shadow-inner">
-                <i class="fa-solid fa-id-badge text-sky-500"></i>
+            <div id="staffBadge" class="hidden md:flex items-center gap-1.5 glass-input rounded-full px-3 py-2 text-xs font-bold shrink-0">
+                <i class="fa-solid fa-person-military-pointer text-sky-500"></i>
                 <span id="staffBadgeLabel"></span>
             </div>
         </div>
 
-        <div class="flex gap-2">
-            <a href="menu.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-center text-[11px] md:text-xs font-bold py-3 rounded-xl transition-all">
-                <i class="fa-solid fa-house mr-1"></i> <span data-i18n="navMenu">หน้าหลัก</span>
-            </a>
-            <a href="index.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-center text-[11px] md:text-xs font-bold py-3 rounded-xl transition-all">
-                <i class="fa-solid fa-barcode mr-1"></i> <span data-i18n="navDispatch">จ่ายงาน</span>
-            </a>
-            <a href="report.html" class="flex-1 glass-input hover:bg-[var(--card-hover)] text-center text-[11px] md:text-xs font-bold py-3 rounded-xl transition-all">
-                <i class="fa-solid fa-chart-pie mr-1"></i> <span data-i18n="navReport">รายงาน</span>
-            </a>
-            <a href="notices.html" class="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-center text-[11px] md:text-xs font-bold py-3 rounded-xl shadow-lg shadow-sky-500/30 transition-all">
-                <i class="fa-solid fa-file-lines mr-1"></i> <span data-i18n="navNotices">ใบติดต่องาน</span>
-            </a>
+        <!-- Desktop nav -->
+        <div class="desktop-nav gap-2 mt-5">
+            <a href="menu.html" class="flex-1 btn-ghost text-center text-xs font-bold py-2.5 rounded-2xl"><i class="fa-solid fa-house mr-1"></i> <span data-i18n="navMenu">หน้าหลัก</span></a>
+            <a href="index.html" class="flex-1 btn-ghost text-center text-xs font-bold py-2.5 rounded-2xl"><i class="fa-solid fa-barcode mr-1"></i> <span data-i18n="navDispatch">จ่ายงาน</span></a>
+            <a href="report.html" class="flex-1 btn-ghost text-center text-xs font-bold py-2.5 rounded-2xl"><i class="fa-solid fa-chart-pie mr-1"></i> <span data-i18n="navReport">รายงาน</span></a>
+            <a href="notices.html" class="flex-1 btn-solid text-center text-xs font-bold py-2.5 rounded-2xl"><i class="fa-solid fa-file-lines mr-1"></i> <span data-i18n="navNotices">ใบติดต่องาน</span></a>
         </div>
     </div>
 
-    <!-- 🔍 Filter & Add -->
-    <div class="glass-panel rounded-3xl p-5 shadow-md">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-4">
-            <h3 class="text-sm font-black text-[var(--text-main)] uppercase tracking-wider flex items-center gap-2">
-                <div class="bg-sky-500/20 text-sky-500 p-2 rounded-xl"><i class="fa-solid fa-filter"></i></div>
-                <span data-i18n="filterTitle">ค้นหา / กรองใบติดต่องาน</span>
-            </h3>
-            <button onclick="openAddModal()" class="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
-                <i class="fa-solid fa-plus"></i> <span data-i18n="btnAddNotice">เพิ่มใบติดต่องาน</span>
-            </button>
+    <!-- 🔍 Search + Filter -->
+    <div class="material card p-4 md:p-5">
+        <div class="flex gap-2">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-sm"></i>
+                <input type="text" id="searchText" oninput="renderNotices()" data-i18n-placeholder="searchPh" placeholder="ค้นหาข้อความ..." class="w-full glass-input rounded-2xl py-2.5 pl-10 pr-3 text-sm">
+            </div>
+            <button onclick="openFilterSheet()" class="md:hidden btn-ghost w-11 h-11 rounded-2xl shrink-0"><i class="fa-solid fa-sliders"></i></button>
+            <button onclick="openAddModal()" class="hidden md:flex btn-solid green items-center gap-2 px-4 rounded-2xl text-sm font-bold shrink-0"><i class="fa-solid fa-plus"></i> <span data-i18n="btnAddNotice">เพิ่มใบติดต่องาน</span></button>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-2">
-            <div>
-                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-widest" data-i18n="filterCategory">ประเภท</label>
-                <select id="filterCategory" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer"></select>
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-widest" data-i18n="filterCustomer">ลูกค้า</label>
-                <select id="filterCustomer" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer"></select>
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-widest" data-i18n="filterStartDate">เริ่มต้น</label>
-                <input type="date" id="filterStart" class="w-full glass-input rounded-xl p-2.5 text-sm outline-none font-medium">
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-widest" data-i18n="filterEndDate">สิ้นสุด</label>
-                <input type="date" id="filterEnd" class="w-full glass-input rounded-xl p-2.5 text-sm outline-none font-medium">
-            </div>
-            <div class="col-span-2 md:col-span-1 flex items-end gap-2">
-                <input type="text" id="searchText" oninput="renderNotices()" data-i18n-placeholder="searchPh" placeholder="ค้นหาข้อความ..." class="flex-1 glass-input rounded-xl p-2.5 text-sm outline-none">
-            </div>
-        </div>
-        <div class="flex gap-2 mt-3">
-            <button onclick="fetchNotices()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl text-sm shadow-md transition-all active:scale-95"><i class="fa-solid fa-magnifying-glass mr-1"></i> <span data-i18n="btnSearch">ค้นหา</span></button>
-            <button onclick="clearFilters()" class="glass-input hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/50 text-xs px-5 py-2.5 rounded-xl font-bold transition-all active:scale-95"><i class="fa-solid fa-rotate-right mr-1"></i><span data-i18n="quickClear">ล้าง</span></button>
+        <div id="categoryChipRow" class="flex gap-2 overflow-x-auto custom-scroll mt-3 pb-0.5"></div>
+
+        <!-- Desktop-only extra filters -->
+        <div class="hidden md:grid grid-cols-4 gap-3 mt-3">
+            <select id="filterCustomerDesktop" onchange="onFilterCustomerChange(this.value)" class="glass-input rounded-2xl px-3 py-2.5 text-sm font-semibold"></select>
+            <input type="date" id="filterStartDesktop" onchange="onDateFilterChange()" class="glass-input rounded-2xl px-3 py-2.5 text-sm">
+            <input type="date" id="filterEndDesktop" onchange="onDateFilterChange()" class="glass-input rounded-2xl px-3 py-2.5 text-sm">
+            <button onclick="clearFilters()" class="btn-ghost rounded-2xl text-sm font-bold"><i class="fa-solid fa-rotate-right mr-1"></i><span data-i18n="quickClear">ล้าง</span></button>
         </div>
     </div>
 
     <!-- 📑 Notices Grid -->
-    <div class="glass-panel rounded-3xl p-5 shadow-lg relative min-h-[200px]">
-        <div id="loadingState" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[var(--glass-bg)] backdrop-blur-md rounded-3xl transition-opacity duration-300">
-            <div class="w-12 h-12 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin mb-4"></div>
-            <p class="text-xs font-bold text-[var(--text-main)] tracking-widest animate-pulse" data-i18n="loadingText">LOADING...</p>
+    <div class="relative min-h-[200px]">
+        <div id="loadingState" class="absolute inset-0 z-20 flex flex-col items-center justify-center transition-opacity duration-300">
+            <div class="w-10 h-10 border-[3px] border-sky-500/25 border-t-sky-500 rounded-full animate-spin mb-3"></div>
+            <p class="text-xs font-semibold text-[var(--text-sub)]" data-i18n="loadingText">กำลังโหลด...</p>
         </div>
-        <div id="noticesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="noticesGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
     </div>
 </div>
 
-<!-- 🆕 Add Notice Modal -->
-<div id="addModal" class="modal-overlay" onclick="closeAddModal(event)">
-    <div class="glass-panel rounded-3xl p-5 md:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl relative" onclick="event.stopPropagation()">
+<!-- 📱 Bottom Tab Bar -->
+<nav class="tab-bar material">
+    <a href="menu.html" class="tab-item"><i class="fa-solid fa-house"></i><span data-i18n="navMenu">หน้าหลัก</span></a>
+    <a href="index.html" class="tab-item"><i class="fa-solid fa-barcode"></i><span data-i18n="navDispatch">จ่ายงาน</span></a>
+    <a href="report.html" class="tab-item"><i class="fa-solid fa-chart-pie"></i><span data-i18n="navReport">รายงาน</span></a>
+    <a href="notices.html" class="tab-item active"><i class="fa-solid fa-file-lines"></i><span data-i18n="navNotices">ใบติดต่องาน</span></a>
+</nav>
+
+<!-- ➕ FAB -->
+<button class="fab" onclick="openAddModal()"><i class="fa-solid fa-plus"></i></button>
+
+<!-- 🔧 Filter Sheet (mobile) -->
+<div id="filterModal" class="modal-overlay" onclick="closeFilterSheet(event)">
+    <div class="sheet material" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-file-circle-plus text-sky-500"></i> <span data-i18n="modalAddTitle">เพิ่มใบติดต่องาน</span></h3>
-            <button onclick="closeAddModal()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-title" data-i18n="filterTitle">ตัวกรอง</h3>
+            <button onclick="closeFilterSheet()" class="w-8 h-8 flex items-center justify-center rounded-full btn-ghost"><i class="fa-solid fa-xmark text-sm"></i></button>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label class="text-subhead block mb-1.5" data-i18n="filterCustomer">ลูกค้า</label>
+                <select id="filterCustomer" onchange="onFilterCustomerChange(this.value)" class="w-full glass-input rounded-2xl px-3 py-3 text-sm font-semibold"></select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-subhead block mb-1.5" data-i18n="filterStartDate">เริ่มต้น</label>
+                    <input type="date" id="filterStart" onchange="onDateFilterChange()" class="w-full glass-input rounded-2xl px-3 py-3 text-sm">
+                </div>
+                <div>
+                    <label class="text-subhead block mb-1.5" data-i18n="filterEndDate">สิ้นสุด</label>
+                    <input type="date" id="filterEnd" onchange="onDateFilterChange()" class="w-full glass-input rounded-2xl px-3 py-3 text-sm">
+                </div>
+            </div>
+            <button onclick="clearFilters(); closeFilterSheet();" class="w-full btn-ghost py-3 rounded-2xl text-sm font-bold mt-1"><i class="fa-solid fa-rotate-right mr-1"></i> <span data-i18n="quickClear">ล้างตัวกรองทั้งหมด</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- 🆕 Add Notice Sheet -->
+<div id="addModal" class="modal-overlay" onclick="closeAddModal(event)">
+    <div id="addSheet" class="sheet material" onclick="event.stopPropagation()">
+        <div id="addSheetHandle" class="sheet-handle"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-title flex items-center gap-2"><i class="fa-solid fa-file-circle-plus text-sky-500"></i> <span data-i18n="modalAddTitle">เพิ่มใบติดต่องาน</span></h3>
+            <button onclick="closeAddModal()" class="w-8 h-8 flex items-center justify-center rounded-full btn-ghost"><i class="fa-solid fa-xmark text-sm"></i></button>
         </div>
 
         <div class="space-y-4">
             <div>
-                <label class="block text-[11px] font-bold text-[var(--text-sub)] mb-1.5" data-i18n="labelCategory">ประเภทใบติดต่องาน</label>
-                <select id="noticeCategory" onchange="onCategorySelectChange()" class="w-full glass-input rounded-xl p-3 text-sm font-bold outline-none cursor-pointer"></select>
+                <label class="text-subhead block mb-1.5" data-i18n="labelCategory">ประเภทใบติดต่องาน</label>
+                <select id="noticeCategory" onchange="onCategorySelectChange()" class="w-full glass-input rounded-2xl p-3 text-sm font-semibold cursor-pointer"></select>
                 <div id="newCategoryWrap" class="hidden mt-2">
-                    <input id="newCategoryInput" data-i18n-placeholder="newCategoryPh" placeholder="พิมพ์ชื่อประเภทใหม่" class="w-full glass-input rounded-xl p-3 text-sm outline-none">
+                    <input id="newCategoryInput" data-i18n-placeholder="newCategoryPh" placeholder="พิมพ์ชื่อประเภทใหม่" class="w-full glass-input rounded-2xl p-3 text-sm">
                 </div>
             </div>
 
             <div>
-                <label class="block text-[11px] font-bold text-[var(--text-sub)] mb-1.5" data-i18n="labelContent">เนื้อหา / รายละเอียด</label>
-                <textarea id="noticeContent" rows="3" data-i18n-placeholder="contentPh" placeholder="สรุปว่าใบนี้แจ้งเรื่องอะไร..." class="w-full glass-input rounded-xl p-3 text-sm outline-none resize-none"></textarea>
+                <label class="text-subhead block mb-1.5" data-i18n="labelContent">เนื้อหา / รายละเอียด</label>
+                <textarea id="noticeContent" rows="3" data-i18n-placeholder="contentPh" placeholder="สรุปว่าใบนี้แจ้งเรื่องอะไร..." class="w-full glass-input rounded-2xl p-3 text-sm resize-none"></textarea>
             </div>
 
             <div>
-                <label class="block text-[11px] font-bold text-[var(--text-sub)] mb-1.5" data-i18n="labelCustomers">ลูกค้าที่เกี่ยวข้อง (เลือกได้หลายราย)</label>
-                <div id="customerCheckList" class="max-h-[160px] overflow-y-auto custom-scroll mb-2"></div>
-                <button type="button" onclick="toggleNewCustomerForm()" class="text-[11px] font-bold text-sky-500 hover:text-sky-400"><i class="fa-solid fa-circle-plus mr-1"></i><span data-i18n="btnAddCustomer">เพิ่มลูกค้าใหม่</span></button>
+                <label class="text-subhead block mb-1.5" data-i18n="labelCustomers">ลูกค้าที่เกี่ยวข้อง (เลือกได้หลายราย)</label>
+                <div id="customerCheckList" class="max-h-[150px] overflow-y-auto custom-scroll mb-2"></div>
+                <button type="button" onclick="toggleNewCustomerForm()" class="text-xs font-bold text-sky-500"><i class="fa-solid fa-circle-plus mr-1"></i><span data-i18n="btnAddCustomer">เพิ่มลูกค้าใหม่</span></button>
                 <div id="newCustomerWrap" class="hidden mt-2 grid grid-cols-2 gap-2">
-                    <input id="newCustomerCode" data-i18n-placeholder="newCustomerCodePh" placeholder="รหัสลูกค้า เช่น TOYOTA" class="glass-input rounded-xl p-2.5 text-xs outline-none uppercase font-bold">
-                    <input id="newCustomerName" data-i18n-placeholder="newCustomerNamePh" placeholder="ชื่อเต็ม (ถ้ามี)" class="glass-input rounded-xl p-2.5 text-xs outline-none">
-                    <button type="button" onclick="addNewCustomerInline()" class="col-span-2 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl text-xs"><span data-i18n="btnConfirmAdd">เพิ่มลูกค้า</span></button>
+                    <input id="newCustomerCode" data-i18n-placeholder="newCustomerCodePh" placeholder="รหัสลูกค้า" class="glass-input rounded-2xl p-2.5 text-xs uppercase font-bold">
+                    <input id="newCustomerName" data-i18n-placeholder="newCustomerNamePh" placeholder="ชื่อเต็ม" class="glass-input rounded-2xl p-2.5 text-xs">
+                    <button type="button" onclick="addNewCustomerInline()" class="col-span-2 btn-solid py-2 rounded-2xl text-xs font-bold"><span data-i18n="btnConfirmAdd">เพิ่มลูกค้า</span></button>
                 </div>
             </div>
 
             <div>
-                <label class="block text-[11px] font-bold text-[var(--text-sub)] mb-1.5" data-i18n="labelPhotos">รูปเอกสาร</label>
-                <button type="button" onclick="document.getElementById('noticePhotoInput').click()" class="w-full glass-input hover:bg-[var(--card-hover)] hover:border-sky-400 border border-dashed rounded-xl py-3 text-xs font-bold text-[var(--text-main)] flex items-center justify-center gap-2 transition-all">
-                    <i class="fa-solid fa-camera text-base text-sky-500"></i> <span data-i18n="btnTakePhoto">ถ่าย/แนบรูปเอกสาร</span>
+                <label class="text-subhead block mb-1.5" data-i18n="labelPhotos">รูปเอกสาร</label>
+                <button type="button" onclick="document.getElementById('noticePhotoInput').click()" class="w-full btn-ghost border border-dashed rounded-2xl py-3 text-xs font-bold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-camera text-sky-500"></i> <span data-i18n="btnTakePhoto">ถ่าย/แนบรูปเอกสาร</span>
                 </button>
                 <div id="photoStrip" class="flex flex-wrap gap-2 mt-3"></div>
             </div>
 
-            <button id="submitNoticeBtn" onclick="submitNotice()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-3.5 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all text-sm tracking-widest active:scale-95 disabled:opacity-50">
+            <button id="submitNoticeBtn" onclick="submitNotice()" class="w-full btn-solid green font-black py-3.5 rounded-2xl text-sm disabled:opacity-50">
                 <i id="submitNoticeIcon" class="fa-solid fa-floppy-disk mr-2"></i> <span id="submitNoticeText" data-i18n="btnSubmit">บันทึกใบติดต่องาน</span>
             </button>
         </div>
@@ -246,17 +338,18 @@
 
 <input type="file" id="noticePhotoInput" accept="image/*" capture="environment" style="display:none">
 
-<!-- 🔎 Detail Modal -->
+<!-- 🔎 Detail Sheet -->
 <div id="detailModal" class="modal-overlay" onclick="closeDetailModal(event)">
-    <div class="glass-panel rounded-3xl p-5 md:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl relative" onclick="event.stopPropagation()">
+    <div id="detailSheet" class="sheet material" onclick="event.stopPropagation()">
+        <div id="detailSheetHandle" class="sheet-handle"></div>
         <div class="flex justify-between items-center mb-3">
-            <span id="detailCategory" class="tag-badge text-sky-500"></span>
-            <button onclick="closeDetailModal()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <span id="detailCategory" class="text-xs font-bold text-sky-500 flex items-center gap-1.5"><span class="cat-dot"></span></span>
+            <button onclick="closeDetailModal()" class="w-8 h-8 flex items-center justify-center rounded-full btn-ghost"><i class="fa-solid fa-xmark text-sm"></i></button>
         </div>
-        <p id="detailContent" class="text-sm font-bold text-[var(--text-main)] mb-3 whitespace-pre-wrap"></p>
-        <div id="detailCustomers" class="mb-3 flex flex-wrap gap-1"></div>
-        <p id="detailMeta" class="text-[11px] text-[var(--text-sub)] mb-4"></p>
-        <div id="detailPhotos" class="space-y-2"></div>
+        <p id="detailContent" class="text-sm font-semibold text-[var(--text-main)] mb-3 whitespace-pre-wrap"></p>
+        <div id="detailCustomers" class="mb-3 flex flex-wrap gap-1.5"></div>
+        <p id="detailMeta" class="text-footnote mb-4"></p>
+        <div id="detailPhotos" class="grid grid-cols-2 gap-2"></div>
     </div>
 </div>
 
@@ -270,17 +363,18 @@ function changeTheme(themeName) {
 }
 document.body.setAttribute('data-theme', localStorage.getItem('wms_theme') || 'dark');
 document.addEventListener('mousemove', (e) => { document.documentElement.style.setProperty('--x', e.clientX + 'px'); document.documentElement.style.setProperty('--y', e.clientY + 'px'); });
-document.addEventListener('touchmove', (e) => { document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px'); document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px'); });
+document.addEventListener('touchmove', (e) => { if (e.touches[0]) { document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px'); document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px'); } }, { passive: true });
 
 /* =============================================================
-   🔒 Access Gate — ต้องผ่านการยืนยันหัวหน้างานจากหน้าเมนูก่อน
-   (ใช้ key เดียวกับที่ menu.html บันทึกไว้หลัง login สำเร็จ)
+   🔒 Access Gate
 ============================================================= */
 function checkAccess() {
     const staffId = localStorage.getItem('savedStaffId');
     if (!staffId) {
         document.getElementById('accessGate').classList.remove('hidden');
         document.getElementById('mainWrap').classList.add('hidden');
+        document.querySelector('.tab-bar').classList.add('hidden');
+        document.querySelector('.fab').classList.add('hidden');
         return false;
     }
     document.getElementById('staffBadge').classList.remove('hidden');
@@ -297,9 +391,10 @@ var sbClient = window.supabase.createClient("https://suardrnsfpdqwcgupqkb.supaba
 var categories = [];
 var customersList = [];
 var allNotices = [];
-var pendingPhotos = [];      // File[]
-var pendingPhotoPreviews = []; // objectURL strings, index-matched
+var pendingPhotos = [];
+var pendingPhotoPreviews = [];
 var selectedCustomerCodes = new Set();
+var activeCategoryFilter = '';
 
 function escapeHtml(s) {
     return (s || '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -308,26 +403,27 @@ function escapeHtml(s) {
 function showLoading(show) {
     const el = document.getElementById("loadingState");
     if (show) { el.classList.remove("hidden"); el.classList.remove("opacity-0"); }
-    else { el.classList.add("opacity-0"); setTimeout(() => el.classList.add("hidden"), 300); }
+    else { el.classList.add("opacity-0"); setTimeout(() => el.classList.add("hidden"), 250); }
 }
 
 async function fetchCategories() {
     const { data } = await sbClient.from('notice_categories').select('*').order('name');
     categories = data || [];
-    renderCategorySelects();
+    renderCategoryChips();
 }
 
 async function fetchCustomers() {
     const { data } = await sbClient.from('notice_customers').select('*').order('customer_name');
     customersList = data || [];
-    renderCustomerFilterSelect();
+    renderCustomerFilterSelects();
     renderCustomerCheckboxes();
 }
 
-function renderCategorySelects() {
+function renderCategoryChips() {
     const t = translations[currentLang] || translations.th;
-    const filterSel = document.getElementById('filterCategory');
-    filterSel.innerHTML = `<option value="">${t.filterAllOption}</option>` + categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+    const row = document.getElementById('categoryChipRow');
+    const chips = [{ name: '', label: t.filterAllOption }].concat(categories.map(c => ({ name: c.name, label: c.name })));
+    row.innerHTML = chips.map(c => `<button class="chip${activeCategoryFilter === c.name ? ' active' : ''}" onclick="onCategoryChipClick('${c.name.replace(/'/g, "\\'")}')">${escapeHtml(c.label)}</button>`).join('');
 
     const addSel = document.getElementById('noticeCategory');
     const prevVal = addSel.value;
@@ -335,37 +431,55 @@ function renderCategorySelects() {
     if (prevVal) addSel.value = prevVal;
 }
 
-function renderCustomerFilterSelect() {
+function onCategoryChipClick(name) {
+    activeCategoryFilter = name;
+    renderCategoryChips();
+    fetchNotices();
+}
+
+function renderCustomerFilterSelects() {
     const t = translations[currentLang] || translations.th;
-    const sel = document.getElementById('filterCustomer');
-    sel.innerHTML = `<option value="">${t.filterAllOption}</option>` + customersList.map(c => `<option value="${escapeHtml(c.customer_code)}">${escapeHtml(c.customer_name || c.customer_code)}</option>`).join('');
+    const opts = `<option value="">${t.filterAllOption}</option>` + customersList.map(c => `<option value="${escapeHtml(c.customer_code)}">${escapeHtml(c.customer_name || c.customer_code)}</option>`).join('');
+    ['filterCustomer', 'filterCustomerDesktop'].forEach(id => {
+        const sel = document.getElementById(id);
+        const prevVal = sel.value;
+        sel.innerHTML = opts;
+        sel.value = prevVal;
+    });
+}
+
+function onFilterCustomerChange(val) {
+    document.getElementById('filterCustomer').value = val;
+    document.getElementById('filterCustomerDesktop').value = val;
+    renderNotices();
+}
+function onDateFilterChange() {
+    const s = document.getElementById('filterStart').value || document.getElementById('filterStartDesktop').value;
+    const e = document.getElementById('filterEnd').value || document.getElementById('filterEndDesktop').value;
+    document.getElementById('filterStart').value = s; document.getElementById('filterStartDesktop').value = s;
+    document.getElementById('filterEnd').value = e; document.getElementById('filterEndDesktop').value = e;
+    fetchNotices();
 }
 
 function renderCustomerCheckboxes() {
     const list = document.getElementById('customerCheckList');
-    if (customersList.length === 0) {
-        list.innerHTML = `<p class="text-[11px] text-[var(--text-sub)] text-center py-2">-</p>`;
-        return;
-    }
+    if (customersList.length === 0) { list.innerHTML = `<p class="text-xs text-[var(--text-sub)] text-center py-2">-</p>`; return; }
     list.innerHTML = customersList.map(c => {
         const checked = selectedCustomerCodes.has(c.customer_code);
         return `<div class="cust-check-item${checked ? ' checked' : ''}" onclick="toggleCustomerSelect('${c.customer_code.replace(/'/g, "\\'")}')">
-            <i class="fa-solid ${checked ? 'fa-square-check text-sky-500' : 'fa-square text-[var(--text-sub)]'}"></i>
-            <span class="text-xs font-bold text-[var(--text-main)]">${escapeHtml(c.customer_name || c.customer_code)}</span>
-            <span class="text-[9px] text-[var(--text-sub)] font-mono ml-auto">${escapeHtml(c.customer_code)}</span>
+            <i class="fa-solid ${checked ? 'fa-circle-check text-sky-500' : 'fa-circle text-[var(--text-sub)]'}"></i>
+            <span class="text-xs font-bold flex-1">${escapeHtml(c.customer_name || c.customer_code)}</span>
+            <span class="text-[10px] text-[var(--text-sub)] font-mono">${escapeHtml(c.customer_code)}</span>
         </div>`;
     }).join('');
 }
 
 function toggleCustomerSelect(code) {
-    if (selectedCustomerCodes.has(code)) selectedCustomerCodes.delete(code);
-    else selectedCustomerCodes.add(code);
+    if (selectedCustomerCodes.has(code)) selectedCustomerCodes.delete(code); else selectedCustomerCodes.add(code);
     renderCustomerCheckboxes();
 }
 
-function toggleNewCustomerForm() {
-    document.getElementById('newCustomerWrap').classList.toggle('hidden');
-}
+function toggleNewCustomerForm() { document.getElementById('newCustomerWrap').classList.toggle('hidden'); }
 
 async function addNewCustomerInline() {
     const code = document.getElementById('newCustomerCode').value.trim().toUpperCase();
@@ -386,7 +500,7 @@ function onCategorySelectChange() {
     document.getElementById('newCategoryWrap').classList.toggle('hidden', val !== '__new__');
 }
 
-/* --- Photo capture (compress เหมือน index.html) --- */
+/* --- Photo capture --- */
 function compressImage(file, callback) {
     var reader = new FileReader();
     reader.onload = function (event) {
@@ -409,10 +523,7 @@ document.getElementById('noticePhotoInput').addEventListener('change', function 
     compressImage(file, function (compressedFile) {
         pendingPhotos.push(compressedFile);
         var reader = new FileReader();
-        reader.onload = function (ev) {
-            pendingPhotoPreviews.push(ev.target.result);
-            renderPhotoStrip();
-        };
+        reader.onload = function (ev) { pendingPhotoPreviews.push(ev.target.result); renderPhotoStrip(); };
         reader.readAsDataURL(compressedFile);
     });
     e.target.value = '';
@@ -426,14 +537,9 @@ function renderPhotoStrip() {
             <div class="photo-thumb-remove" onclick="removePendingPhoto(${i})"><i class="fa-solid fa-xmark"></i></div>
         </div>`).join('');
 }
+function removePendingPhoto(i) { pendingPhotos.splice(i, 1); pendingPhotoPreviews.splice(i, 1); renderPhotoStrip(); }
 
-function removePendingPhoto(i) {
-    pendingPhotos.splice(i, 1);
-    pendingPhotoPreviews.splice(i, 1);
-    renderPhotoStrip();
-}
-
-/* --- Add Modal --- */
+/* --- Sheets open/close --- */
 function openAddModal() {
     document.getElementById('noticeCategory').value = '';
     document.getElementById('newCategoryWrap').classList.add('hidden');
@@ -446,10 +552,10 @@ function openAddModal() {
     renderPhotoStrip();
     document.getElementById('addModal').classList.add('active');
 }
+function closeAddModal(e) { document.getElementById('addModal').classList.remove('active'); }
 
-function closeAddModal(e) {
-    document.getElementById('addModal').classList.remove('active');
-}
+function openFilterSheet() { document.getElementById('filterModal').classList.add('active'); }
+function closeFilterSheet(e) { document.getElementById('filterModal').classList.remove('active'); }
 
 async function submitNotice() {
     const btn = document.getElementById('submitNoticeBtn');
@@ -472,21 +578,16 @@ async function submitNotice() {
 
     try {
         await sbClient.from('notice_categories').upsert({ name: category });
-
         const noticeId = (crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2));
 
         let photoUrls = [];
         for (let i = 0; i < pendingPhotos.length; i++) {
             const path = `${noticeId}/${i}.jpg`;
             const { error: upErr } = await sbClient.storage.from('job-notice-photos').upload(path, pendingPhotos[i]);
-            if (!upErr) {
-                photoUrls.push(sbClient.storage.from('job-notice-photos').getPublicUrl(path).data.publicUrl);
-            }
+            if (!upErr) photoUrls.push(sbClient.storage.from('job-notice-photos').getPublicUrl(path).data.publicUrl);
         }
 
-        const { error: insErr } = await sbClient.from('job_notices').insert([{
-            id: noticeId, category: category, content: content, photo_urls: photoUrls, created_by: staffId
-        }]);
+        const { error: insErr } = await sbClient.from('job_notices').insert([{ id: noticeId, category: category, content: content, photo_urls: photoUrls, created_by: staffId }]);
         if (insErr) throw new Error(insErr.message);
 
         if (selectedCustomerCodes.size > 0) {
@@ -506,17 +607,16 @@ async function submitNotice() {
     }
 }
 
-/* --- Fetch & Render Notices --- */
+/* --- Fetch & Render --- */
 async function fetchNotices() {
     showLoading(true);
     let q = sbClient.from('job_notices')
         .select('*, job_notice_customers(customer_code, notice_customers(customer_code, customer_name))')
         .order('created_at', { ascending: false });
 
-    const cat = document.getElementById('filterCategory').value;
+    if (activeCategoryFilter) q = q.eq('category', activeCategoryFilter);
     const start = document.getElementById('filterStart').value;
     const end = document.getElementById('filterEnd').value;
-    if (cat) q = q.eq('category', cat);
     if (start) q = q.gte('created_at', start + 'T00:00:00');
     if (end) q = q.lte('created_at', end + 'T23:59:59');
 
@@ -547,7 +647,7 @@ function renderNotices() {
 
     const grid = document.getElementById('noticesGrid');
     if (list.length === 0) {
-        grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center text-[var(--text-sub)] opacity-70 py-16"><i class="fa-solid fa-file-circle-xmark text-5xl mb-4"></i><span class="text-sm font-bold tracking-widest">${t.emptyTitle}</span></div>`;
+        grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center text-[var(--text-sub)] py-16"><i class="fa-solid fa-tray text-4xl mb-3 opacity-60"></i><span class="text-sm font-semibold">${t.emptyTitle}</span></div>`;
         return;
     }
     grid.innerHTML = list.map(n => noticeCardHtml(n)).join('');
@@ -556,17 +656,15 @@ function renderNotices() {
 function noticeCardHtml(n) {
     const custs = (n.job_notice_customers || []).map(c => c.notice_customers ? (c.notice_customers.customer_name || c.notice_customers.customer_code) : c.customer_code);
     const thumb = (n.photo_urls || [])[0];
-    return `<div class="notice-card glass-panel rounded-2xl overflow-hidden" onclick="openDetail('${n.id}')">
-        ${thumb
-            ? `<img src="${thumb}" class="w-full h-36 object-cover">`
-            : `<div class="w-full h-36 flex items-center justify-center bg-[var(--input-bg)]"><i class="fa-solid fa-file-lines text-3xl text-[var(--text-sub)]"></i></div>`}
-        <div class="p-4">
-            <span class="tag-badge text-sky-500 mb-2 inline-block">${escapeHtml(n.category || '-')}</span>
-            <p class="text-sm font-bold text-[var(--text-main)] line-clamp-2 mb-2">${escapeHtml(n.content || '')}</p>
-            ${custs.length ? `<div class="flex flex-wrap gap-1 mb-2">${custs.slice(0, 3).map(c => `<span class="tag-badge">${escapeHtml(c)}</span>`).join('')}${custs.length > 3 ? `<span class="tag-badge">+${custs.length - 3}</span>` : ''}</div>` : ''}
-            <div class="text-[10px] text-[var(--text-sub)] flex justify-between font-bold">
-                <span><i class="fa-regular fa-calendar mr-1"></i>${new Date(n.created_at).toLocaleDateString('th-TH')}</span>
-                <span><i class="fa-solid fa-user mr-1"></i>${escapeHtml(n.created_by || '-')}</span>
+    return `<div class="notice-card material card overflow-hidden" onclick="openDetail('${n.id}')">
+        ${thumb ? `<img src="${thumb}" class="w-full h-32 object-cover">` : `<div class="w-full h-32 flex items-center justify-center bg-[var(--input-bg)]"><i class="fa-solid fa-file-lines text-2xl text-[var(--text-sub)] opacity-60"></i></div>`}
+        <div class="p-3.5">
+            <div class="flex items-center gap-1.5 mb-1.5"><span class="cat-dot"></span><span class="text-[11px] font-bold text-sky-500">${escapeHtml(n.category || '-')}</span></div>
+            <p class="text-sm font-bold text-[var(--text-main)] line-clamp-2 mb-2 leading-snug">${escapeHtml(n.content || '')}</p>
+            ${custs.length ? `<div class="flex flex-wrap gap-1 mb-2">${custs.slice(0, 2).map(c => `<span class="text-[10px] font-semibold text-[var(--text-sub)] bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded-full">${escapeHtml(c)}</span>`).join('')}${custs.length > 2 ? `<span class="text-[10px] font-semibold text-[var(--text-sub)]">+${custs.length - 2}</span>` : ''}</div>` : ''}
+            <div class="text-footnote flex justify-between font-medium">
+                <span>${new Date(n.created_at).toLocaleDateString('th-TH')}</span>
+                <span>${escapeHtml(n.created_by || '-')}</span>
             </div>
         </div>
     </div>`;
@@ -577,46 +675,61 @@ function openDetail(id) {
     if (!n) return;
     const custs = (n.job_notice_customers || []).map(c => c.notice_customers ? (c.notice_customers.customer_name || c.notice_customers.customer_code) : c.customer_code);
 
-    document.getElementById('detailCategory').innerText = n.category || '-';
+    document.getElementById('detailCategory').innerHTML = `<span class="cat-dot"></span> ${escapeHtml(n.category || '-')}`;
     document.getElementById('detailContent').innerText = n.content || '';
-    document.getElementById('detailCustomers').innerHTML = custs.length ? custs.map(c => `<span class="tag-badge">${escapeHtml(c)}</span>`).join('') : `<span class="text-[11px] text-[var(--text-sub)]">-</span>`;
-    document.getElementById('detailMeta').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i>${new Date(n.created_at).toLocaleString('th-TH')} &nbsp;•&nbsp; <i class="fa-solid fa-user mr-1"></i>${escapeHtml(n.created_by || '-')}`;
+    document.getElementById('detailCustomers').innerHTML = custs.length ? custs.map(c => `<span class="text-[11px] font-semibold text-[var(--text-sub)] bg-[var(--input-bg)] border border-[var(--glass-border)] px-2.5 py-1 rounded-full">${escapeHtml(c)}</span>`).join('') : '';
+    document.getElementById('detailMeta').innerHTML = `${new Date(n.created_at).toLocaleString('th-TH')} · ${escapeHtml(n.created_by || '-')}`;
     const photos = n.photo_urls || [];
     document.getElementById('detailPhotos').innerHTML = photos.length
-        ? photos.map(u => `<img src="${u}" class="w-full rounded-xl cursor-pointer" onclick="openImgModal('${u}')">`).join('')
-        : `<p class="text-xs text-[var(--text-sub)] text-center py-4">ไม่มีรูปแนบ</p>`;
+        ? photos.map(u => `<img src="${u}" class="w-full h-28 object-cover rounded-2xl cursor-pointer" onclick="openImgModal('${u}')">`).join('')
+        : `<p class="text-xs text-[var(--text-sub)] text-center py-4 col-span-2">ไม่มีรูปแนบ</p>`;
 
     document.getElementById('detailModal').classList.add('active');
 }
-
 function closeDetailModal(e) { document.getElementById('detailModal').classList.remove('active'); }
 
-function openImgModal(url) {
-    document.getElementById('modalImg').src = url;
-    document.getElementById('imgModal').classList.add('active');
-}
-function closeImgModal() {
-    document.getElementById('imgModal').classList.remove('active');
-    setTimeout(() => document.getElementById('modalImg').src = "", 300);
-}
+function openImgModal(url) { document.getElementById('modalImg').src = url; document.getElementById('imgModal').classList.add('active'); }
+function closeImgModal() { document.getElementById('imgModal').classList.remove('active'); setTimeout(() => document.getElementById('modalImg').src = "", 300); }
 
 function clearFilters() {
-    document.getElementById('filterCategory').value = '';
-    document.getElementById('filterCustomer').value = '';
-    document.getElementById('filterStart').value = '';
-    document.getElementById('filterEnd').value = '';
+    activeCategoryFilter = '';
+    ['filterCustomer', 'filterCustomerDesktop'].forEach(id => document.getElementById(id).value = '');
+    ['filterStart', 'filterStartDesktop'].forEach(id => document.getElementById(id).value = '');
+    ['filterEnd', 'filterEndDesktop'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('searchText').value = '';
+    renderCategoryChips();
     fetchNotices();
+}
+
+/* --- Swipe-down-to-close for sheets (mobile native feel) --- */
+function enableSheetDrag(sheetId, handleId, closeFn) {
+    const sheet = document.getElementById(sheetId);
+    const handle = document.getElementById(handleId);
+    if (!sheet || !handle) return;
+    let startY = 0, deltaY = 0, dragging = false;
+    handle.addEventListener('touchstart', e => { dragging = true; startY = e.touches[0].clientY; sheet.style.transition = 'none'; });
+    handle.addEventListener('touchmove', e => {
+        if (!dragging) return;
+        deltaY = e.touches[0].clientY - startY;
+        if (deltaY > 0) sheet.style.transform = `translateY(${deltaY}px)`;
+    });
+    handle.addEventListener('touchend', () => {
+        dragging = false;
+        sheet.style.transition = '';
+        if (deltaY > 110) closeFn(); 
+        sheet.style.transform = '';
+        deltaY = 0;
+    });
 }
 
 /* =============================================================
    🌍 ระบบแปลภาษา 4 ชาติ
 ============================================================= */
 const translations = {
-    th: { appTitle: "ใบติดต่องาน", appDesc: "Job Notices - Packing Store", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน", navNotices: "ใบติดต่องาน", filterTitle: "ค้นหา / กรองใบติดต่องาน", btnAddNotice: "เพิ่มใบติดต่องาน", filterCategory: "ประเภท", filterCustomer: "ลูกค้า", filterStartDate: "เริ่มต้น", filterEndDate: "สิ้นสุด", searchPh: "ค้นหาข้อความ...", btnSearch: "ค้นหา", quickClear: "ล้าง", loadingText: "กำลังโหลด...", emptyTitle: "ไม่พบใบติดต่องาน", filterAllOption: "ทั้งหมด", selectCategoryPh: "-- เลือกประเภท --", addNewCategoryOption: "+ เพิ่มประเภทใหม่", modalAddTitle: "เพิ่มใบติดต่องาน", labelCategory: "ประเภทใบติดต่องาน", newCategoryPh: "พิมพ์ชื่อประเภทใหม่", labelContent: "เนื้อหา / รายละเอียด", contentPh: "สรุปว่าใบนี้แจ้งเรื่องอะไร...", labelCustomers: "ลูกค้าที่เกี่ยวข้อง (เลือกได้หลายราย)", btnAddCustomer: "เพิ่มลูกค้าใหม่", newCustomerCodePh: "รหัสลูกค้า เช่น TOYOTA", newCustomerNamePh: "ชื่อเต็ม (ถ้ามี)", btnConfirmAdd: "เพิ่มลูกค้า", labelPhotos: "รูปเอกสาร", btnTakePhoto: "ถ่าย/แนบรูปเอกสาร", btnSubmit: "บันทึกใบติดต่องาน", accessDeniedMsg: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณาเข้าจากหน้าเมนูหลักแล้วยืนยันตัวตนก่อน", backToMenu: "กลับหน้าเมนูหลัก" },
-    en: { appTitle: "JOB NOTICES", appDesc: "Job Notices - Packing Store", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report", navNotices: "Job Notices", filterTitle: "Search / Filter Notices", btnAddNotice: "Add Job Notice", filterCategory: "Category", filterCustomer: "Customer", filterStartDate: "Start Date", filterEndDate: "End Date", searchPh: "Search text...", btnSearch: "Search", quickClear: "Clear", loadingText: "Loading...", emptyTitle: "No notices found", filterAllOption: "All", selectCategoryPh: "-- Select category --", addNewCategoryOption: "+ Add new category", modalAddTitle: "Add Job Notice", labelCategory: "Notice Category", newCategoryPh: "Type new category name", labelContent: "Content / Details", contentPh: "Summarize what this notice is about...", labelCustomers: "Related Customers (multi-select)", btnAddCustomer: "Add New Customer", newCustomerCodePh: "Customer code e.g. TOYOTA", newCustomerNamePh: "Full name (optional)", btnConfirmAdd: "Add Customer", labelPhotos: "Document Photos", btnTakePhoto: "Take/Attach Photo", btnSubmit: "Save Job Notice", accessDeniedMsg: "This page is for supervisors only. Please log in from the main menu first.", backToMenu: "Back to Main Menu" },
-    zh: { appTitle: "工作通知單", appDesc: "工作通知單 - Packing Store", navMenu: "主頁", navDispatch: "發貨", navReport: "報告", navNotices: "工作通知單", filterTitle: "搜尋/篩選通知單", btnAddNotice: "新增通知單", filterCategory: "類別", filterCustomer: "客戶", filterStartDate: "開始日期", filterEndDate: "結束日期", searchPh: "搜尋文字...", btnSearch: "搜尋", quickClear: "清除", loadingText: "載入中...", emptyTitle: "找不到通知單", filterAllOption: "全部", selectCategoryPh: "-- 選擇類別 --", addNewCategoryOption: "+ 新增類別", modalAddTitle: "新增通知單", labelCategory: "通知單類別", newCategoryPh: "輸入新類別名稱", labelContent: "內容/詳情", contentPh: "簡述此通知單內容...", labelCustomers: "相關客戶 (可多選)", btnAddCustomer: "新增客戶", newCustomerCodePh: "客戶代碼 例如 TOYOTA", newCustomerNamePh: "全名 (選填)", btnConfirmAdd: "新增客戶", labelPhotos: "文件照片", btnTakePhoto: "拍照/附加照片", btnSubmit: "儲存通知單", accessDeniedMsg: "此頁面僅供主管使用，請先從主選單登入。", backToMenu: "返回主選單" },
-    mm: { appTitle: "အလုပ်ဆက်သွယ်ရေးစာ", appDesc: "အလုပ်ဆက်သွယ်ရေးစာ - Packing Store", navMenu: "ပင်မ", navDispatch: "ထုတ်ပေး", navReport: "အစီရင်ခံစာ", navNotices: "ဆက်သွယ်ရေးစာ", filterTitle: "ရှာဖွေ/စစ်ထုတ်ရန်", btnAddNotice: "ဆက်သွယ်ရေးစာထည့်ရန်", filterCategory: "အမျိုးအစား", filterCustomer: "ဖောက်သည်", filterStartDate: "စတင်ရက်", filterEndDate: "ပြီးဆုံးရက်", searchPh: "စာသားရှာရန်...", btnSearch: "ရှာဖွေရန်", quickClear: "ရှင်းရန်", loadingText: "ဖွင့်နေသည်...", emptyTitle: "ဆက်သွယ်ရေးစာမတွေ့ပါ", filterAllOption: "အားလုံး", selectCategoryPh: "-- အမျိုးအစားရွေးပါ --", addNewCategoryOption: "+ အမျိုးအစားအသစ်ထည့်ရန်", modalAddTitle: "ဆက်သွယ်ရေးစာထည့်ရန်", labelCategory: "စာအမျိုးအစား", newCategoryPh: "အမျိုးအစားအသစ်အမည်ရိုက်ပါ", labelContent: "အကြောင်းအရာ", contentPh: "ဤစာ၏ အကြောင်းအရာကို အကျဉ်းချုပ်ပါ...", labelCustomers: "သက်ဆိုင်သောဖောက်သည်များ", btnAddCustomer: "ဖောက်သည်အသစ်ထည့်ရန်", newCustomerCodePh: "ဖောက်သည်ကုဒ် ဥပမာ TOYOTA", newCustomerNamePh: "အမည်အပြည့်အစုံ (ရွေးချယ်ခွင့်)", btnConfirmAdd: "ဖောက်သည်ထည့်ရန်", labelPhotos: "စာရွက်ဓာတ်ပုံများ", btnTakePhoto: "ဓာတ်ပုံရိုက်ရန်", btnSubmit: "ဆက်သွယ်ရေးစာသိမ်းရန်", accessDeniedMsg: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။ ပင်မမီနူးမှ ဝင်ရောက်ပါ။", backToMenu: "ပင်မမီနူးသို့ ပြန်သွားရန်" }
+    th: { appTitle: "ใบติดต่องาน", appDesc: "Job Notices · Packing Store", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน", navNotices: "ใบติดต่องาน", filterTitle: "ตัวกรอง", btnAddNotice: "เพิ่มใบติดต่องาน", filterCustomer: "ลูกค้า", filterStartDate: "เริ่มต้น", filterEndDate: "สิ้นสุด", searchPh: "ค้นหาข้อความ...", quickClear: "ล้างตัวกรอง", loadingText: "กำลังโหลด...", emptyTitle: "ไม่พบใบติดต่องาน", filterAllOption: "ทั้งหมด", selectCategoryPh: "-- เลือกประเภท --", addNewCategoryOption: "+ เพิ่มประเภทใหม่", modalAddTitle: "เพิ่มใบติดต่องาน", labelCategory: "ประเภทใบติดต่องาน", newCategoryPh: "พิมพ์ชื่อประเภทใหม่", labelContent: "เนื้อหา / รายละเอียด", contentPh: "สรุปว่าใบนี้แจ้งเรื่องอะไร...", labelCustomers: "ลูกค้าที่เกี่ยวข้อง (เลือกได้หลายราย)", btnAddCustomer: "เพิ่มลูกค้าใหม่", newCustomerCodePh: "รหัสลูกค้า", newCustomerNamePh: "ชื่อเต็ม", btnConfirmAdd: "เพิ่มลูกค้า", labelPhotos: "รูปเอกสาร", btnTakePhoto: "ถ่าย/แนบรูปเอกสาร", btnSubmit: "บันทึกใบติดต่องาน", accessDeniedMsg: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณาเข้าจากหน้าเมนูหลักแล้วยืนยันตัวตนก่อน", backToMenu: "กลับหน้าเมนูหลัก" },
+    en: { appTitle: "Job Notices", appDesc: "Job Notices · Packing Store", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report", navNotices: "Notices", filterTitle: "Filters", btnAddNotice: "Add Job Notice", filterCustomer: "Customer", filterStartDate: "Start Date", filterEndDate: "End Date", searchPh: "Search text...", quickClear: "Clear filters", loadingText: "Loading...", emptyTitle: "No notices found", filterAllOption: "All", selectCategoryPh: "-- Select category --", addNewCategoryOption: "+ Add new category", modalAddTitle: "Add Job Notice", labelCategory: "Notice Category", newCategoryPh: "Type new category name", labelContent: "Content / Details", contentPh: "Summarize what this notice is about...", labelCustomers: "Related Customers (multi-select)", btnAddCustomer: "Add New Customer", newCustomerCodePh: "Customer code", newCustomerNamePh: "Full name", btnConfirmAdd: "Add Customer", labelPhotos: "Document Photos", btnTakePhoto: "Take/Attach Photo", btnSubmit: "Save Job Notice", accessDeniedMsg: "This page is for supervisors only. Please log in from the main menu first.", backToMenu: "Back to Main Menu" },
+    zh: { appTitle: "工作通知單", appDesc: "工作通知單 · Packing Store", navMenu: "主頁", navDispatch: "發貨", navReport: "報告", navNotices: "通知單", filterTitle: "篩選", btnAddNotice: "新增通知單", filterCustomer: "客戶", filterStartDate: "開始日期", filterEndDate: "結束日期", searchPh: "搜尋文字...", quickClear: "清除篩選", loadingText: "載入中...", emptyTitle: "找不到通知單", filterAllOption: "全部", selectCategoryPh: "-- 選擇類別 --", addNewCategoryOption: "+ 新增類別", modalAddTitle: "新增通知單", labelCategory: "通知單類別", newCategoryPh: "輸入新類別名稱", labelContent: "內容/詳情", contentPh: "簡述此通知單內容...", labelCustomers: "相關客戶 (可多選)", btnAddCustomer: "新增客戶", newCustomerCodePh: "客戶代碼", newCustomerNamePh: "全名", btnConfirmAdd: "新增客戶", labelPhotos: "文件照片", btnTakePhoto: "拍照/附加照片", btnSubmit: "儲存通知單", accessDeniedMsg: "此頁面僅供主管使用，請先從主選單登入。", backToMenu: "返回主選單" },
+    mm: { appTitle: "ဆက်သွယ်ရေးစာ", appDesc: "ဆက်သွယ်ရေးစာ · Packing Store", navMenu: "ပင်မ", navDispatch: "ထုတ်ပေး", navReport: "အစီရင်ခံစာ", navNotices: "ဆက်သွယ်ရေးစာ", filterTitle: "စစ်ထုတ်ရန်", btnAddNotice: "ဆက်သွယ်ရေးစာထည့်ရန်", filterCustomer: "ဖောက်သည်", filterStartDate: "စတင်ရက်", filterEndDate: "ပြီးဆုံးရက်", searchPh: "စာသားရှာရန်...", quickClear: "စစ်ထုတ်မှုရှင်းရန်", loadingText: "ဖွင့်နေသည်...", emptyTitle: "ဆက်သွယ်ရေးစာမတွေ့ပါ", filterAllOption: "အားလုံး", selectCategoryPh: "-- အမျိုးအစားရွေးပါ --", addNewCategoryOption: "+ အမျိုးအစားအသစ်", modalAddTitle: "ဆက်သွယ်ရေးစာထည့်ရန်", labelCategory: "စာအမျိုးအစား", newCategoryPh: "အမျိုးအစားအသစ်အမည်ရိုက်ပါ", labelContent: "အကြောင်းအရာ", contentPh: "အကျဉ်းချုပ်ရေးပါ...", labelCustomers: "သက်ဆိုင်သောဖောက်သည်များ", btnAddCustomer: "ဖောက်သည်အသစ်", newCustomerCodePh: "ဖောက်သည်ကုဒ်", newCustomerNamePh: "အမည်အပြည့်အစုံ", btnConfirmAdd: "ဖောက်သည်ထည့်ရန်", labelPhotos: "စာရွက်ဓာတ်ပုံများ", btnTakePhoto: "ဓာတ်ပုံရိုက်ရန်", btnSubmit: "သိမ်းရန်", accessDeniedMsg: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။", backToMenu: "ပင်မမီနူးသို့" }
 };
 
 let currentLang = localStorage.getItem('wms_lang') || 'th';
@@ -628,14 +741,16 @@ function changeLanguage(lang) {
     const t = translations[lang];
     document.querySelectorAll("[data-i18n]").forEach(el => { if (t[el.getAttribute("data-i18n")] !== undefined) el.textContent = t[el.getAttribute("data-i18n")]; });
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el => { if (t[el.getAttribute("data-i18n-placeholder")] !== undefined) el.setAttribute("placeholder", t[el.getAttribute("data-i18n-placeholder")]); });
-    renderCategorySelects();
-    renderCustomerFilterSelect();
+    renderCategoryChips();
+    renderCustomerFilterSelects();
     renderNotices();
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
     if (!checkAccess()) return;
     changeLanguage(currentLang);
+    enableSheetDrag('addSheet', 'addSheetHandle', closeAddModal);
+    enableSheetDrag('detailSheet', 'detailSheetHandle', closeDetailModal);
     await fetchCategories();
     await fetchCustomers();
     await fetchNotices();

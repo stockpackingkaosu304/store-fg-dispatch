@@ -9,7 +9,6 @@
     
     <!-- 🎨 Custom Styles สำหรับความ Premium -->
     <style>
-        /* ตัวแปรสีสำหรับ Theme Engine */
         :root {
             --bg-gradient: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
             --glass-bg: rgba(255, 255, 255, 0.7);
@@ -19,7 +18,6 @@
             --card-hover: rgba(255, 255, 255, 0.9);
             --glow-color: rgba(14, 165, 233, 0.15);
         }
-
         [data-theme="dark"] {
             --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
             --glass-bg: rgba(30, 41, 59, 0.6);
@@ -29,18 +27,15 @@
             --card-hover: rgba(51, 65, 85, 0.8);
             --glow-color: rgba(56, 189, 248, 0.15);
         }
-
         [data-theme="kaosu"] {
             --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
             --glass-bg: rgba(69, 10, 10, 0.6);
             --glass-border: rgba(250, 204, 21, 0.2);
-            --text-main: #fef08a; /* สีทอง */
+            --text-main: #fef08a;
             --text-sub: #fca5a5;
             --card-hover: rgba(127, 29, 29, 0.8);
             --glow-color: rgba(250, 204, 21, 0.15);
         }
-
-        /* แอนิเมชันพื้นหลังเคลื่อนไหว */
         body {
             background: var(--bg-gradient);
             background-size: 400% 400%;
@@ -50,70 +45,26 @@
             transition: all 0.5s ease;
             overflow-x: hidden;
         }
-
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* เอฟเฟกต์แสงวิ่งตามเมาส์/นิ้ว */
-        .mouse-glow {
-            position: fixed;
-            top: var(--y, 50%);
-            left: var(--x, 50%);
-            transform: translate(-50%, -50%);
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%);
-            pointer-events: none;
-            z-index: 0;
-            transition: width 0.2s, height 0.2s;
-        }
-
-        /* กล่องกระจกฝ้า (Glassmorphism) */
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transition: all 0.3s ease;
-        }
-
-        .glass-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .glass-card:hover {
-            background: var(--card-hover);
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; transition: width 0.2s, height 0.2s; }
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); transition: all 0.3s ease; }
+        .glass-card { background: var(--glass-bg); border: 1px solid var(--glass-border); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .glass-card:hover { background: var(--card-hover); transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
-        
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 relative" data-theme="dark">
 
-    <!-- เอฟเฟกต์แสงออร่า -->
     <div class="mouse-glow"></div>
 
-    <!-- 🎨 แถบเครื่องมือตั้งค่า (Theme & Language) ลอยตัวด้านบน -->
     <div class="fixed top-4 right-4 z-50 flex gap-2">
-        <!-- Theme Switcher -->
         <div class="glass-panel rounded-full px-3 py-1.5 flex items-center gap-2">
             <button onclick="changeTheme('light')" class="w-6 h-6 rounded-full bg-gray-200 hover:scale-110 transition-transform shadow-inner" title="Light Theme"></button>
             <button onclick="changeTheme('dark')" class="w-6 h-6 rounded-full bg-slate-800 hover:scale-110 transition-transform shadow-inner border border-slate-600" title="Dark Theme"></button>
             <button onclick="changeTheme('kaosu')" class="w-6 h-6 rounded-full bg-red-800 hover:scale-110 transition-transform shadow-inner border border-red-500" title="Kaosu Theme"></button>
         </div>
-
-        <!-- Language Switcher -->
         <div class="glass-panel rounded-full px-3 py-1.5 flex items-center gap-1.5 hover:border-sky-400 transition-colors">
             <i class="fa-solid fa-earth-asia text-sky-400 text-sm"></i>
             <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1">
@@ -125,29 +76,20 @@
         </div>
     </div>
 
-    <!-- 📱 เมนูกลาง (Main Container) -->
     <div class="glass-panel w-full max-w-md rounded-3xl overflow-hidden relative z-10">
         
-        <!-- Header Section -->
         <div class="p-8 text-center relative overflow-hidden">
-            <!-- ลูกเล่นวงกลมเบลอหลังโลโก้ -->
             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-sky-500/20 rounded-full blur-2xl"></div>
-            
            <div class="relative inline-flex items-center justify-center h-24 mb-6 group cursor-pointer">
-            <!-- แสงออร่าพื้นหลัง (Glow Effect) -->
             <div class="absolute inset-0 bg-red-500/10 blur-xl rounded-full group-hover:bg-red-500/20 transition-colors duration-500"></div>
-            <!-- โลโก้ KSS -->
             <img src="logo.png" alt="KSS Logo" class="h-full w-auto object-contain relative z-10 drop-shadow-xl transition-all duration-300 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-active:scale-95">
         </div>
-            
             <h1 class="text-3xl font-black tracking-wider mb-2 bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-emerald-400 drop-shadow-sm" data-i18n="appTitle">KAOSU WMS</h1>
             <p class="text-[var(--text-sub)] text-sm font-medium tracking-wide" data-i18n="appDesc">Smart Warehouse & Dispatch System</p>
         </div>
 
-        <!-- Menu Buttons Section -->
         <div class="p-6 pt-0 space-y-4">
             
-            <!-- Button: Layout -->
             <button onclick="goToLayout()" class="glass-card w-full rounded-2xl p-4 flex items-center gap-5 group text-left relative overflow-hidden active:scale-95">
                 <div class="absolute inset-0 bg-gradient-to-r from-sky-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500"></div>
                 <div class="w-14 h-14 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center text-2xl group-hover:bg-sky-500 group-hover:text-white transition-all shadow-inner">
@@ -160,7 +102,6 @@
                 <i class="fa-solid fa-chevron-right text-[var(--text-sub)] group-hover:text-sky-500 group-hover:translate-x-1 transition-all"></i>
             </button>
 
-            <!-- Button: Dispatch -->
             <button onclick="openLoginModal('index.html')" class="glass-card w-full rounded-2xl p-4 flex items-center gap-5 group text-left relative overflow-hidden active:scale-95">
                 <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500"></div>
                 <div class="w-14 h-14 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-2xl group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner">
@@ -173,7 +114,6 @@
                 <i class="fa-solid fa-lock text-[var(--text-sub)] group-hover:text-emerald-500 group-hover:translate-x-1 transition-all"></i>
             </button>
 
-            <!-- Button: Report (Minimal) -->
             <div class="pt-6 pb-2 text-center">
                 <button onclick="openLoginModal('report.html')" class="group relative inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors py-2 px-4 rounded-full hover:bg-black/5">
                     <i class="fa-solid fa-chart-pie group-hover:animate-spin"></i> 
@@ -181,23 +121,20 @@
                 </button>
             </div>
 
-            <!-- Button: Job Notices (Minimal) -->
             <div class="pt-0 pb-2 text-center">
                 <button onclick="openLoginModal('notices.html')" class="group relative inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors py-2 px-4 rounded-full hover:bg-black/5">
                     <i class="fa-solid fa-file-lines group-hover:animate-pulse"></i>
                     <span data-i18n="menuNoticeLink">สำหรับหัวหน้างาน: ใบติดต่องาน (Job Notices)</span>
+                    <span id="noticeBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black rounded-full min-w-[17px] h-[17px] px-1 items-center justify-center border-2 border-[var(--glass-bg)] animate-pulse">0</span>
                 </button>
             </div>
 
         </div>
     </div>
 
-    <!-- 🔐 Login Modal (Glassmorphism) -->
     <div id="loginModal" class="modal-overlay">
         <div class="glass-panel w-full max-w-sm rounded-3xl p-8 shadow-2xl m-4 relative overflow-hidden">
-            <!-- ตกแต่งมุม -->
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl"></div>
-
             <div class="flex justify-between items-center mb-6 relative z-10">
                 <h3 class="text-2xl font-black text-[var(--text-main)] flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-lg">
@@ -209,16 +146,12 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-
             <p id="loginModalDesc" class="text-sm text-[var(--text-sub)] mb-6 font-medium relative z-10" data-i18n="loginDescDispatch">กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณเพื่อเข้าใช้งาน</p>
-
             <div class="relative z-10 mb-4">
                 <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                 <input type="text" id="staffIdInput" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001" class="w-full bg-white/10 border border-[var(--glass-border)] rounded-2xl p-4 pl-12 text-center text-lg uppercase tracking-widest font-black text-[var(--text-main)] placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-inner backdrop-blur-sm">
             </div>
-
             <p id="loginError" class="hidden text-xs text-red-400 font-bold mb-4 text-center bg-red-500/10 py-2 rounded-lg relative z-10"></p>
-
             <button id="loginConfirmBtn" onclick="confirmLogin()" class="relative z-10 w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black tracking-wide py-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                 <span id="loginConfirmBtnText" data-i18n="btnLogin">เข้าสู่ระบบ</span>
             </button>
@@ -227,10 +160,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        /* =============================================================
-           🎨 Theme Engine & Mouse Glow
-        ============================================================= */
-        // Mouse Tracking สำหรับเอฟเฟกต์แสงบน PC และจอทัชสกรีน
         document.addEventListener('mousemove', (e) => {
             document.documentElement.style.setProperty('--x', e.clientX + 'px');
             document.documentElement.style.setProperty('--y', e.clientY + 'px');
@@ -240,27 +169,19 @@
             document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px');
         });
 
-        // Theme Switcher
         function changeTheme(themeName) {
             document.body.setAttribute('data-theme', themeName);
             localStorage.setItem('wms_theme', themeName);
         }
-        
-        // โหลดธีมที่เคยเลือกไว้
-        const savedTheme = localStorage.getItem('wms_theme') || 'dark'; // ให้ Dark เป็นค่าเริ่มต้นเพราะเท่สุด
+        const savedTheme = localStorage.getItem('wms_theme') || 'dark';
         changeTheme(savedTheme);
 
-
-        /* =============================================================
-           ⚙️ Core Logic
-        ============================================================= */
         let targetPage = ""; 
         let modalDescKey = "loginDescDispatch"; 
 
-        // หน้าที่ต้องมี role = supervisor เท่านั้นถึงจะเข้าได้ (เพิ่มหน้าใหม่ต่อท้าย array นี้ได้เลย)
+        // หน้าที่ต้องมี role = supervisor/manager เท่านั้นถึงจะเข้าได้ (เพิ่มหน้าใหม่ต่อท้าย array นี้ได้เลย)
         const SUPERVISOR_ONLY_PAGES = ['report.html', 'notices.html'];
 
-        // Supabase Init
         var sbClient = null;
         try {
             var SB_URL = "https://suardrnsfpdqwcgupqkb.supabase.co";
@@ -277,10 +198,8 @@
             desc.setAttribute('data-i18n', modalDescKey);
             var t = translations[currentLang] || translations.th;
             desc.textContent = t[modalDescKey];
-
             hideLoginError();
             document.getElementById('loginModal').classList.add('active');
-
             const savedStaffId = localStorage.getItem("savedStaffId");
             if (savedStaffId) document.getElementById('staffIdInput').value = savedStaffId;
             setTimeout(() => document.getElementById('staffIdInput').focus(), 100);
@@ -296,7 +215,6 @@
             el.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> ${msg}`;
             el.classList.remove('hidden');
         }
-
         function hideLoginError() { document.getElementById('loginError').classList.add('hidden'); }
 
         function setLoginLoading(loading) {
@@ -319,15 +237,13 @@
                 const { data, error } = await sbClient.from('staff').select('staff_id, role, active').eq('staff_id', staffId).maybeSingle();
                 if (error) throw error;
                 if (!data || !data.active) return showLoginError(t.errInvalid);
-               const allowedRoles = ['supervisor', 'manager'];
-if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && !allowedRoles.includes(data.role)) return showLoginError(t.errReportOnly);
+                const allowedRoles = ['supervisor', 'manager'];
+                if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && !allowedRoles.includes(data.role)) return showLoginError(t.errReportOnly);
 
                 localStorage.setItem("savedStaffId", staffId);
-                // แอนิเมชันตอนผ่าน
                 document.getElementById('loginModal').querySelector('.glass-panel').style.transform = 'scale(0.9)';
                 document.getElementById('loginModal').querySelector('.glass-panel').style.opacity = '0';
                 setTimeout(() => { window.location.href = targetPage; }, 300);
-
             } catch (err) {
                 console.error(err);
                 showLoginError(t.errGeneral);
@@ -340,9 +256,25 @@ if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && !allowedRoles.includes(data.ro
             if (e.key === "Enter") { e.preventDefault(); confirmLogin(); }
         });
 
-        /* =============================================================
-           🌍 i18n Translation
-        ============================================================= */
+        // 🔔 เช็คว่ามีใบติดต่องานใหม่ในรอบ 7 วันที่ผ่านมาไหม แสดงเป็นตัวเลขบนปุ่ม
+        async function checkNewNotices() {
+            if (!sbClient) return;
+            try {
+                const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+                const { count, error } = await sbClient
+                    .from('job_notices')
+                    .select('id', { count: 'exact', head: true })
+                    .gte('created_at', sevenDaysAgo);
+                if (error) { console.error(error); return; }
+                const badge = document.getElementById('noticeBadge');
+                if (count && count > 0) {
+                    badge.textContent = count > 99 ? '99+' : count;
+                    badge.classList.remove('hidden');
+                    badge.classList.add('flex');
+                }
+            } catch (e) { console.error(e); }
+        }
+
         const translations = {
             th: {
                 appTitle: "KAOSU WMS", appDesc: "Smart Warehouse & Dispatch System",
@@ -410,7 +342,7 @@ if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && !allowedRoles.includes(data.ro
                 if (t[key] !== undefined) el.setAttribute("placeholder", t[key]);
             });
         }
-        document.addEventListener("DOMContentLoaded", () => changeLanguage(currentLang));
+        document.addEventListener("DOMContentLoaded", () => { changeLanguage(currentLang); checkNewNotices(); });
     </script>
 </body>
 </html>

@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         /* 🎨 1. Dynamic Theme Engine (แก้ปัญหาคอนทราสต์สีกลืนกัน) */
         :root{
@@ -505,12 +506,38 @@
             <div id="scrapUpdateForm" class="hidden relative z-10 space-y-2 mb-3">
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapBagsLabel">จำนวนถุง</label>
+                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapShiftLabel">กะ</label>
+                        <select id="scrapShift" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer">
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapResultLabel">ผลลัพธ์</label>
+                        <select id="scrapResult" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer">
+                            <option value="ยังเป็นเศษ">ยังเป็นเศษ</option>
+                            <option value="ถุงเต็ม">ถุงเต็ม</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapBagsLabel">จำนวนถุงเศษ</label>
                         <input type="number" min="0" id="scrapQtyBags" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapPiecesLabel">จำนวนชิ้น</label>
+                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapPiecesLabel">จำนวนชิ้นรวมในถุงเศษ</label>
                         <input type="number" min="0" id="scrapQtyPieces" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapReceivedLabel">รับเข้าจาก Packing (ชิ้น)</label>
+                        <input type="number" min="0" id="scrapReceived" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapReprintLabel">RePrint ยอด</label>
+                        <input type="number" min="0" id="scrapReprint" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
                     </div>
                 </div>
                 <input type="text" id="scrapNote" data-i18n-placeholder="scrapNotePh" placeholder="หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน" class="w-full glass-input rounded-xl p-2.5 text-xs outline-none">
@@ -518,9 +545,16 @@
             </div>
 
             <div id="scrapHistoryWrap" class="hidden relative z-10">
-                <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-wider mb-2" data-i18n="scrapHistoryLabel">ประวัติการเช็คล่าสุด</div>
+                <div class="flex justify-between items-center mb-2">
+                    <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-wider" data-i18n="scrapHistoryLabel">ประวัติการเช็คล่าสุด</div>
+                    <button onclick="exportScrapHistory()" class="text-[10px] font-bold text-emerald-500 hover:text-emerald-400"><i class="fa-solid fa-file-excel mr-1"></i><span data-i18n="scrapExportItemBtn">ส่งออกไอเทมนี้</span></button>
+                </div>
                 <div id="scrapHistoryList" class="space-y-1.5 max-h-[160px] overflow-y-auto custom-scroll"></div>
             </div>
+
+            <button onclick="exportAllScrapData()" class="w-full mt-3 btn-ghost glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] font-bold py-2.5 rounded-xl text-xs relative z-10 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-export text-emerald-500"></i> <span data-i18n="scrapExportAllBtn">ส่งออกข้อมูลเศษทั้งหมด (Excel)</span>
+            </button>
         </div>
     </div>
 
@@ -718,6 +752,7 @@
 
         let locationData = {};
         let masterData = {}; 
+        let scrapDataMap = {}; // 🆕 item_code -> แถวล่าสุดจาก latest_scrap_stock (สำหรับโชว์ในผลค้นหา)
 
         function boxIdsFor(locId) {
             const ids = ['box-' + locId];
@@ -736,6 +771,12 @@
                 resMaster.data.forEach(item => {
                     masterData[item.item_code.toUpperCase()] = item;
                 });
+            }
+
+            // 🆕 โหลดยอดเศษล่าสุดของทุกไอเทม เพื่อใช้โชว์ในผลการค้นหา
+            const resScrap = await sbClient.from("latest_scrap_stock").select("*");
+            if (!resScrap.error && resScrap.data) {
+                resScrap.data.forEach(row => { scrapDataMap[row.item_code.toUpperCase()] = row; });
             }
 
             const resLoc = await sbClient.from("locations").select("*");
@@ -826,6 +867,18 @@
 
                     itemsToDisplay.forEach((itemCode) => {
                         let mData = masterData[itemCode.toUpperCase()] || { code_name: '-', cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
+                        let sData = scrapDataMap[itemCode.toUpperCase()];
+                        let scrapLine = '';
+                        if (sData) {
+                            const isScrap = (sData.result || '') !== 'ถุงเต็ม';
+                            const badgeClass = isScrap ? 'bg-amber-500/15 text-amber-500 border-amber-500/30' : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30';
+                            scrapLine = `
+                            <div class="mt-1.5 ${badgeClass} border rounded-lg px-2 py-1 text-[10px] font-bold flex items-center gap-1.5">
+                                <i class="fa-solid fa-recycle"></i>
+                                <span>เศษ: ${sData.qty_bags != null ? sData.qty_bags : 0} ถุง${sData.qty_pieces != null ? ` (${sData.qty_pieces} ชิ้น)` : ''} ${sData.result ? '• ' + sData.result : ''}</span>
+                                <span class="opacity-70 ml-auto">${formatScrapTime(sData.checked_at)}</span>
+                            </div>`;
+                        }
 
                         html += `
                         <div class="mb-2 pl-3 border-l-2 border-slate-500 space-y-1">
@@ -835,6 +888,7 @@
                                 <span class="mr-3"><i class="fa-solid fa-layer-group text-slate-500"></i> ${t.labelMaxStack}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></span>
                                 <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
                             </div>
+                            ${scrapLine}
                         </div>`;
                     });
 
@@ -885,6 +939,18 @@
                 for (let i = 0; i < iArr.length; i++) {
                     let itemCode = iArr[i].toUpperCase();
                     let mData = masterData[itemCode] || { code_name: t.modalNotFound, cl: '-', max_stack: '-', pack_type: '-', bag_color: '-' };
+                    let sData = scrapDataMap[itemCode];
+                    let scrapLine = '';
+                    if (sData) {
+                        const isScrap = (sData.result || '') !== 'ถุงเต็ม';
+                        const badgeClass = isScrap ? 'bg-amber-500/15 text-amber-500 border-amber-500/30' : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30';
+                        scrapLine = `
+                            <div class="mt-2 ${badgeClass} border rounded-lg px-2 py-1.5 text-[10px] font-bold flex items-center gap-1.5">
+                                <i class="fa-solid fa-recycle"></i>
+                                <span>เศษ: ${sData.qty_bags != null ? sData.qty_bags : 0} ถุง${sData.qty_pieces != null ? ` (${sData.qty_pieces} ชิ้น)` : ''} ${sData.result ? '• ' + sData.result : ''}</span>
+                                <span class="opacity-70 ml-auto">${formatScrapTime(sData.checked_at)}</span>
+                            </div>`;
+                    }
 
                     html += `
                     <div class="glass-input p-3.5 rounded-lg flex items-start gap-3 shadow-md">
@@ -900,6 +966,7 @@
                                 <div><i class="fa-solid fa-layer-group text-slate-400 mr-1"></i> ${t.labelMax}: <span class="text-[var(--text-main)] font-bold">${mData.max_stack}</span></div>
                                 <div><i class="fa-solid fa-box-open text-slate-400 mr-1"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></div>
                             </div>
+                            ${scrapLine}
                         </div>
                     </div>`;
                 }
@@ -1369,8 +1436,12 @@
             document.getElementById('scrapItemSearch').value = itemCode;
             document.getElementById('scrapSuggestBox').style.display = 'none';
             document.getElementById('scrapUpdateForm').classList.remove('hidden');
+            document.getElementById('scrapShift').value = 'A';
+            document.getElementById('scrapResult').value = 'ยังเป็นเศษ';
             document.getElementById('scrapQtyBags').value = '';
             document.getElementById('scrapQtyPieces').value = '';
+            document.getElementById('scrapReceived').value = '';
+            document.getElementById('scrapReprint').value = '';
             document.getElementById('scrapNote').value = '';
             await loadScrapDataForItem(itemCode);
         }
@@ -1397,15 +1468,23 @@
 
             const latest = data[0];
             document.getElementById('scrapCurrentQty').innerText =
-                `${latest.qty_bags != null ? latest.qty_bags : 0} ถุง` + (latest.qty_pieces != null ? ` (${latest.qty_pieces} ชิ้น)` : '');
+                `${latest.qty_bags != null ? latest.qty_bags : 0} ถุง` + (latest.qty_pieces != null ? ` (${latest.qty_pieces} ชิ้น)` : '') + (latest.result ? ` • ${latest.result}` : '');
             document.getElementById('scrapCurrentMeta').innerText =
-                `อัปเดตล่าสุด: ${formatScrapTime(latest.checked_at)} โดย ${latest.checked_by || '-'}` + (latest.note ? ` • ${latest.note}` : '');
+                `อัปเดตล่าสุด: ${formatScrapTime(latest.checked_at)} โดย ${latest.checked_by || '-'}` +
+                (latest.shift ? ` • กะ ${latest.shift}` : '') +
+                (latest.note ? ` • ${latest.note}` : '');
             currentBox.classList.remove('hidden');
 
+            // เก็บไว้ให้ปุ่ม export ของไอเทมนี้ใช้
+            window._scrapHistoryCache = data;
+
             historyList.innerHTML = data.map(row => `
-                <div class="flex justify-between items-center text-[11px] glass-input rounded-lg px-2.5 py-1.5">
-                    <span class="font-bold text-[var(--text-main)]">${row.qty_bags != null ? row.qty_bags : 0} ถุง${row.qty_pieces != null ? ` / ${row.qty_pieces} ชิ้น` : ''}</span>
-                    <span class="text-[var(--text-sub)]">${formatScrapTime(row.checked_at)} • ${row.checked_by || '-'}</span>
+                <div class="flex justify-between items-center text-[11px] glass-input rounded-lg px-2.5 py-1.5 gap-2">
+                    <div class="min-w-0">
+                        <div class="font-bold text-[var(--text-main)] truncate">${row.qty_bags != null ? row.qty_bags : 0} ถุง${row.qty_pieces != null ? ` / ${row.qty_pieces} ชิ้น` : ''} ${row.result ? '• ' + row.result : ''}</div>
+                        <div class="text-[var(--text-sub)] truncate">${formatScrapTime(row.checked_at)} • ${row.checked_by || '-'}${row.shift ? ' • กะ ' + row.shift : ''}</div>
+                    </div>
+                    <button onclick="deleteScrapEntry(${row.id}, '${itemCode.replace(/'/g, "\\'")}')" class="shrink-0 w-6 h-6 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 flex items-center justify-center" title="ลบรายการนี้"><i class="fa-solid fa-trash text-[10px]"></i></button>
                 </div>`).join('');
             historyWrap.classList.remove('hidden');
         }
@@ -1427,10 +1506,17 @@
             if (!staffId) return;
             touchStaffSession();
 
+            const received = document.getElementById('scrapReceived').value;
+            const reprint = document.getElementById('scrapReprint').value;
+
             const { error } = await sbClient.from('scrap_stock_log').insert({
                 item_code: currentScrapItemCode,
+                shift: document.getElementById('scrapShift').value,
+                result: document.getElementById('scrapResult').value,
                 qty_bags: bags === '' ? null : Number(bags),
                 qty_pieces: pieces === '' ? null : Number(pieces),
+                received_from_packing: received === '' ? null : Number(received),
+                reprint_qty: reprint === '' ? null : Number(reprint),
                 note: document.getElementById('scrapNote').value.trim() || null,
                 checked_by: staffId
             });
@@ -1439,8 +1525,64 @@
             alert('✅ บันทึกการเช็คงานเศษเรียบร้อยแล้ว');
             document.getElementById('scrapQtyBags').value = '';
             document.getElementById('scrapQtyPieces').value = '';
+            document.getElementById('scrapReceived').value = '';
+            document.getElementById('scrapReprint').value = '';
             document.getElementById('scrapNote').value = '';
             await loadScrapDataForItem(currentScrapItemCode);
+            // อัปเดต cache สำหรับผลค้นหาหลัก/รายละเอียดช่อง โดยไม่ต้องโหลดหน้าใหม่
+            const res = await sbClient.from("latest_scrap_stock").select("*").eq("item_code", currentScrapItemCode).maybeSingle();
+            if (res.data) scrapDataMap[currentScrapItemCode.toUpperCase()] = res.data;
+        }
+
+        // 🆕 ลบรายการเช็คที่บันทึกผิด — ต้องเป็นพนักงานที่ยืนยันตัวตนแล้ว (เหมือนเงื่อนไขดูรายการแจ้งปัญหา)
+        async function deleteScrapEntry(id, itemCode) {
+            if (!isStaffVerified()) {
+                alert('ต้องกรอกรหัสพนักงานที่ผ่านการตรวจสอบแล้วก่อนถึงจะลบรายการได้ (กดที่กระดิ่งแจ้งปัญหาเพื่อยืนยันตัวตนก่อน)');
+                return;
+            }
+            if (!confirm('ยืนยันลบรายการนี้? การลบไม่สามารถย้อนกลับได้')) return;
+            touchStaffSession();
+            const { error } = await sbClient.from('scrap_stock_log').delete().eq('id', id);
+            if (error) { alert('ลบไม่สำเร็จ: ' + error.message); return; }
+            await loadScrapDataForItem(itemCode);
+            const res = await sbClient.from("latest_scrap_stock").select("*").eq("item_code", itemCode).maybeSingle();
+            scrapDataMap[itemCode.toUpperCase()] = res.data || undefined;
+        }
+
+        // 🆕 Export: ไอเทมที่กำลังดูอยู่ (ประวัติที่โชว์ในหน้าจอ)
+        function exportScrapHistory() {
+            const rows = window._scrapHistoryCache || [];
+            if (rows.length === 0) return alert('ไม่มีข้อมูลให้ส่งออก');
+            exportScrapRowsToExcel(rows, `Scrap_${currentScrapItemCode}`);
+        }
+
+        // 🆕 Export: ข้อมูลเศษทั้งหมดในระบบ
+        async function exportAllScrapData() {
+            const { data, error } = await sbClient.from('scrap_stock_log').select('*').order('checked_at', { ascending: false });
+            if (error) { alert('ดึงข้อมูลไม่สำเร็จ: ' + error.message); return; }
+            if (!data || data.length === 0) return alert('ยังไม่มีข้อมูลเศษในระบบ');
+            exportScrapRowsToExcel(data, 'Scrap_All');
+        }
+
+        function exportScrapRowsToExcel(rows, filePrefix) {
+            const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
+                "รหัส ITEM": r.item_code,
+                "กะ": r.shift || '',
+                "จำนวนถุงเศษ": r.qty_bags,
+                "จำนวนชิ้นรวมในถุงเศษ": r.qty_pieces,
+                "รับเข้าจาก Packing (ชิ้น)": r.received_from_packing,
+                "ผลลัพธ์": r.result || '',
+                "RePrint ยอด": r.reprint_qty,
+                "หมายเหตุ": r.note || '',
+                "เช็คโดย": r.checked_by || '',
+                "เช็คเมื่อ": formatScrapTime(r.checked_at)
+            })));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Scrap Data");
+            const now = new Date();
+            const pad = n => ("0" + n).slice(-2);
+            const fname = `${filePrefix}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.xlsx`;
+            XLSX.writeFile(wb, fname);
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -1464,7 +1606,7 @@
                 issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
                 issuesPanelTitle: "รายการแจ้งปัญหา", issuesFilterPending: "รอตรวจสอบ", issuesFilterAll: "ทั้งหมด", noIssues: "ไม่มีรายการแจ้งปัญหา",
                 issueCardReporter: "ผู้แจ้ง", issueCardResolve: "ทำเครื่องหมายว่าแก้ไขแล้ว", issueResolved: "แก้ไขแล้ว",
-                scrapCheckBtn: "เช็คงานเศษ", scrapCheckTitle: "เช็คงานเศษ", scrapSearchPh: "พิมพ์รหัส ITEM...", scrapCurrentLabel: "จำนวนเศษล่าสุดที่บันทึกไว้", scrapBagsLabel: "จำนวนถุง", scrapPiecesLabel: "จำนวนชิ้น", scrapNotePh: "หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน", scrapSaveBtn: "บันทึกการเช็คนี้", scrapHistoryLabel: "ประวัติการเช็คล่าสุด" },
+                scrapCheckBtn: "เช็คงานเศษ", scrapCheckTitle: "เช็คงานเศษ", scrapSearchPh: "พิมพ์รหัส ITEM...", scrapCurrentLabel: "จำนวนเศษล่าสุดที่บันทึกไว้", scrapBagsLabel: "จำนวนถุงเศษ", scrapPiecesLabel: "จำนวนชิ้นรวมในถุงเศษ", scrapNotePh: "หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน", scrapSaveBtn: "บันทึกการเช็คนี้", scrapHistoryLabel: "ประวัติการเช็คล่าสุด", scrapShiftLabel: "กะ", scrapResultLabel: "ผลลัพธ์", scrapReceivedLabel: "รับเข้าจาก Packing (ชิ้น)", scrapReprintLabel: "RePrint ยอด", scrapExportItemBtn: "ส่งออกไอเทมนี้", scrapExportAllBtn: "ส่งออกข้อมูลเศษทั้งหมด (Excel)" },
             zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
                 reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
                 staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
@@ -1474,7 +1616,7 @@
                 issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
                 issuesPanelTitle: "問題回報列表", issuesFilterPending: "待處理", issuesFilterAll: "全部", noIssues: "沒有回報項目",
                 issueCardReporter: "回報人", issueCardResolve: "標記為已解決", issueResolved: "已解決",
-                scrapCheckBtn: "檢查廢料", scrapCheckTitle: "檢查廢料", scrapSearchPh: "輸入 ITEM 代碼...", scrapCurrentLabel: "最近記錄的廢料數量", scrapBagsLabel: "袋數", scrapPiecesLabel: "件數", scrapNotePh: "備註 (例如已賣出部分)", scrapSaveBtn: "儲存這次檢查", scrapHistoryLabel: "最近檢查紀錄" },
+                scrapCheckBtn: "檢查廢料", scrapCheckTitle: "檢查廢料", scrapSearchPh: "輸入 ITEM 代碼...", scrapCurrentLabel: "最近記錄的廢料數量", scrapBagsLabel: "袋數", scrapPiecesLabel: "袋內總件數", scrapNotePh: "備註 (例如已賣出部分)", scrapSaveBtn: "儲存這次檢查", scrapHistoryLabel: "最近檢查紀錄", scrapShiftLabel: "班次", scrapResultLabel: "結果", scrapReceivedLabel: "從 Packing 收到 (件)", scrapReprintLabel: "RePrint 數量", scrapExportItemBtn: "匯出此項目", scrapExportAllBtn: "匯出全部廢料資料 (Excel)" },
             mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
                 reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
                 staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
@@ -1484,7 +1626,7 @@
                 issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
                 issuesPanelTitle: "ပြဿနာတိုင်ကြားမှုများ", issuesFilterPending: "စောင့်ဆိုင်းဆဲ", issuesFilterAll: "အားလုံး", noIssues: "တိုင်ကြားမှုမရှိပါ",
                 issueCardReporter: "တိုင်ကြားသူ", issueCardResolve: "ပြီးမြောက်ကြောင်းအမှတ်အသားပြုရန်", issueResolved: "ပြီးမြောက်ပါပြီ",
-                scrapCheckBtn: "အပိုအကြွင်းစစ်ရန်", scrapCheckTitle: "အပိုအကြွင်းစစ်ရန်", scrapSearchPh: "ITEM ကုဒ်ရိုက်ပါ...", scrapCurrentLabel: "မှတ်တမ်းတင်ထားသော နောက်ဆုံးအရေအတွက်", scrapBagsLabel: "အိတ်အရေအတွက်", scrapPiecesLabel: "အရေအတွက် (ခု)", scrapNotePh: "မှတ်ချက် (ရှိလျှင်)", scrapSaveBtn: "ဤစစ်ဆေးမှုကို သိမ်းရန်", scrapHistoryLabel: "နောက်ဆုံးစစ်ဆေးမှုများ" },
+                scrapCheckBtn: "အပိုအကြွင်းစစ်ရန်", scrapCheckTitle: "အပိုအကြွင်းစစ်ရန်", scrapSearchPh: "ITEM ကုဒ်ရိုက်ပါ...", scrapCurrentLabel: "မှတ်တမ်းတင်ထားသော နောက်ဆုံးအရေအတွက်", scrapBagsLabel: "အိတ်အရေအတွက်", scrapPiecesLabel: "အိတ်ထဲ စုစုပေါင်းအရေအတွက်", scrapNotePh: "မှတ်ချက် (ရှိလျှင်)", scrapSaveBtn: "ဤစစ်ဆေးမှုကို သိမ်းရန်", scrapHistoryLabel: "နောက်ဆုံးစစ်ဆေးမှုများ", scrapShiftLabel: "အဆိုင်း", scrapResultLabel: "ရလဒ်", scrapReceivedLabel: "Packing မှလက်ခံရရှိ (ခု)", scrapReprintLabel: "RePrint အရေအတွက်", scrapExportItemBtn: "ဒီပစ္စည်းကို Export လုပ်ရန်", scrapExportAllBtn: "အကြွင်းအားလုံး Export (Excel)" },
             en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
                 reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
                 staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
@@ -1494,7 +1636,7 @@
                 issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",
                 issuesPanelTitle: "Reported Issues", issuesFilterPending: "Pending", issuesFilterAll: "All", noIssues: "No issues reported",
                 issueCardReporter: "Reporter", issueCardResolve: "Mark as resolved", issueResolved: "Resolved",
-                scrapCheckBtn: "Check Scrap", scrapCheckTitle: "Check Scrap", scrapSearchPh: "Type ITEM code...", scrapCurrentLabel: "Last recorded scrap quantity", scrapBagsLabel: "Bags", scrapPiecesLabel: "Pieces", scrapNotePh: "Note (optional) e.g. partially sold", scrapSaveBtn: "Save this check", scrapHistoryLabel: "Recent check history" }
+                scrapCheckBtn: "Check Scrap", scrapCheckTitle: "Check Scrap", scrapSearchPh: "Type ITEM code...", scrapCurrentLabel: "Last recorded scrap quantity", scrapBagsLabel: "Bags", scrapPiecesLabel: "Total pieces in bag", scrapNotePh: "Note (optional) e.g. partially sold", scrapSaveBtn: "Save this check", scrapHistoryLabel: "Recent check history", scrapShiftLabel: "Shift", scrapResultLabel: "Result", scrapReceivedLabel: "Received from Packing (pcs)", scrapReprintLabel: "RePrint Qty", scrapExportItemBtn: "Export this item", scrapExportAllBtn: "Export all scrap data (Excel)" }
         };
 
         function changeLanguage(lang) {

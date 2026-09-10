@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
         /* 🎨 1. Dynamic Theme Engine (แก้ปัญหาคอนทราสต์สีกลืนกัน) */
         :root{
@@ -212,6 +213,23 @@
         .report-issue-btn:hover { background: rgba(248, 113, 113, 0.22); }
         .report-issue-btn:active { transform: scale(0.97); }
 
+        /* ===== 🆕 Entry type toggle (เช็คสต็อก / Repack) ===== */
+        #entryTypeCheckBtn, #entryTypeRepackBtn { color: var(--text-sub); background: transparent; }
+        #entryTypeCheckBtn.active { background: #0ea5e9; color: #fff; }
+        #entryTypeRepackBtn.active { background: #a855f7; color: #fff; }
+
+        /* ===== 🆕 Stats tabs ===== */
+        .stats-tab-btn { flex: 1; padding: 8px; border-radius: 10px; font-size: 11px; font-weight: 900; color: var(--text-sub); background: transparent; transition: all 0.15s ease; }
+        .stats-tab-btn.active { background: #a855f7; color: #fff; }
+
+        /* ===== 🆕 Heatmap rack cell ===== */
+        .heat-cell { stroke: rgba(0,0,0,0.3); stroke-width: 1; }
+        .heat-label { pointer-events: none; }
+
+        /* ===== 🆕 Roster card ===== */
+        .roster-card { background: var(--input-bg); border: 1px solid var(--glass-border); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+        .roster-shift-badge { font-size: 9px; font-weight: 900; padding: 3px 8px; border-radius: 999px; }
+
         .issue-type-btn {
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
             padding: 16px 8px; border-radius: 16px; cursor: pointer;
@@ -326,6 +344,16 @@
                 <button onclick="openScrapCheck()" class="glass-input rounded-full h-10 px-3.5 flex items-center gap-1.5 shadow-inner hover:border-emerald-400 transition-colors text-[11px] font-bold" title="เช็คงานเศษ">
                     <i class="fa-solid fa-recycle text-emerald-400"></i>
                     <span data-i18n="scrapCheckBtn" class="hidden sm:inline">เช็คงานเศษ</span>
+                </button>
+                <!-- 🆕 สถิติ Repack: Heatmap / กราฟแท่ง -->
+                <button onclick="openRepackStats()" class="glass-input rounded-full h-10 px-3.5 flex items-center gap-1.5 shadow-inner hover:border-purple-400 transition-colors text-[11px] font-bold" title="สถิติ Repack">
+                    <i class="fa-solid fa-chart-column text-purple-400"></i>
+                    <span data-i18n="repackStatsBtn" class="hidden sm:inline">สถิติ Repack</span>
+                </button>
+                <!-- 🆕 ผู้รับผิดชอบ STORE: ต้อง login role supervisor/manager -->
+                <button onclick="openRosterPanel()" class="glass-input rounded-full h-10 px-3.5 flex items-center gap-1.5 shadow-inner hover:border-sky-400 transition-colors text-[11px] font-bold" title="ผู้รับผิดชอบ STORE">
+                    <i class="fa-solid fa-user-shield text-sky-400"></i>
+                    <span data-i18n="rosterBtn" class="hidden sm:inline">ผู้รับผิดชอบ STORE</span>
                 </button>
                 <!-- Theme Switcher -->
                 <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
@@ -491,11 +519,13 @@
                 <button onclick="closeScrapCheck(event)" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <div class="relative z-10 mb-3">
+            <div class="relative z-10 mb-2">
                 <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
-                <input type="text" id="scrapItemSearch" oninput="onScrapItemSearchInput(this.value)" data-i18n-placeholder="scrapSearchPh" placeholder="พิมพ์รหัส ITEM..." autocomplete="off" class="w-full glass-input rounded-full py-2.5 pl-10 pr-4 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500">
-                <div id="scrapSuggestBox" class="suggestions-box custom-scroll"></div>
+                <input type="text" id="scrapItemSearch" oninput="onScrapItemSearchInput(this.value)" data-i18n-placeholder="scrapSearchPh" placeholder="ค้นหา หรือดูรายการทั้งหมดด้านล่าง..." autocomplete="off" class="w-full glass-input rounded-full py-2.5 pl-10 pr-4 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
+            <div id="scrapAllList" class="relative z-10 mb-3 max-h-[220px] overflow-y-auto custom-scroll space-y-1 pr-1"></div>
+
+            <button id="scrapBackToList" onclick="backToScrapList()" class="hidden text-[11px] font-bold text-sky-500 mb-2 relative z-10"><i class="fa-solid fa-arrow-left mr-1"></i><span data-i18n="scrapBackToList">กลับไปดูรายการทั้งหมด</span></button>
 
             <div id="scrapCurrentBox" class="hidden glass-input rounded-2xl p-4 mb-3 relative z-10">
                 <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-wider mb-1" data-i18n="scrapCurrentLabel">จำนวนเศษล่าสุดที่บันทึกไว้</div>
@@ -504,6 +534,10 @@
             </div>
 
             <div id="scrapUpdateForm" class="hidden relative z-10 space-y-2 mb-3">
+                <div class="grid grid-cols-2 gap-1.5 p-1 glass-input rounded-xl">
+                    <button type="button" id="entryTypeCheckBtn" onclick="setEntryType('check')" class="py-2 rounded-lg text-xs font-black transition-all"><i class="fa-solid fa-clipboard-check mr-1"></i><span data-i18n="entryTypeCheck">เช็คสต็อก</span></button>
+                    <button type="button" id="entryTypeRepackBtn" onclick="setEntryType('repack')" class="py-2 rounded-lg text-xs font-black transition-all"><i class="fa-solid fa-box-archive mr-1"></i><span data-i18n="entryTypeRepack">Repack (รวมถุง)</span></button>
+                </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapShiftLabel">กะ</label>
@@ -523,13 +557,14 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapBagsLabel">จำนวนถุงเศษ</label>
-                        <input type="number" min="0" id="scrapQtyBags" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                        <input type="number" min="0" id="scrapQtyBags" placeholder="0" oninput="onScrapBagsChange()" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
                     </div>
-                    <div>
+                    <div id="scrapSingleBagWrap">
                         <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapPiecesLabel">จำนวนชิ้นรวมในถุงเศษ</label>
                         <input type="number" min="0" id="scrapQtyPieces" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
                     </div>
                 </div>
+                <div id="scrapPerBagWrap" class="hidden"></div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapReceivedLabel">รับเข้าจาก Packing (ชิ้น)</label>
@@ -555,6 +590,100 @@
             <button onclick="exportAllScrapData()" class="w-full mt-3 btn-ghost glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] font-bold py-2.5 rounded-xl text-xs relative z-10 flex items-center justify-center gap-2">
                 <i class="fa-solid fa-file-export text-emerald-500"></i> <span data-i18n="scrapExportAllBtn">ส่งออกข้อมูลเศษทั้งหมด (Excel)</span>
             </button>
+        </div>
+    </div>
+
+    <!-- 🆕 Repack Stats Modal -->
+    <div id="repackStatsModal" class="modal-overlay" onclick="closeRepackStats(event)">
+        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl relative" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-chart-column text-purple-400"></i> <span data-i18n="repackStatsTitle">สถิติ Repack</span></h3>
+                <button onclick="closeRepackStats()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="flex gap-2 mb-3">
+                <div class="flex-1 grid grid-cols-2 gap-1 p-1 glass-input rounded-xl">
+                    <button id="statsTabHeatmap" class="stats-tab-btn" onclick="switchStatsView('heatmap')"><i class="fa-solid fa-fire mr-1"></i><span data-i18n="statsTabHeatmap">Heatmap</span></button>
+                    <button id="statsTabBar" class="stats-tab-btn" onclick="switchStatsView('bar')"><i class="fa-solid fa-chart-simple mr-1"></i><span data-i18n="statsTabBar">กราฟแท่ง</span></button>
+                </div>
+                <select id="statsDaysFilter" onchange="loadRepackStats()" class="glass-input rounded-xl px-3 text-xs font-bold outline-none cursor-pointer">
+                    <option value="7">7 วันล่าสุด</option>
+                    <option value="30" selected>30 วันล่าสุด</option>
+                    <option value="90">90 วันล่าสุด</option>
+                    <option value="9999">ทั้งหมด</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <div class="glass-input rounded-xl p-3 text-center">
+                    <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase" data-i18n="statsTotalEvents">จำนวนครั้ง Repack</div>
+                    <div id="statsTotalEvents" class="text-xl font-black text-purple-400">-</div>
+                </div>
+                <div class="glass-input rounded-xl p-3 text-center">
+                    <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase" data-i18n="statsTotalBags">ถุงเศษที่ลดลง</div>
+                    <div id="statsTotalBags" class="text-xl font-black text-emerald-500">-</div>
+                </div>
+                <div class="glass-input rounded-xl p-3 text-center">
+                    <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase" data-i18n="statsShiftCompare">กะ A / กะ B</div>
+                    <div id="statsShiftCompare" class="text-xl font-black text-sky-400">-</div>
+                </div>
+            </div>
+
+            <div id="statsLoading" class="text-center text-xs text-[var(--text-sub)] py-6"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังคำนวณสถิติ...</div>
+
+            <div id="heatmapView" class="hidden">
+                <div class="flex gap-2 mb-2">
+                    <button id="heatFloorBtn1" onclick="switchHeatFloor(1)" class="stats-tab-btn flex-1">ชั้น 1</button>
+                    <button id="heatFloorBtn2" onclick="switchHeatFloor(2)" class="stats-tab-btn flex-1">ชั้น 2</button>
+                </div>
+                <div id="heatmapSvgWrap" class="glass-input rounded-xl p-2 overflow-x-auto custom-scroll"></div>
+                <div class="flex items-center gap-2 mt-2 text-[10px] text-[var(--text-sub)] font-bold">
+                    <span>น้อย</span>
+                    <div class="flex-1 h-2 rounded-full" style="background: linear-gradient(to right, #1e293b, #a855f7, #f43f5e);"></div>
+                    <span>เยอะ</span>
+                </div>
+            </div>
+
+            <div id="barView" class="hidden space-y-4">
+                <div>
+                    <div class="text-[11px] font-bold text-[var(--text-sub)] uppercase mb-2" data-i18n="statsTopItems">Top ไอเทมที่ Repack เยอะสุด</div>
+                    <canvas id="topItemsChart" height="160"></canvas>
+                </div>
+                <div>
+                    <div class="text-[11px] font-bold text-[var(--text-sub)] uppercase mb-2" data-i18n="statsTopZones">Top โซนที่เกี่ยวข้องเยอะสุด</div>
+                    <canvas id="topZonesChart" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 STORE Roster Panel Modal (ต้อง login role supervisor/manager) -->
+    <div id="rosterModal" class="modal-overlay" onclick="closeRosterPanel(event)">
+        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-lg max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl relative" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-user-shield text-sky-400"></i> <span data-i18n="rosterTitle">ผู้รับผิดชอบ STORE</span></h3>
+                <button onclick="closeRosterPanel()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <button onclick="openRosterAddForm()" class="w-full mb-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black py-2.5 rounded-xl text-sm shadow-lg active:scale-95 transition-all"><i class="fa-solid fa-user-plus mr-1"></i> <span data-i18n="rosterAddBtn">เพิ่ม/แก้ไขพนักงาน</span></button>
+
+            <div id="rosterAddForm" class="hidden glass-input rounded-2xl p-4 mb-3 space-y-2">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="rosterStaffId" placeholder="รหัสพนักงาน" class="glass-input rounded-xl p-2.5 text-sm font-bold outline-none uppercase">
+                    <input type="text" id="rosterName" placeholder="ชื่อ" class="glass-input rounded-xl p-2.5 text-sm font-bold outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="rosterShift" class="glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer">
+                        <option value="A">กะ A</option>
+                        <option value="B">กะ B</option>
+                    </select>
+                    <input type="text" id="rosterPosition" placeholder="ตำแหน่ง เช่น พนักงาน Store" class="glass-input rounded-xl p-2.5 text-sm font-bold outline-none">
+                </div>
+                <input type="text" id="rosterNote" placeholder="หน้าที่/หมายเหตุเพิ่มเติม" class="w-full glass-input rounded-xl p-2.5 text-xs outline-none">
+                <button onclick="saveRosterEntry()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black py-2.5 rounded-xl text-sm shadow-lg active:scale-95 transition-all"><i class="fa-solid fa-floppy-disk mr-1"></i> บันทึก</button>
+            </div>
+
+            <div id="rosterList"></div>
         </div>
     </div>
 
@@ -1089,6 +1218,11 @@
             return !!getStaffId() && localStorage.getItem('wms_staff_verified') === 'true';
         }
 
+        // 🆕 คืนค่า true เฉพาะเมื่อ verified แล้ว และ role เป็น supervisor/manager เท่านั้น (สำหรับหน้าผู้รับผิดชอบ STORE)
+        function isStaffSupervisor() {
+            return isStaffVerified() && ['supervisor', 'manager'].includes(localStorage.getItem('wms_staff_role') || '');
+        }
+
         // อัปเดตเวลาใช้งานล่าสุด เรียกทุกครั้งที่มีการใช้รหัสพนักงานจริง (ต่ออายุ session แบบ sliding window)
         function touchStaffSession() {
             if (localStorage.getItem('wms_staff_id')) {
@@ -1099,6 +1233,7 @@
         function clearStaffSession() {
             localStorage.removeItem('wms_staff_id');
             localStorage.removeItem('wms_staff_name');
+            localStorage.removeItem('wms_staff_role');
             localStorage.removeItem('wms_staff_last_active');
             localStorage.removeItem('wms_staff_verified');
             updateStaffStatusUI();
@@ -1180,7 +1315,7 @@
             try {
                 const { data, error } = await sbClient
                     .from('staff')
-                    .select('staff_id, name, active')
+                    .select('staff_id, name, role, active')
                     .eq('staff_id', val)
                     .eq('active', true)
                     .maybeSingle();
@@ -1195,9 +1330,16 @@
                     return;
                 }
 
+                // 🆕 กรณีดูผู้รับผิดชอบ STORE — ต้องเป็น role supervisor/manager เท่านั้น
+                if (pendingStaffAction && pendingStaffAction.type === 'viewRoster' && !['supervisor', 'manager'].includes(data.role)) {
+                    alert('หน้านี้สำหรับหัวหน้างานเท่านั้น (supervisor/manager)');
+                    return;
+                }
+
                 // ผ่านการตรวจสอบกับ whitelist แล้ว ค่อยจำไว้ในเครื่อง (พร้อมเวลาใช้งานล่าสุด สำหรับนับ session 15 นาที)
                 localStorage.setItem('wms_staff_id', data.staff_id);
                 localStorage.setItem('wms_staff_name', data.name || '');
+                localStorage.setItem('wms_staff_role', data.role || '');
                 localStorage.setItem('wms_staff_last_active', Date.now().toString());
                 localStorage.setItem('wms_staff_verified', 'true');
                 updateStaffStatusUI();
@@ -1208,6 +1350,8 @@
                     pendingStaffAction = null;
                     if (action.type === 'viewIssues') {
                         openIssuesPanelContent();
+                    } else if (action.type === 'viewRoster') {
+                        openRosterPanelContent();
                     }
                 }
             } finally {
@@ -1384,57 +1528,116 @@
         }
 
         // ==========================================
-        // 🆕 เช็คงานเศษ (Scrap Check) — ค้นหาไอเทม ดูจำนวนล่าสุด + บันทึกการเช็คใหม่
+        // 🆕 เช็คงานเศษ (Scrap Check) — เรียกดูรายการทั้งหมด / ค้นหา / บันทึกการเช็คใหม่
         // ==========================================
         let currentScrapItemCode = null;
+        let allScrapCache = [];
 
-        function openScrapCheck() {
+        async function openScrapCheck() {
             document.getElementById('scrapItemSearch').value = '';
-            document.getElementById('scrapSuggestBox').style.display = 'none';
+            document.getElementById('scrapBackToList').classList.add('hidden');
             document.getElementById('scrapCurrentBox').classList.add('hidden');
             document.getElementById('scrapUpdateForm').classList.add('hidden');
             document.getElementById('scrapHistoryWrap').classList.add('hidden');
             currentScrapItemCode = null;
             document.getElementById('scrapCheckModal').classList.add('active');
-            setTimeout(() => document.getElementById('scrapItemSearch').focus(), 100);
+            document.getElementById('scrapAllList').innerHTML = `<div class="text-center text-[11px] text-[var(--text-sub)] py-4"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังโหลด...</div>`;
+            await loadAllScrapCache();
+            renderScrapAllList('');
         }
         function closeScrapCheck(e) {
             document.getElementById('scrapCheckModal').classList.remove('active');
         }
 
+        async function loadAllScrapCache() {
+            const { data, error } = await sbClient.from('latest_scrap_stock').select('*').order('checked_at', { ascending: false });
+            if (error) { console.error(error); allScrapCache = []; return; }
+            allScrapCache = data || [];
+        }
+
+        // 🆕 แสดงรายการเศษทั้งหมด (หรือกรองตามคำค้นหา) — ไม่ต้องรู้รหัส ITEM มาก่อนก็เห็นได้เลย
+        function renderScrapAllList(term) {
+            term = (term || '').trim().toUpperCase();
+            const list = document.getElementById('scrapAllList');
+            let rows = allScrapCache;
+            if (term) {
+                rows = allScrapCache.filter(r => {
+                    const m = masterData[r.item_code.toUpperCase()] || {};
+                    return r.item_code.toUpperCase().includes(term) || (m.code_name && m.code_name.toUpperCase().includes(term));
+                });
+            }
+
+            let html = '';
+            if (rows.length === 0) {
+                html += `<div class="text-center text-[11px] text-[var(--text-sub)] py-4">${term ? 'ไม่พบรายการเศษที่ตรงกับคำค้นหา' : 'ยังไม่มีข้อมูลเศษบันทึกไว้ในระบบ'}</div>`;
+            } else {
+                html += rows.map(r => {
+                    const m = masterData[r.item_code.toUpperCase()] || {};
+                    const isScrap = (r.result || '') !== 'ถุงเต็ม';
+                    const badgeClass = isScrap ? 'text-amber-500' : 'text-emerald-500';
+                    return `<div class="suggestion-item" onclick="selectScrapItem('${r.item_code.replace(/'/g, "\\'")}')">
+                        <div class="flex justify-between items-center gap-2">
+                          <span class="text-sm font-black text-[var(--text-main)] truncate">${r.item_code}</span>
+                          <span class="text-[10px] font-black ${badgeClass} shrink-0">${r.qty_bags != null ? r.qty_bags : 0} ถุง${r.result ? ' • ' + r.result : ''}</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-[var(--text-sub)] mt-1 block truncate">${m.code_name || '-'} • อัปเดต ${formatScrapTime(r.checked_at)}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            // เพิ่มไอเทมที่ตรงกับคำค้นหาแต่ยังไม่เคยมีข้อมูลเศษ (ให้กดเพื่อ "เพิ่มใหม่" ได้เลย)
+            if (term.length >= 2) {
+                const already = new Set(rows.map(r => r.item_code.toUpperCase()));
+                const newMatches = Object.values(masterData).filter(item =>
+                    !already.has(item.item_code.toUpperCase()) && (
+                        item.item_code.toUpperCase().includes(term) ||
+                        (item.code_name && item.code_name.toUpperCase().includes(term))
+                    )
+                ).slice(0, 5);
+                if (newMatches.length) {
+                    html += `<div class="text-[10px] font-bold text-[var(--text-sub)] uppercase mt-2 mb-1 px-1">+ เพิ่มไอเทมใหม่</div>` +
+                        newMatches.map(item => `<div class="suggestion-item opacity-80" onclick="selectScrapItem('${item.item_code.replace(/'/g, "\\'")}')">
+                            <span class="text-sm font-black text-[var(--text-main)]">${item.item_code}</span>
+                            <span class="text-[10px] font-bold text-[var(--text-sub)] mt-1 block">${item.code_name || '-'} • ยังไม่มีข้อมูลเศษ</span>
+                        </div>`).join('');
+                }
+            }
+            list.innerHTML = html;
+        }
+
         function onScrapItemSearchInput(val) {
-            const term = val.trim().toUpperCase();
-            const box = document.getElementById('scrapSuggestBox');
+            document.getElementById('scrapBackToList').classList.add('hidden');
             document.getElementById('scrapCurrentBox').classList.add('hidden');
             document.getElementById('scrapUpdateForm').classList.add('hidden');
             document.getElementById('scrapHistoryWrap').classList.add('hidden');
             currentScrapItemCode = null;
+            document.getElementById('scrapAllList').style.display = 'block';
+            renderScrapAllList(val);
+        }
 
-            if (term.length < 2) { box.style.display = 'none'; return; }
+        function backToScrapList() {
+            currentScrapItemCode = null;
+            document.getElementById('scrapItemSearch').value = '';
+            document.getElementById('scrapBackToList').classList.add('hidden');
+            document.getElementById('scrapCurrentBox').classList.add('hidden');
+            document.getElementById('scrapUpdateForm').classList.add('hidden');
+            document.getElementById('scrapHistoryWrap').classList.add('hidden');
+            document.getElementById('scrapAllList').style.display = 'block';
+            renderScrapAllList('');
+        }
 
-            const matches = Object.values(masterData).filter(item =>
-                item.item_code.toUpperCase().includes(term) ||
-                (item.code_name && item.code_name.toUpperCase().includes(term)) ||
-                (item.cl && item.cl.toUpperCase().includes(term))
-            ).slice(0, 8);
-
-            if (matches.length === 0) {
-                box.innerHTML = `<div class="p-3 text-xs font-bold text-red-500 text-center bg-red-500/10 rounded-lg m-2 border border-red-500/20">ไม่พบรหัสสินค้านี้ในระบบ</div>`;
-                box.style.display = 'block';
-                return;
-            }
-            box.innerHTML = matches.map(item => `
-                <div class="suggestion-item" onclick="selectScrapItem('${item.item_code.replace(/'/g, "\\'")}')">
-                    <span class="text-sm font-black text-[var(--text-main)]">${item.item_code}</span>
-                    <span class="text-[10px] font-bold text-[var(--text-sub)] mt-1 block">ลูกค้า: <span class="text-sky-500">${item.cl || '-'}</span> | ${item.code_name || '-'}</span>
-                </div>`).join('');
-            box.style.display = 'block';
+        let currentEntryType = 'check';
+        function setEntryType(type) {
+            currentEntryType = type;
+            document.getElementById('entryTypeCheckBtn').classList.toggle('active', type === 'check');
+            document.getElementById('entryTypeRepackBtn').classList.toggle('active', type === 'repack');
         }
 
         async function selectScrapItem(itemCode) {
             currentScrapItemCode = itemCode;
             document.getElementById('scrapItemSearch').value = itemCode;
-            document.getElementById('scrapSuggestBox').style.display = 'none';
+            document.getElementById('scrapAllList').style.display = 'none';
+            document.getElementById('scrapBackToList').classList.remove('hidden');
             document.getElementById('scrapUpdateForm').classList.remove('hidden');
             document.getElementById('scrapShift').value = 'A';
             document.getElementById('scrapResult').value = 'ยังเป็นเศษ';
@@ -1443,7 +1646,45 @@
             document.getElementById('scrapReceived').value = '';
             document.getElementById('scrapReprint').value = '';
             document.getElementById('scrapNote').value = '';
+            setEntryType('check');
+            onScrapBagsChange(); // รีเซ็ตกลับเป็นโหมดถุงเดียว
             await loadScrapDataForItem(itemCode);
+        }
+
+        // 🆕 ถ้าจำนวนถุง >= 2 ให้โชว์ช่องกรอกจำนวนชิ้นแยกทีละถุง แทนช่องรวมช่องเดียว
+        function onScrapBagsChange() {
+            const bags = parseInt(document.getElementById('scrapQtyBags').value) || 0;
+            const singleWrap = document.getElementById('scrapSingleBagWrap');
+            const perBagWrap = document.getElementById('scrapPerBagWrap');
+            if (bags >= 2) {
+                singleWrap.classList.add('hidden');
+                perBagWrap.classList.remove('hidden');
+                renderPerBagInputs(bags);
+            } else {
+                perBagWrap.classList.add('hidden');
+                perBagWrap.innerHTML = '';
+                singleWrap.classList.remove('hidden');
+            }
+        }
+
+        function renderPerBagInputs(bags) {
+            const wrap = document.getElementById('scrapPerBagWrap');
+            const prevVals = Array.from(wrap.querySelectorAll('.per-bag-input')).map(i => i.value);
+            let html = `<label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block">จำนวนชิ้นแยกทีละถุง</label><div class="grid grid-cols-3 gap-1.5">`;
+            for (let i = 0; i < bags; i++) {
+                html += `<input type="number" min="0" class="per-bag-input glass-input rounded-lg p-2 text-xs text-center outline-none" placeholder="ถุง ${i + 1}" value="${prevVals[i] || ''}" oninput="updatePerBagSum()">`;
+            }
+            html += `</div><div class="text-[10px] text-[var(--text-sub)] mt-1.5">รวมทั้งหมด: <span id="perBagSumDisplay" class="font-bold text-[var(--text-main)]">0</span> ชิ้น</div>`;
+            wrap.innerHTML = html;
+            updatePerBagSum();
+        }
+
+        function updatePerBagSum() {
+            const vals = Array.from(document.querySelectorAll('.per-bag-input')).map(i => Number(i.value) || 0);
+            const sum = vals.reduce((a, b) => a + b, 0);
+            const disp = document.getElementById('perBagSumDisplay');
+            if (disp) disp.innerText = sum;
+            document.getElementById('scrapQtyPieces').value = sum; // sync ไว้ให้ submit อ่านค่าง่ายๆ
         }
 
         async function loadScrapDataForItem(itemCode) {
@@ -1478,14 +1719,20 @@
             // เก็บไว้ให้ปุ่ม export ของไอเทมนี้ใช้
             window._scrapHistoryCache = data;
 
-            historyList.innerHTML = data.map(row => `
+            historyList.innerHTML = data.map(row => {
+                const perBagText = (row.pieces_per_bag && row.pieces_per_bag.length > 1)
+                    ? `<div class="text-[var(--text-sub)] mt-0.5">แยกทีละถุง: ${row.pieces_per_bag.map((v, i) => `ถุง${i + 1}=${v != null ? v : '-'}`).join(', ')}</div>`
+                    : '';
+                return `
                 <div class="flex justify-between items-center text-[11px] glass-input rounded-lg px-2.5 py-1.5 gap-2">
                     <div class="min-w-0">
                         <div class="font-bold text-[var(--text-main)] truncate">${row.qty_bags != null ? row.qty_bags : 0} ถุง${row.qty_pieces != null ? ` / ${row.qty_pieces} ชิ้น` : ''} ${row.result ? '• ' + row.result : ''}</div>
                         <div class="text-[var(--text-sub)] truncate">${formatScrapTime(row.checked_at)} • ${row.checked_by || '-'}${row.shift ? ' • กะ ' + row.shift : ''}</div>
+                        ${perBagText}
                     </div>
                     <button onclick="deleteScrapEntry(${row.id}, '${itemCode.replace(/'/g, "\\'")}')" class="shrink-0 w-6 h-6 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 flex items-center justify-center" title="ลบรายการนี้"><i class="fa-solid fa-trash text-[10px]"></i></button>
-                </div>`).join('');
+                </div>`;
+            }).join('');
             historyWrap.classList.remove('hidden');
         }
 
@@ -1509,12 +1756,21 @@
             const received = document.getElementById('scrapReceived').value;
             const reprint = document.getElementById('scrapReprint').value;
 
+            // 🆕 ถ้าเป็นโหมดหลายถุง (>=2) เก็บจำนวนชิ้นแยกทีละถุงไว้ด้วย
+            let piecesPerBag = null;
+            const perBagInputs = document.querySelectorAll('.per-bag-input');
+            if (perBagInputs.length > 0) {
+                piecesPerBag = Array.from(perBagInputs).map(i => i.value === '' ? null : Number(i.value));
+            }
+
             const { error } = await sbClient.from('scrap_stock_log').insert({
                 item_code: currentScrapItemCode,
                 shift: document.getElementById('scrapShift').value,
                 result: document.getElementById('scrapResult').value,
+                entry_type: currentEntryType,
                 qty_bags: bags === '' ? null : Number(bags),
                 qty_pieces: pieces === '' ? null : Number(pieces),
+                pieces_per_bag: piecesPerBag,
                 received_from_packing: received === '' ? null : Number(received),
                 reprint_qty: reprint === '' ? null : Number(reprint),
                 note: document.getElementById('scrapNote').value.trim() || null,
@@ -1528,10 +1784,15 @@
             document.getElementById('scrapReceived').value = '';
             document.getElementById('scrapReprint').value = '';
             document.getElementById('scrapNote').value = '';
+            onScrapBagsChange();
             await loadScrapDataForItem(currentScrapItemCode);
-            // อัปเดต cache สำหรับผลค้นหาหลัก/รายละเอียดช่อง โดยไม่ต้องโหลดหน้าใหม่
+            // อัปเดต cache สำหรับผลค้นหาหลัก/รายละเอียดช่อง/รายการทั้งหมด โดยไม่ต้องโหลดหน้าใหม่
             const res = await sbClient.from("latest_scrap_stock").select("*").eq("item_code", currentScrapItemCode).maybeSingle();
-            if (res.data) scrapDataMap[currentScrapItemCode.toUpperCase()] = res.data;
+            if (res.data) {
+                scrapDataMap[currentScrapItemCode.toUpperCase()] = res.data;
+                const idx = allScrapCache.findIndex(r => r.item_code === currentScrapItemCode);
+                if (idx >= 0) allScrapCache[idx] = res.data; else allScrapCache.unshift(res.data);
+            }
         }
 
         // 🆕 ลบรายการเช็คที่บันทึกผิด — ต้องเป็นพนักงานที่ยืนยันตัวตนแล้ว (เหมือนเงื่อนไขดูรายการแจ้งปัญหา)
@@ -1546,7 +1807,14 @@
             if (error) { alert('ลบไม่สำเร็จ: ' + error.message); return; }
             await loadScrapDataForItem(itemCode);
             const res = await sbClient.from("latest_scrap_stock").select("*").eq("item_code", itemCode).maybeSingle();
-            scrapDataMap[itemCode.toUpperCase()] = res.data || undefined;
+            if (res.data) {
+                scrapDataMap[itemCode.toUpperCase()] = res.data;
+                const idx = allScrapCache.findIndex(r => r.item_code === itemCode);
+                if (idx >= 0) allScrapCache[idx] = res.data;
+            } else {
+                delete scrapDataMap[itemCode.toUpperCase()];
+                allScrapCache = allScrapCache.filter(r => r.item_code !== itemCode);
+            }
         }
 
         // 🆕 Export: ไอเทมที่กำลังดูอยู่ (ประวัติที่โชว์ในหน้าจอ)
@@ -1570,6 +1838,7 @@
                 "กะ": r.shift || '',
                 "จำนวนถุงเศษ": r.qty_bags,
                 "จำนวนชิ้นรวมในถุงเศษ": r.qty_pieces,
+                "จำนวนชิ้นแยกทีละถุง": (r.pieces_per_bag && r.pieces_per_bag.length) ? r.pieces_per_bag.join(' / ') : '',
                 "รับเข้าจาก Packing (ชิ้น)": r.received_from_packing,
                 "ผลลัพธ์": r.result || '',
                 "RePrint ยอด": r.reprint_qty,
@@ -1585,12 +1854,285 @@
             XLSX.writeFile(wb, fname);
         }
 
+        // ==========================================
+        // 🆕 สถิติ Repack (Heatmap + กราฟแท่ง) — ไม่ผูกโซนตอนบันทึก คำนวณโซนที่เกี่ยวข้องจาก
+        // ข้อมูล locations (items_list) ที่โหลดไว้อยู่แล้วทั้งระบบ
+        // ==========================================
+        let currentStatsView = 'heatmap';
+        let currentHeatFloor = 1;
+        let topItemsChartInstance = null;
+        let topZonesChartInstance = null;
+
+        function openRepackStats() {
+            document.getElementById('repackStatsModal').classList.add('active');
+            switchStatsView('heatmap');
+            loadRepackStats();
+        }
+        function closeRepackStats(e) {
+            document.getElementById('repackStatsModal').classList.remove('active');
+        }
+
+        function switchStatsView(view) {
+            currentStatsView = view;
+            document.getElementById('statsTabHeatmap').classList.toggle('active', view === 'heatmap');
+            document.getElementById('statsTabBar').classList.toggle('active', view === 'bar');
+            document.getElementById('heatmapView').classList.toggle('hidden', view !== 'heatmap');
+            document.getElementById('barView').classList.toggle('hidden', view !== 'bar');
+        }
+
+        function switchHeatFloor(floor) {
+            currentHeatFloor = floor;
+            document.getElementById('heatFloorBtn1').classList.toggle('active', floor === 1);
+            document.getElementById('heatFloorBtn2').classList.toggle('active', floor === 2);
+            if (window._lastZoneScores) renderHeatmapSvg(window._lastZoneScores);
+        }
+
+        async function loadRepackStats() {
+            document.getElementById('statsLoading').classList.remove('hidden');
+            const days = Number(document.getElementById('statsDaysFilter').value);
+            const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+            let q = sbClient.from('scrap_stock_log').select('*').order('checked_at', { ascending: true });
+            if (days < 9999) q = q.gte('checked_at', since);
+            const { data, error } = await q;
+            document.getElementById('statsLoading').classList.add('hidden');
+            if (error) { console.error(error); return; }
+
+            const stats = computeRepackStats(data || []);
+            document.getElementById('statsTotalEvents').innerText = stats.totalEvents;
+            document.getElementById('statsTotalBags').innerText = stats.totalBagsReduced;
+            document.getElementById('statsShiftCompare').innerText = `${stats.shiftScores.A || 0} / ${stats.shiftScores.B || 0}`;
+
+            window._lastZoneScores = stats.zoneScores;
+            renderHeatmapSvg(stats.zoneScores);
+            renderStatsCharts(stats.itemScores, stats.zoneScores);
+        }
+
+        // 🆕 เดินไล่ log ทีละไอเทม เทียบยอดก่อน-หลัง หาว่า "ลดลง" กี่ถุงจากการ Repack
+        function computeRepackStats(rows) {
+            const byItem = {};
+            rows.forEach(r => {
+                if (!byItem[r.item_code]) byItem[r.item_code] = [];
+                byItem[r.item_code].push(r);
+            });
+
+            let totalEvents = 0, totalBagsReduced = 0;
+            const itemScores = {};
+            const shiftScores = { A: 0, B: 0 };
+
+            Object.keys(byItem).forEach(itemCode => {
+                const entries = byItem[itemCode].sort((a, b) => new Date(a.checked_at) - new Date(b.checked_at));
+                for (let i = 1; i < entries.length; i++) {
+                    const cur = entries[i];
+                    if (cur.entry_type !== 'repack') continue;
+                    const prevBags = Number(entries[i - 1].qty_bags) || 0;
+                    const curBags = Number(cur.qty_bags) || 0;
+                    const reduced = prevBags - curBags;
+                    if (reduced > 0) {
+                        totalEvents++;
+                        totalBagsReduced += reduced;
+                        itemScores[itemCode] = (itemScores[itemCode] || 0) + reduced;
+                        if (cur.shift === 'A' || cur.shift === 'B') shiftScores[cur.shift] += reduced;
+                    }
+                }
+            });
+
+            // แปลง itemScores -> zoneScores โดยเทียบจาก locationData (items_list) ที่โหลดไว้แล้ว
+            const zoneScores = {};
+            Object.keys(itemScores).forEach(itemCode => {
+                const score = itemScores[itemCode];
+                Object.keys(locationData).forEach(locId => {
+                    const items = (locationData[locId].items_list || '').split(',').map(s => s.trim().toUpperCase());
+                    if (items.includes(itemCode.toUpperCase())) {
+                        zoneScores[locId] = (zoneScores[locId] || 0) + score;
+                    }
+                });
+            });
+
+            return { totalEvents, totalBagsReduced, itemScores, zoneScores, shiftScores };
+        }
+
+        // 🆕 วาด Heatmap แบบ SVG แผนผังแบน (ใช้พิกัดเดียวกับ FLOOR1_DATA / FLOOR2_DATA ที่มีอยู่แล้ว)
+        function renderHeatmapSvg(zoneScores) {
+            const data = currentHeatFloor === 1 ? FLOOR1_DATA : FLOOR2_DATA;
+            const maxScore = Math.max(1, ...Object.values(zoneScores).concat([0]));
+            const CELL = 12, PAD = 6;
+            const W = 47 * CELL + PAD * 2, H = 30 * CELL + PAD * 2;
+
+            function colorFor(score) {
+                if (!score) return '#1e293b';
+                const t = Math.min(1, score / maxScore);
+                const r = Math.round(30 + t * (244 - 30));
+                const g = Math.round(20 + t * (63 - 20));
+                const b = Math.round(60 + t * (94 - 60));
+                return `rgb(${r},${g},${b})`;
+            }
+            function rectFor(loc) {
+                return {
+                    x: PAD + (loc.c1 - 1) * CELL, y: PAD + (loc.r1 - 1) * CELL,
+                    w: (loc.c2 - loc.c1 + 1) * CELL, h: (loc.r2 - loc.r1 + 1) * CELL
+                };
+            }
+
+            let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%; min-width:600px; font-family:Arial,sans-serif;">`;
+            svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="#0f172a"/>`;
+
+            data.forEach(loc => {
+                if (loc.type === 'rackgroup') {
+                    const { x, y, w, h } = rectFor(loc);
+                    const cw = w / loc.items.length;
+                    loc.items.forEach((it, i) => {
+                        const score = zoneScores[it.id] || 0;
+                        svg += `<rect class="heat-cell" x="${x + i * cw}" y="${y}" width="${cw}" height="${h}" fill="${colorFor(score)}"/>`;
+                    });
+                    return;
+                }
+                const { x, y, w, h } = rectFor(loc);
+                if (loc.type === 'rack' || loc.type === 'lift' || loc.type === 'roll') {
+                    const score = zoneScores[loc.id] || 0;
+                    svg += `<rect class="heat-cell" x="${x}" y="${y}" width="${w}" height="${h}" fill="${colorFor(score)}"/>`;
+                    if (w > 18 && h > 8 && score > 0) {
+                        svg += `<text class="heat-label" x="${x + w / 2}" y="${y + h / 2}" fill="#f8fafc" font-size="5" text-anchor="middle" dominant-baseline="middle">${score}</text>`;
+                    }
+                } else {
+                    svg += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#1e293b" stroke="#334155" stroke-dasharray="2,2"/>`;
+                }
+            });
+
+            svg += `</svg>`;
+            document.getElementById('heatmapSvgWrap').innerHTML = svg;
+        }
+
+        // 🆕 กราฟแท่ง Top ไอเทม / Top โซน ด้วย Chart.js
+        function renderStatsCharts(itemScores, zoneScores) {
+            const topItems = Object.entries(itemScores).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const topZones = Object.entries(zoneScores).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+            if (topItemsChartInstance) topItemsChartInstance.destroy();
+            if (topZonesChartInstance) topZonesChartInstance.destroy();
+
+            const ctx1 = document.getElementById('topItemsChart').getContext('2d');
+            topItemsChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: { labels: topItems.map(x => x[0]), datasets: [{ label: 'ถุงที่ลดลง', data: topItems.map(x => x[1]), backgroundColor: '#a855f7' }] },
+                options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+            });
+
+            const ctx2 = document.getElementById('topZonesChart').getContext('2d');
+            topZonesChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: { labels: topZones.map(x => x[0]), datasets: [{ label: 'ถุงที่ลดลง', data: topZones.map(x => x[1]), backgroundColor: '#f43f5e' }] },
+                options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+            });
+        }
+
+        // ==========================================
+        // 🆕 ผู้รับผิดชอบ STORE — ต้อง login role supervisor/manager เท่านั้น
+        // ==========================================
+        let rosterCache = [];
+
+        function openRosterPanel() {
+            if (!isStaffSupervisor()) {
+                pendingStaffAction = { type: 'viewRoster' };
+                document.getElementById('staffIdInput').value = '';
+                document.getElementById('staffIdModal').classList.add('active');
+                return;
+            }
+            touchStaffSession();
+            openRosterPanelContent();
+        }
+
+        async function openRosterPanelContent() {
+            document.getElementById('rosterModal').classList.add('active');
+            document.getElementById('rosterAddForm').classList.add('hidden');
+            await fetchRosterList();
+        }
+        function closeRosterPanel(e) {
+            document.getElementById('rosterModal').classList.remove('active');
+        }
+
+        function openRosterAddForm() {
+            document.getElementById('rosterStaffId').value = '';
+            document.getElementById('rosterName').value = '';
+            document.getElementById('rosterShift').value = 'A';
+            document.getElementById('rosterPosition').value = '';
+            document.getElementById('rosterNote').value = '';
+            document.getElementById('rosterAddForm').classList.toggle('hidden');
+        }
+
+        async function fetchRosterList() {
+            const { data, error } = await sbClient.from('store_roster').select('*').order('shift').order('staff_id');
+            if (error) { console.error(error); rosterCache = []; }
+            else { rosterCache = data || []; }
+            renderRosterList();
+        }
+
+        function renderRosterList() {
+            const list = document.getElementById('rosterList');
+            if (rosterCache.length === 0) {
+                list.innerHTML = `<div class="text-center text-xs text-[var(--text-sub)] py-6"><i class="fa-solid fa-users-slash text-2xl mb-2 block opacity-50"></i>ยังไม่มีข้อมูลพนักงาน</div>`;
+                return;
+            }
+            list.innerHTML = rosterCache.map(r => `
+                <div class="roster-card">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <div class="text-sm font-black text-[var(--text-main)]">${r.name || r.staff_id} <span class="text-[10px] text-[var(--text-sub)] font-mono">(${r.staff_id})</span></div>
+                            <div class="text-[11px] text-[var(--text-sub)] font-bold mt-0.5">${r.position || '-'}</div>
+                        </div>
+                        <span class="roster-shift-badge ${r.shift === 'A' ? 'bg-amber-500/15 text-amber-500' : 'bg-blue-500/15 text-blue-500'}">กะ ${r.shift || '-'}</span>
+                    </div>
+                    ${r.note ? `<div class="text-[10px] text-[var(--text-sub)] mt-2 italic">${r.note}</div>` : ''}
+                    <div class="flex gap-2 mt-2">
+                        <button onclick="editRosterEntry('${r.staff_id.replace(/'/g, "\\'")}')" class="text-[10px] font-bold text-sky-500"><i class="fa-solid fa-pen mr-1"></i>แก้ไข</button>
+                        <button onclick="deleteRosterEntry('${r.staff_id.replace(/'/g, "\\'")}')" class="text-[10px] font-bold text-red-500"><i class="fa-solid fa-trash mr-1"></i>ลบ</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        function editRosterEntry(staffId) {
+            const r = rosterCache.find(x => x.staff_id === staffId);
+            if (!r) return;
+            document.getElementById('rosterStaffId').value = r.staff_id;
+            document.getElementById('rosterName').value = r.name || '';
+            document.getElementById('rosterShift').value = r.shift || 'A';
+            document.getElementById('rosterPosition').value = r.position || '';
+            document.getElementById('rosterNote').value = r.note || '';
+            document.getElementById('rosterAddForm').classList.remove('hidden');
+            document.getElementById('rosterAddForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        async function saveRosterEntry() {
+            const staffId = document.getElementById('rosterStaffId').value.trim().toUpperCase();
+            if (!staffId) { alert('กรุณากรอกรหัสพนักงาน'); return; }
+            const { error } = await sbClient.from('store_roster').upsert({
+                staff_id: staffId,
+                name: document.getElementById('rosterName').value.trim(),
+                shift: document.getElementById('rosterShift').value,
+                position: document.getElementById('rosterPosition').value.trim(),
+                note: document.getElementById('rosterNote').value.trim() || null,
+                updated_at: new Date().toISOString()
+            });
+            if (error) { alert('บันทึกไม่สำเร็จ: ' + error.message); return; }
+            document.getElementById('rosterAddForm').classList.add('hidden');
+            await fetchRosterList();
+        }
+
+        async function deleteRosterEntry(staffId) {
+            if (!confirm('ยืนยันลบข้อมูลพนักงานคนนี้?')) return;
+            const { error } = await sbClient.from('store_roster').delete().eq('staff_id', staffId);
+            if (error) { alert('ลบไม่สำเร็จ: ' + error.message); return; }
+            await fetchRosterList();
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             initLayout(); resize3D(); fetchAllData(); changeLanguage(currentLang); refreshIssuesBadge();
             updateStaffStatusUI();
             // ✅ เช็กทุก 30 วินาทีว่ารหัสพนักงานหมดอายุ (idle เกิน 15 นาที) หรือยัง ถ้าหมดจะล้างอัตโนมัติและซ่อนปุ่มออกจากระบบ
             setInterval(updateStaffStatusUI, 30 * 1000);
         });
+
+
 
         // ==========================================
         // 🌍 ระบบแปลภาษา 4 ชาติ (Global i18n)
@@ -1606,7 +2148,7 @@
                 issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
                 issuesPanelTitle: "รายการแจ้งปัญหา", issuesFilterPending: "รอตรวจสอบ", issuesFilterAll: "ทั้งหมด", noIssues: "ไม่มีรายการแจ้งปัญหา",
                 issueCardReporter: "ผู้แจ้ง", issueCardResolve: "ทำเครื่องหมายว่าแก้ไขแล้ว", issueResolved: "แก้ไขแล้ว",
-                scrapCheckBtn: "เช็คงานเศษ", scrapCheckTitle: "เช็คงานเศษ", scrapSearchPh: "พิมพ์รหัส ITEM...", scrapCurrentLabel: "จำนวนเศษล่าสุดที่บันทึกไว้", scrapBagsLabel: "จำนวนถุงเศษ", scrapPiecesLabel: "จำนวนชิ้นรวมในถุงเศษ", scrapNotePh: "หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน", scrapSaveBtn: "บันทึกการเช็คนี้", scrapHistoryLabel: "ประวัติการเช็คล่าสุด", scrapShiftLabel: "กะ", scrapResultLabel: "ผลลัพธ์", scrapReceivedLabel: "รับเข้าจาก Packing (ชิ้น)", scrapReprintLabel: "RePrint ยอด", scrapExportItemBtn: "ส่งออกไอเทมนี้", scrapExportAllBtn: "ส่งออกข้อมูลเศษทั้งหมด (Excel)" },
+                scrapCheckBtn: "เช็คงานเศษ", scrapCheckTitle: "เช็คงานเศษ", scrapSearchPh: "พิมพ์รหัส ITEM...", scrapCurrentLabel: "จำนวนเศษล่าสุดที่บันทึกไว้", scrapBagsLabel: "จำนวนถุงเศษ", scrapPiecesLabel: "จำนวนชิ้นรวมในถุงเศษ", scrapNotePh: "หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน", scrapSaveBtn: "บันทึกการเช็คนี้", scrapHistoryLabel: "ประวัติการเช็คล่าสุด", scrapShiftLabel: "กะ", scrapResultLabel: "ผลลัพธ์", scrapReceivedLabel: "รับเข้าจาก Packing (ชิ้น)", scrapReprintLabel: "RePrint ยอด", scrapExportItemBtn: "ส่งออกไอเทมนี้", scrapExportAllBtn: "ส่งออกข้อมูลเศษทั้งหมด (Excel)", scrapBackToList: "กลับไปดูรายการทั้งหมด", repackStatsBtn: "สถิติ Repack", rosterBtn: "ผู้รับผิดชอบ STORE", entryTypeCheck: "เช็คสต็อก", entryTypeRepack: "Repack (รวมถุง)", repackStatsTitle: "สถิติ Repack", statsTabHeatmap: "Heatmap", statsTabBar: "กราฟแท่ง", statsTotalEvents: "จำนวนครั้ง Repack", statsTotalBags: "ถุงเศษที่ลดลง", statsShiftCompare: "กะ A / กะ B", statsTopItems: "Top ไอเทมที่ Repack เยอะสุด", statsTopZones: "Top โซนที่เกี่ยวข้องเยอะสุด", rosterTitle: "ผู้รับผิดชอบ STORE", rosterAddBtn: "เพิ่ม/แก้ไขพนักงาน" },
             zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
                 reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
                 staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
@@ -1616,7 +2158,7 @@
                 issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
                 issuesPanelTitle: "問題回報列表", issuesFilterPending: "待處理", issuesFilterAll: "全部", noIssues: "沒有回報項目",
                 issueCardReporter: "回報人", issueCardResolve: "標記為已解決", issueResolved: "已解決",
-                scrapCheckBtn: "檢查廢料", scrapCheckTitle: "檢查廢料", scrapSearchPh: "輸入 ITEM 代碼...", scrapCurrentLabel: "最近記錄的廢料數量", scrapBagsLabel: "袋數", scrapPiecesLabel: "袋內總件數", scrapNotePh: "備註 (例如已賣出部分)", scrapSaveBtn: "儲存這次檢查", scrapHistoryLabel: "最近檢查紀錄", scrapShiftLabel: "班次", scrapResultLabel: "結果", scrapReceivedLabel: "從 Packing 收到 (件)", scrapReprintLabel: "RePrint 數量", scrapExportItemBtn: "匯出此項目", scrapExportAllBtn: "匯出全部廢料資料 (Excel)" },
+                scrapCheckBtn: "檢查廢料", scrapCheckTitle: "檢查廢料", scrapSearchPh: "輸入 ITEM 代碼...", scrapCurrentLabel: "最近記錄的廢料數量", scrapBagsLabel: "袋數", scrapPiecesLabel: "袋內總件數", scrapNotePh: "備註 (例如已賣出部分)", scrapSaveBtn: "儲存這次檢查", scrapHistoryLabel: "最近檢查紀錄", scrapShiftLabel: "班次", scrapResultLabel: "結果", scrapReceivedLabel: "從 Packing 收到 (件)", scrapReprintLabel: "RePrint 數量", scrapExportItemBtn: "匯出此項目", scrapExportAllBtn: "匯出全部廢料資料 (Excel)", scrapBackToList: "返回完整列表", repackStatsBtn: "Repack 統計", rosterBtn: "STORE 負責人", entryTypeCheck: "庫存檢查", entryTypeRepack: "Repack (合併袋)", repackStatsTitle: "Repack 統計", statsTabHeatmap: "熱力圖", statsTabBar: "長條圖", statsTotalEvents: "Repack 次數", statsTotalBags: "減少的袋數", statsShiftCompare: "A班 / B班", statsTopItems: "Repack 最多的項目", statsTopZones: "相關最多的區域", rosterTitle: "STORE 負責人", rosterAddBtn: "新增/編輯員工" },
             mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
                 reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
                 staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
@@ -1626,7 +2168,7 @@
                 issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
                 issuesPanelTitle: "ပြဿနာတိုင်ကြားမှုများ", issuesFilterPending: "စောင့်ဆိုင်းဆဲ", issuesFilterAll: "အားလုံး", noIssues: "တိုင်ကြားမှုမရှိပါ",
                 issueCardReporter: "တိုင်ကြားသူ", issueCardResolve: "ပြီးမြောက်ကြောင်းအမှတ်အသားပြုရန်", issueResolved: "ပြီးမြောက်ပါပြီ",
-                scrapCheckBtn: "အပိုအကြွင်းစစ်ရန်", scrapCheckTitle: "အပိုအကြွင်းစစ်ရန်", scrapSearchPh: "ITEM ကုဒ်ရိုက်ပါ...", scrapCurrentLabel: "မှတ်တမ်းတင်ထားသော နောက်ဆုံးအရေအတွက်", scrapBagsLabel: "အိတ်အရေအတွက်", scrapPiecesLabel: "အိတ်ထဲ စုစုပေါင်းအရေအတွက်", scrapNotePh: "မှတ်ချက် (ရှိလျှင်)", scrapSaveBtn: "ဤစစ်ဆေးမှုကို သိမ်းရန်", scrapHistoryLabel: "နောက်ဆုံးစစ်ဆေးမှုများ", scrapShiftLabel: "အဆိုင်း", scrapResultLabel: "ရလဒ်", scrapReceivedLabel: "Packing မှလက်ခံရရှိ (ခု)", scrapReprintLabel: "RePrint အရေအတွက်", scrapExportItemBtn: "ဒီပစ္စည်းကို Export လုပ်ရန်", scrapExportAllBtn: "အကြွင်းအားလုံး Export (Excel)" },
+                scrapCheckBtn: "အပိုအကြွင်းစစ်ရန်", scrapCheckTitle: "အပိုအကြွင်းစစ်ရန်", scrapSearchPh: "ITEM ကုဒ်ရိုက်ပါ...", scrapCurrentLabel: "မှတ်တမ်းတင်ထားသော နောက်ဆုံးအရေအတွက်", scrapBagsLabel: "အိတ်အရေအတွက်", scrapPiecesLabel: "အိတ်ထဲ စုစုပေါင်းအရေအတွက်", scrapNotePh: "မှတ်ချက် (ရှိလျှင်)", scrapSaveBtn: "ဤစစ်ဆေးမှုကို သိမ်းရန်", scrapHistoryLabel: "နောက်ဆုံးစစ်ဆေးမှုများ", scrapShiftLabel: "အဆိုင်း", scrapResultLabel: "ရလဒ်", scrapReceivedLabel: "Packing မှလက်ခံရရှိ (ခု)", scrapReprintLabel: "RePrint အရေအတွက်", scrapExportItemBtn: "ဒီပစ္စည်းကို Export လုပ်ရန်", scrapExportAllBtn: "အကြွင်းအားလုံး Export (Excel)", scrapBackToList: "စာရင်းအားလုံးသို့ ပြန်သွားရန်", repackStatsBtn: "Repack စာရင်းအင်း", rosterBtn: "STORE တာဝန်ခံများ", entryTypeCheck: "စတော့စစ်ဆေးခြင်း", entryTypeRepack: "Repack (အိတ်ပေါင်းစည်းခြင်း)", repackStatsTitle: "Repack စာရင်းအင်း", statsTabHeatmap: "Heatmap", statsTabBar: "ဘားချပ်", statsTotalEvents: "Repack အကြိမ်ရေ", statsTotalBags: "လျော့သွားသောအိတ်", statsShiftCompare: "အဆိုင်း A / B", statsTopItems: "Repack အများဆုံးပစ္စည်းများ", statsTopZones: "သက်ဆိုင်ရာနေရာများ", rosterTitle: "STORE တာဝန်ခံများ", rosterAddBtn: "ဝန်ထမ်းထည့်/ပြင်ရန်" },
             en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
                 reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
                 staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
@@ -1636,7 +2178,7 @@
                 issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",
                 issuesPanelTitle: "Reported Issues", issuesFilterPending: "Pending", issuesFilterAll: "All", noIssues: "No issues reported",
                 issueCardReporter: "Reporter", issueCardResolve: "Mark as resolved", issueResolved: "Resolved",
-                scrapCheckBtn: "Check Scrap", scrapCheckTitle: "Check Scrap", scrapSearchPh: "Type ITEM code...", scrapCurrentLabel: "Last recorded scrap quantity", scrapBagsLabel: "Bags", scrapPiecesLabel: "Total pieces in bag", scrapNotePh: "Note (optional) e.g. partially sold", scrapSaveBtn: "Save this check", scrapHistoryLabel: "Recent check history", scrapShiftLabel: "Shift", scrapResultLabel: "Result", scrapReceivedLabel: "Received from Packing (pcs)", scrapReprintLabel: "RePrint Qty", scrapExportItemBtn: "Export this item", scrapExportAllBtn: "Export all scrap data (Excel)" }
+                scrapCheckBtn: "Check Scrap", scrapCheckTitle: "Check Scrap", scrapSearchPh: "Type ITEM code...", scrapCurrentLabel: "Last recorded scrap quantity", scrapBagsLabel: "Bags", scrapPiecesLabel: "Total pieces in bag", scrapNotePh: "Note (optional) e.g. partially sold", scrapSaveBtn: "Save this check", scrapHistoryLabel: "Recent check history", scrapShiftLabel: "Shift", scrapResultLabel: "Result", scrapReceivedLabel: "Received from Packing (pcs)", scrapReprintLabel: "RePrint Qty", scrapExportItemBtn: "Export this item", scrapExportAllBtn: "Export all scrap data (Excel)", scrapBackToList: "Back to full list", repackStatsBtn: "Repack Stats", rosterBtn: "STORE Roster", entryTypeCheck: "Stock Check", entryTypeRepack: "Repack (combine bags)", repackStatsTitle: "Repack Statistics", statsTabHeatmap: "Heatmap", statsTabBar: "Bar Chart", statsTotalEvents: "Repack Events", statsTotalBags: "Bags Reduced", statsShiftCompare: "Shift A / Shift B", statsTopItems: "Top Items by Repack", statsTopZones: "Top Related Zones", rosterTitle: "STORE Roster", rosterAddBtn: "Add/Edit Staff" }
         };
 
         function changeLanguage(lang) {

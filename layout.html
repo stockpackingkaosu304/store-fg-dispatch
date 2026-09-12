@@ -212,10 +212,11 @@
         }
         /* ===== 🆕 Tools popover menu (แทนที่ปุ่มเรียงเยอะๆ ด้านบน) ===== */
         .tools-menu {
-            position: absolute; top: calc(100% + 8px); right: 0; z-index: 200;
+            position: fixed; z-index: 200;
             background: var(--glass-bg); backdrop-filter: blur(24px) saturate(180%);
             border: 1px solid var(--glass-border); border-radius: 16px;
-            padding: 6px; width: 210px; box-shadow: 0 20px 40px -8px rgba(0,0,0,0.45);
+            padding: 6px; width: 210px; max-width: calc(100vw - 16px);
+            box-shadow: 0 20px 40px -8px rgba(0,0,0,0.45);
             animation: toolsMenuIn 0.15s ease;
         }
         @keyframes toolsMenuIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -375,7 +376,7 @@
                     <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Kaosu Theme"></button>
                 </div>
                 <!-- Language Switcher -->
-                <div class="glass-input rounded-full px-3 h-10 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
+                <label for="globalLangSwitcher" class="glass-input rounded-full px-3 h-10 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
                     <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
                     <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
                         <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
@@ -384,7 +385,7 @@
                         <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
                     </select>
                     <i class="fa-solid fa-chevron-down text-[var(--text-sub)] text-[9px] pointer-events-none ml-1"></i>
-                </div>
+                </label>
             </div>
         </div>
     </div>
@@ -785,8 +786,28 @@
         // ==========================================
         function toggleToolsMenu(e) {
             e.stopPropagation();
-            document.getElementById('toolsMenuPanel').classList.toggle('hidden');
+            const panel = document.getElementById('toolsMenuPanel');
+            const willOpen = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            if (willOpen) positionToolsMenu();
         }
+        function positionToolsMenu() {
+            const btn = document.getElementById('toolsMenuBtn');
+            const panel = document.getElementById('toolsMenuPanel');
+            const rect = btn.getBoundingClientRect();
+            const panelWidth = panel.offsetWidth || 210;
+            // ตั้งต้นให้ขอบขวาเมนูตรงกับขอบขวาปุ่ม แล้วค่อยดันเข้ามาในจอถ้าจะล้น
+            let left = rect.right - panelWidth;
+            left = Math.max(8, Math.min(left, window.innerWidth - panelWidth - 8));
+            let top = rect.bottom + 8;
+            top = Math.min(top, window.innerHeight - 8); // กันล้นด้านล่างเบื้องต้น
+            panel.style.left = left + 'px';
+            panel.style.top = top + 'px';
+        }
+        window.addEventListener('resize', () => {
+            const panel = document.getElementById('toolsMenuPanel');
+            if (panel && !panel.classList.contains('hidden')) positionToolsMenu();
+        });
         function closeToolsMenuThen(fn) {
             document.getElementById('toolsMenuPanel').classList.add('hidden');
             fn();

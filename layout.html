@@ -210,6 +210,23 @@
             font-weight: 900; font-size: 12px; padding: 10px; border-radius: 12px;
             cursor: pointer; transition: all 0.2s ease; margin-top: 10px;
         }
+        /* ===== 🆕 Tools popover menu (แทนที่ปุ่มเรียงเยอะๆ ด้านบน) ===== */
+        .tools-menu {
+            position: absolute; top: calc(100% + 8px); right: 0; z-index: 200;
+            background: var(--glass-bg); backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid var(--glass-border); border-radius: 16px;
+            padding: 6px; width: 210px; box-shadow: 0 20px 40px -8px rgba(0,0,0,0.45);
+            animation: toolsMenuIn 0.15s ease;
+        }
+        @keyframes toolsMenuIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .tools-menu-item {
+            width: 100%; display: flex; align-items: center; gap: 10px;
+            padding: 9px 10px; border-radius: 10px; font-size: 12.5px; font-weight: 700;
+            color: var(--text-main); text-align: left; transition: background 0.12s ease;
+        }
+        .tools-menu-item:hover { background: var(--card-hover); }
+        .tools-menu-divider { height: 1px; background: var(--glass-border); margin: 4px 6px; }
+
         .report-issue-btn:hover { background: rgba(248, 113, 113, 0.22); }
         .report-issue-btn:active { transform: scale(0.97); }
 
@@ -330,39 +347,35 @@
 
             <div class="flex items-center gap-2 flex-wrap justify-center w-full md:w-auto mt-2 md:mt-0">
                 <!-- 🆕 Staff Status / Logout Button: แสดงเฉพาะตอนมีรหัสพนักงานที่ยืนยันแล้วค้างอยู่ กดเพื่อออกจากระบบ -->
-                <button id="staffStatusBtn" onclick="handleStaffStatusClick()" class="hidden items-center gap-1.5 glass-input rounded-full px-3 py-2 h-10 shadow-inner hover:border-red-400 transition-colors text-[11px] font-bold" title="ออกจากระบบ (ล้างรหัสพนักงาน)">
+                <button id="staffStatusBtn" onclick="handleStaffStatusClick()" class="hidden items-center gap-1.5 glass-input rounded-full px-3 h-10 shadow-inner hover:border-red-400 transition-colors text-[11px] font-bold" title="ออกจากระบบ (ล้างรหัสพนักงาน)">
                     <i class="fa-solid fa-id-badge text-sky-500"></i>
                     <span id="staffStatusLabel" class="max-w-[80px] truncate"></span>
                     <i class="fa-solid fa-right-from-bracket text-[var(--text-sub)]"></i>
                 </button>
-                <!-- 🆕 Issues Bell (สำหรับพนักงาน/หัวหน้างานเข้าไปดูรายการแจ้งปัญหา) -->
-                <button onclick="openIssuesPanel()" class="bell-btn glass-input rounded-full w-10 h-10 flex items-center justify-center shadow-inner hover:border-sky-400 transition-colors" title="รายการแจ้งปัญหา">
-                    <i class="fa-solid fa-bell text-amber-400"></i>
-                    <span id="issuesBadge" class="issues-badge hidden">0</span>
-                </button>
-                <!-- 🆕 เช็คงานเศษ: ค้นหารหัสไอเทม ดูจำนวนเศษล่าสุด + เวลาที่เช็คล่าสุด -->
-                <button onclick="openScrapCheck()" class="glass-input rounded-full h-10 px-3.5 flex items-center gap-1.5 shadow-inner hover:border-emerald-400 transition-colors text-[11px] font-bold" title="เช็คงานเศษ">
-                    <i class="fa-solid fa-recycle text-emerald-400"></i>
-                    <span data-i18n="scrapCheckBtn" class="hidden sm:inline">เช็คงานเศษ</span>
-                </button>
-                <!-- 🆕 สถิติ Repack: Heatmap / กราฟแท่ง -->
-                <button onclick="openRepackStats()" class="glass-input rounded-full h-10 px-3.5 flex items-center gap-1.5 shadow-inner hover:border-purple-400 transition-colors text-[11px] font-bold" title="สถิติ Repack">
-                    <i class="fa-solid fa-chart-column text-purple-400"></i>
-                    <span data-i18n="repackStatsBtn" class="hidden sm:inline">สถิติ Repack</span>
-                </button>
-                <!-- 🆕 ผู้รับผิดชอบ STORE: ต้อง login role supervisor/manager -->
-                <button onclick="openRosterPanel()" class="glass-input rounded-full h-10 px-3.5 flex items-center gap-1.5 shadow-inner hover:border-sky-400 transition-colors text-[11px] font-bold" title="ผู้รับผิดชอบ STORE">
-                    <i class="fa-solid fa-user-shield text-sky-400"></i>
-                    <span data-i18n="rosterBtn" class="hidden sm:inline">ผู้รับผิดชอบ STORE</span>
-                </button>
+
+                <!-- 🆕 เมนูเครื่องมือ (รวม แจ้งปัญหา / เช็คงานเศษ / สถิติ Repack / ผู้รับผิดชอบ STORE ไว้ที่เดียว ให้ดูเรียบ) -->
+                <div class="relative">
+                    <button id="toolsMenuBtn" onclick="toggleToolsMenu(event)" class="glass-input rounded-full w-10 h-10 flex items-center justify-center shadow-inner hover:border-sky-400 transition-colors relative" title="เครื่องมือ">
+                        <i class="fa-solid fa-ellipsis text-[var(--text-main)]"></i>
+                        <span id="issuesBadge" class="issues-badge hidden">0</span>
+                    </button>
+                    <div id="toolsMenuPanel" class="tools-menu hidden">
+                        <button onclick="closeToolsMenuThen(openIssuesPanel)" class="tools-menu-item"><i class="fa-solid fa-bell text-amber-400"></i> <span data-i18n="toolsIssues">แจ้งปัญหา</span></button>
+                        <button onclick="closeToolsMenuThen(openScrapCheck)" class="tools-menu-item"><i class="fa-solid fa-recycle text-emerald-400"></i> <span data-i18n="scrapCheckBtn">เช็คงานเศษ</span></button>
+                        <button onclick="closeToolsMenuThen(openRepackStats)" class="tools-menu-item"><i class="fa-solid fa-chart-column text-purple-400"></i> <span data-i18n="repackStatsBtn">สถิติ Repack</span></button>
+                        <div class="tools-menu-divider"></div>
+                        <button onclick="closeToolsMenuThen(openRosterPanel)" class="tools-menu-item"><i class="fa-solid fa-user-shield text-sky-400"></i> <span data-i18n="rosterBtn">ผู้รับผิดชอบ STORE</span></button>
+                    </div>
+                </div>
+
                 <!-- Theme Switcher -->
-                <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-2 shadow-inner">
+                <div class="glass-input rounded-full px-3 h-10 flex items-center gap-2 shadow-inner">
                     <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Light Theme"></button>
                     <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Dark Theme"></button>
                     <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110 active:scale-95" title="Kaosu Theme"></button>
                 </div>
                 <!-- Language Switcher -->
-                <div class="glass-input rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
+                <div class="glass-input rounded-full px-3 h-10 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
                     <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
                     <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
                         <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
@@ -512,84 +525,137 @@
 
     <!-- 🆕 Scrap Check Modal: เช็คจำนวนงานเศษของไอเทม + บันทึกการเช็คสต็อกใหม่ -->
     <div id="scrapCheckModal" class="modal-overlay" onclick="closeScrapCheck(event)">
-        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-md shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl"></div>
-            <div class="flex justify-between items-center mb-4 relative z-10">
+        <div class="glass-panel rounded-3xl shadow-2xl m-auto relative w-11/12 max-w-6xl max-h-[92vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center p-4 md:p-5 border-b border-[var(--glass-border)] shrink-0">
                 <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-recycle text-emerald-400"></i> <span data-i18n="scrapCheckTitle">เช็คงานเศษ</span></h3>
-                <button onclick="closeScrapCheck(event)" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeScrapCheck(event)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <div class="relative z-10 mb-2">
-                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
-                <input type="text" id="scrapItemSearch" oninput="onScrapItemSearchInput(this.value)" data-i18n-placeholder="scrapSearchPh" placeholder="ค้นหา หรือดูรายการทั้งหมดด้านล่าง..." autocomplete="off" class="w-full glass-input rounded-full py-2.5 pl-10 pr-4 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="flex-1 overflow-y-auto md:overflow-hidden custom-scroll md:flex min-h-0">
+
+                <!-- 📋 คอลัมน์ซ้าย: ค้นหา / รายการทั้งหมด -->
+                <div class="md:w-[280px] md:border-r border-[var(--glass-border)] p-4 md:overflow-y-auto md:custom-scroll shrink-0">
+                    <div class="relative mb-2">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
+                        <input type="text" id="scrapItemSearch" oninput="onScrapItemSearchInput(this.value)" data-i18n-placeholder="scrapSearchPh" placeholder="ค้นหา ITEM..." autocomplete="off" class="w-full glass-input rounded-full py-2.5 pl-9 pr-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div id="scrapAllList" class="space-y-1 max-h-[220px] md:max-h-none overflow-y-auto custom-scroll pr-1"></div>
+                    <button id="scrapBackToList" onclick="backToScrapList()" class="hidden text-[11px] font-bold text-sky-500 mt-2"><i class="fa-solid fa-arrow-left mr-1"></i><span data-i18n="scrapBackToList">กลับไปดูรายการทั้งหมด</span></button>
+                </div>
+
+                <!-- 🧾 คอลัมน์กลาง: สถานะปัจจุบัน + ฟอร์มบันทึก -->
+                <div class="flex-1 p-4 md:p-5 md:overflow-y-auto md:custom-scroll">
+                    <div id="scrapEmptyState" class="h-full flex flex-col items-center justify-center text-center py-10 text-[var(--text-sub)]">
+                        <i class="fa-solid fa-hand-pointer text-3xl mb-3 opacity-50"></i>
+                        <p class="text-sm font-bold" data-i18n="scrapEmptyHint">เลือกไอเทมจากรายการด้านซ้าย เพื่อดูสถานะเศษและบันทึกข้อมูล</p>
+                    </div>
+
+                    <div id="scrapDetailWrap" class="hidden space-y-3">
+                        <!-- สถานะปัจจุบัน + ปุ่ม Repack เด้งเตือน -->
+                        <div id="scrapCurrentBox" class="hidden glass-input rounded-2xl p-4">
+                            <div class="flex items-center justify-between gap-3 flex-wrap">
+                                <div>
+                                    <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-wider mb-1" data-i18n="scrapCurrentLabel">จำนวนเศษล่าสุดที่บันทึกไว้</div>
+                                    <div id="scrapCurrentQty" class="text-2xl font-black text-emerald-500">-</div>
+                                    <div id="scrapCurrentMeta" class="text-[11px] text-[var(--text-sub)] font-semibold mt-1"></div>
+                                </div>
+                                <button id="scrapRepackCta" onclick="startRepackFromCurrent()" class="hidden bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white font-black text-xs px-4 py-3 rounded-2xl shadow-lg shadow-purple-500/30 active:scale-95 transition-all">
+                                    <i class="fa-solid fa-arrows-rotate mr-1"></i> <span data-i18n="scrapRepackCta">ทำ Repack ตอนนี้</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ประเภทรายการ -->
+                        <div class="grid grid-cols-2 gap-1.5 p-1 glass-input rounded-xl">
+                            <button type="button" id="entryTypeCheckBtn" onclick="setEntryType('check')" class="py-2.5 rounded-lg text-xs font-black transition-all"><i class="fa-solid fa-clipboard-check mr-1"></i><span data-i18n="entryTypeCheck">เช็คสต็อก</span></button>
+                            <button type="button" id="entryTypeRepackBtn" onclick="setEntryType('repack')" class="py-2.5 rounded-lg text-xs font-black transition-all"><i class="fa-solid fa-box-archive mr-1"></i><span data-i18n="entryTypeRepack">Repack (รวมถุง)</span></button>
+                        </div>
+
+                        <!-- กะ (ใช้ร่วมทั้ง 2 โหมด) -->
+                        <div class="w-32">
+                            <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapShiftLabel">กะ</label>
+                            <select id="scrapShift" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer">
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                            </select>
+                        </div>
+
+                        <!-- ===== โหมดเช็คสต็อก ===== -->
+                        <div id="checkModeFields" class="space-y-2">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapBagsLabel">จำนวนถุงเศษ</label>
+                                    <input type="number" min="0" id="scrapQtyBags" placeholder="0" oninput="onScrapBagsChange()" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                                </div>
+                                <div id="scrapSingleBagWrap">
+                                    <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapPiecesLabel">จำนวนชิ้นรวมในถุงเศษ</label>
+                                    <input type="number" min="0" id="scrapQtyPieces" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                                </div>
+                            </div>
+                            <div id="scrapPerBagWrap" class="hidden"></div>
+                        </div>
+
+                        <!-- ===== โหมด Repack ===== -->
+                        <div id="repackModeFields" class="hidden space-y-3">
+                            <div class="glass-input rounded-2xl p-3">
+                                <div class="text-[11px] font-black text-purple-400 uppercase mb-2 flex items-center gap-1.5"><i class="fa-solid fa-layer-group"></i> <span data-i18n="repackBeforeLabel">ก่อนรวม — เศษที่นำมารวมครั้งนี้</span></div>
+                                <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="repackBagsBeforeLabel">จำนวนถุงเศษที่นำมารวม</label>
+                                <input type="number" min="0" id="repackBagsBefore" placeholder="0" oninput="onRepackBagsBeforeChange()" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none mb-2">
+                                <div id="repackPerBagWrap"></div>
+                            </div>
+
+                            <div class="glass-input rounded-2xl p-3 border-2 border-emerald-500/30">
+                                <div class="text-[11px] font-black text-emerald-500 uppercase mb-2 flex items-center gap-1.5"><i class="fa-solid fa-check-double"></i> <span data-i18n="repackAfterLabel">หลังรวม — ผลลัพธ์</span></div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="repackCompletedLabel">ได้ถุงเต็ม (ถุง)</label>
+                                        <input type="number" min="0" id="repackBagsCompleted" placeholder="0" oninput="updateRepackSummary()" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="repackRemainingBagsLabel">เหลือเป็นเศษ (ถุง)</label>
+                                        <input type="number" min="0" id="repackBagsRemaining" placeholder="0" oninput="onRepackRemainingChange()" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                                    </div>
+                                </div>
+                                <div id="repackRemainingPiecesWrap" class="hidden mt-2">
+                                    <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="repackRemainingPiecesLabel">จำนวนชิ้นที่ยังเหลือเศษ</label>
+                                    <input type="number" min="0" id="repackRemainingPieces" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                                </div>
+                                <div id="repackSummaryText" class="text-[10px] text-[var(--text-sub)] mt-2 font-semibold"></div>
+                                <p class="text-[10px] text-[var(--text-sub)] mt-1 italic" data-i18n="repackFullBagHint">* ถ้าเหลือเศษ = 0 ระบบจะไม่แสดงไอเทมนี้ในรายการเศษอีก (ถือว่าจบงานแล้ว)</p>
+                            </div>
+                        </div>
+
+                        <!-- ฟิลด์ร่วม -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapReceivedLabel">รับเข้าจาก Packing (ชิ้น)</label>
+                                <input type="number" min="0" id="scrapReceived" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapReprintLabel">RePrint ยอด</label>
+                                <input type="number" min="0" id="scrapReprint" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
+                            </div>
+                        </div>
+                        <input type="text" id="scrapNote" data-i18n-placeholder="scrapNotePh" placeholder="หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน" class="w-full glass-input rounded-xl p-2.5 text-xs outline-none">
+                        <button id="scrapSubmitBtn" onclick="submitScrapCheck()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black py-3 rounded-xl text-sm shadow-lg active:scale-95 transition-all"><i class="fa-solid fa-floppy-disk mr-1"></i> <span id="scrapSubmitBtnText" data-i18n="scrapSaveBtn">บันทึกการเช็คนี้</span></button>
+                    </div>
+                </div>
+
+                <!-- 🕓 คอลัมน์ขวา: ประวัติ -->
+                <div id="scrapHistoryWrap" class="hidden md:w-[260px] md:border-l border-[var(--glass-border)] p-4 md:overflow-y-auto md:custom-scroll shrink-0">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-wider" data-i18n="scrapHistoryLabel">ประวัติการเช็คล่าสุด</div>
+                        <button onclick="exportScrapHistory()" class="text-[10px] font-bold text-emerald-500 hover:text-emerald-400" title="ส่งออกไอเทมนี้"><i class="fa-solid fa-file-excel"></i></button>
+                    </div>
+                    <div id="scrapHistoryList" class="space-y-1.5"></div>
+                </div>
             </div>
-            <div id="scrapAllList" class="relative z-10 mb-3 max-h-[220px] overflow-y-auto custom-scroll space-y-1 pr-1"></div>
 
-            <button id="scrapBackToList" onclick="backToScrapList()" class="hidden text-[11px] font-bold text-sky-500 mb-2 relative z-10"><i class="fa-solid fa-arrow-left mr-1"></i><span data-i18n="scrapBackToList">กลับไปดูรายการทั้งหมด</span></button>
-
-            <div id="scrapCurrentBox" class="hidden glass-input rounded-2xl p-4 mb-3 relative z-10">
-                <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-wider mb-1" data-i18n="scrapCurrentLabel">จำนวนเศษล่าสุดที่บันทึกไว้</div>
-                <div id="scrapCurrentQty" class="text-2xl font-black text-emerald-500 mb-1">-</div>
-                <div id="scrapCurrentMeta" class="text-[11px] text-[var(--text-sub)] font-semibold"></div>
+            <div class="p-3 border-t border-[var(--glass-border)] shrink-0">
+                <button onclick="exportAllScrapData()" class="w-full btn-ghost glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-export text-emerald-500"></i> <span data-i18n="scrapExportAllBtn">ส่งออกข้อมูลเศษทั้งหมด (Excel)</span>
+                </button>
             </div>
-
-            <div id="scrapUpdateForm" class="hidden relative z-10 space-y-2 mb-3">
-                <div class="grid grid-cols-2 gap-1.5 p-1 glass-input rounded-xl">
-                    <button type="button" id="entryTypeCheckBtn" onclick="setEntryType('check')" class="py-2 rounded-lg text-xs font-black transition-all"><i class="fa-solid fa-clipboard-check mr-1"></i><span data-i18n="entryTypeCheck">เช็คสต็อก</span></button>
-                    <button type="button" id="entryTypeRepackBtn" onclick="setEntryType('repack')" class="py-2 rounded-lg text-xs font-black transition-all"><i class="fa-solid fa-box-archive mr-1"></i><span data-i18n="entryTypeRepack">Repack (รวมถุง)</span></button>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapShiftLabel">กะ</label>
-                        <select id="scrapShift" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer">
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapResultLabel">ผลลัพธ์</label>
-                        <select id="scrapResult" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer">
-                            <option value="ยังเป็นเศษ">ยังเป็นเศษ</option>
-                            <option value="ถุงเต็ม">ถุงเต็ม</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapBagsLabel">จำนวนถุงเศษ</label>
-                        <input type="number" min="0" id="scrapQtyBags" placeholder="0" oninput="onScrapBagsChange()" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
-                    </div>
-                    <div id="scrapSingleBagWrap">
-                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapPiecesLabel">จำนวนชิ้นรวมในถุงเศษ</label>
-                        <input type="number" min="0" id="scrapQtyPieces" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
-                    </div>
-                </div>
-                <div id="scrapPerBagWrap" class="hidden"></div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapReceivedLabel">รับเข้าจาก Packing (ชิ้น)</label>
-                        <input type="number" min="0" id="scrapReceived" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block" data-i18n="scrapReprintLabel">RePrint ยอด</label>
-                        <input type="number" min="0" id="scrapReprint" placeholder="0" class="w-full glass-input rounded-xl p-2.5 text-sm font-bold text-center outline-none">
-                    </div>
-                </div>
-                <input type="text" id="scrapNote" data-i18n-placeholder="scrapNotePh" placeholder="หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน" class="w-full glass-input rounded-xl p-2.5 text-xs outline-none">
-                <button onclick="submitScrapCheck()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black py-2.5 rounded-xl text-sm shadow-lg active:scale-95 transition-all"><i class="fa-solid fa-floppy-disk mr-1"></i> <span data-i18n="scrapSaveBtn">บันทึกการเช็คนี้</span></button>
-            </div>
-
-            <div id="scrapHistoryWrap" class="hidden relative z-10">
-                <div class="flex justify-between items-center mb-2">
-                    <div class="text-[10px] font-bold text-[var(--text-sub)] uppercase tracking-wider" data-i18n="scrapHistoryLabel">ประวัติการเช็คล่าสุด</div>
-                    <button onclick="exportScrapHistory()" class="text-[10px] font-bold text-emerald-500 hover:text-emerald-400"><i class="fa-solid fa-file-excel mr-1"></i><span data-i18n="scrapExportItemBtn">ส่งออกไอเทมนี้</span></button>
-                </div>
-                <div id="scrapHistoryList" class="space-y-1.5 max-h-[160px] overflow-y-auto custom-scroll"></div>
-            </div>
-
-            <button onclick="exportAllScrapData()" class="w-full mt-3 btn-ghost glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] font-bold py-2.5 rounded-xl text-xs relative z-10 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-file-export text-emerald-500"></i> <span data-i18n="scrapExportAllBtn">ส่งออกข้อมูลเศษทั้งหมด (Excel)</span>
-            </button>
         </div>
     </div>
 
@@ -668,6 +734,12 @@
             <button onclick="openRosterAddForm()" class="w-full mb-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black py-2.5 rounded-xl text-sm shadow-lg active:scale-95 transition-all"><i class="fa-solid fa-user-plus mr-1"></i> <span data-i18n="rosterAddBtn">เพิ่ม/แก้ไขพนักงาน</span></button>
 
             <div id="rosterAddForm" class="hidden glass-input rounded-2xl p-4 mb-3 space-y-2">
+                <div class="flex items-center gap-3 mb-1">
+                    <img id="rosterPhotoPreview" src="" class="hidden w-16 h-16 rounded-full object-cover border-2 border-[var(--glass-border)]">
+                    <div id="rosterPhotoPlaceholder" class="w-16 h-16 rounded-full bg-[var(--input-bg)] border-2 border-dashed border-[var(--glass-border)] flex items-center justify-center text-[var(--text-sub)]"><i class="fa-solid fa-user text-xl"></i></div>
+                    <button type="button" onclick="document.getElementById('rosterPhotoInput').click()" class="btn-ghost-roster glass-input rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-camera text-sky-400"></i> เลือกรูปหน้าพนักงาน</button>
+                </div>
+                <input type="file" id="rosterPhotoInput" accept="image/*" style="display:none">
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="rosterStaffId" placeholder="รหัสพนักงาน" class="glass-input rounded-xl p-2.5 text-sm font-bold outline-none uppercase">
                     <input type="text" id="rosterName" placeholder="ชื่อ" class="glass-input rounded-xl p-2.5 text-sm font-bold outline-none">
@@ -676,6 +748,7 @@
                     <select id="rosterShift" class="glass-input rounded-xl p-2.5 text-sm font-bold outline-none cursor-pointer">
                         <option value="A">กะ A</option>
                         <option value="B">กะ B</option>
+                        <option value="D">กะ D (Day Shift)</option>
                     </select>
                     <input type="text" id="rosterPosition" placeholder="ตำแหน่ง เช่น พนักงาน Store" class="glass-input rounded-xl p-2.5 text-sm font-bold outline-none">
                 </div>
@@ -704,6 +777,24 @@
             const legend = document.getElementById('legendContainer');
             if (legend && legend.classList.contains('active') && !e.target.closest('#legendContainer')) {
                 legend.classList.remove('active');
+            }
+        });
+
+        // ==========================================
+        // 🆕 เมนูเครื่องมือ (Tools popover) — แทนที่แถวปุ่มยาวๆ ด้านบน
+        // ==========================================
+        function toggleToolsMenu(e) {
+            e.stopPropagation();
+            document.getElementById('toolsMenuPanel').classList.toggle('hidden');
+        }
+        function closeToolsMenuThen(fn) {
+            document.getElementById('toolsMenuPanel').classList.add('hidden');
+            fn();
+        }
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('toolsMenuPanel');
+            if (panel && !panel.classList.contains('hidden') && !e.target.closest('#toolsMenuPanel') && !e.target.closest('#toolsMenuBtn')) {
+                panel.classList.add('hidden');
             }
         });
 
@@ -905,7 +996,7 @@
             // 🆕 โหลดยอดเศษล่าสุดของทุกไอเทม เพื่อใช้โชว์ในผลการค้นหา
             const resScrap = await sbClient.from("latest_scrap_stock").select("*");
             if (!resScrap.error && resScrap.data) {
-                resScrap.data.forEach(row => { scrapDataMap[row.item_code.toUpperCase()] = row; });
+                resScrap.data.forEach(row => { if (hasRemainingScrap(row)) scrapDataMap[row.item_code.toUpperCase()] = row; });
             }
 
             const resLoc = await sbClient.from("locations").select("*");
@@ -1532,14 +1623,11 @@
         // ==========================================
         let currentScrapItemCode = null;
         let allScrapCache = [];
+        let currentEntryType = 'check';
 
         async function openScrapCheck() {
             document.getElementById('scrapItemSearch').value = '';
-            document.getElementById('scrapBackToList').classList.add('hidden');
-            document.getElementById('scrapCurrentBox').classList.add('hidden');
-            document.getElementById('scrapUpdateForm').classList.add('hidden');
-            document.getElementById('scrapHistoryWrap').classList.add('hidden');
-            currentScrapItemCode = null;
+            resetScrapDetailUI();
             document.getElementById('scrapCheckModal').classList.add('active');
             document.getElementById('scrapAllList').innerHTML = `<div class="text-center text-[11px] text-[var(--text-sub)] py-4"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังโหลด...</div>`;
             await loadAllScrapCache();
@@ -1549,10 +1637,23 @@
             document.getElementById('scrapCheckModal').classList.remove('active');
         }
 
+        function resetScrapDetailUI() {
+            currentScrapItemCode = null;
+            document.getElementById('scrapBackToList').classList.add('hidden');
+            document.getElementById('scrapEmptyState').classList.remove('hidden');
+            document.getElementById('scrapDetailWrap').classList.add('hidden');
+            document.getElementById('scrapHistoryWrap').classList.add('hidden');
+        }
+
+        // 🆕 เอาไว้กรองรายการที่ "จบงานแล้ว" (เหลือเศษ 0) ออกจากมุมมองภาพรวม — ยังอยู่ในประวัติเสมอ
+        function hasRemainingScrap(row) {
+            return row && row.qty_bags != null && Number(row.qty_bags) > 0;
+        }
+
         async function loadAllScrapCache() {
             const { data, error } = await sbClient.from('latest_scrap_stock').select('*').order('checked_at', { ascending: false });
             if (error) { console.error(error); allScrapCache = []; return; }
-            allScrapCache = data || [];
+            allScrapCache = (data || []).filter(hasRemainingScrap);
         }
 
         // 🆕 แสดงรายการเศษทั้งหมด (หรือกรองตามคำค้นหา) — ไม่ต้องรู้รหัส ITEM มาก่อนก็เห็นได้เลย
@@ -1569,16 +1670,14 @@
 
             let html = '';
             if (rows.length === 0) {
-                html += `<div class="text-center text-[11px] text-[var(--text-sub)] py-4">${term ? 'ไม่พบรายการเศษที่ตรงกับคำค้นหา' : 'ยังไม่มีข้อมูลเศษบันทึกไว้ในระบบ'}</div>`;
+                html += `<div class="text-center text-[11px] text-[var(--text-sub)] py-4">${term ? 'ไม่พบรายการเศษที่ตรงกับคำค้นหา' : 'ไม่มีไอเทมที่ยังเหลือเศษอยู่ในตอนนี้ 🎉'}</div>`;
             } else {
                 html += rows.map(r => {
                     const m = masterData[r.item_code.toUpperCase()] || {};
-                    const isScrap = (r.result || '') !== 'ถุงเต็ม';
-                    const badgeClass = isScrap ? 'text-amber-500' : 'text-emerald-500';
                     return `<div class="suggestion-item" onclick="selectScrapItem('${r.item_code.replace(/'/g, "\\'")}')">
                         <div class="flex justify-between items-center gap-2">
                           <span class="text-sm font-black text-[var(--text-main)] truncate">${r.item_code}</span>
-                          <span class="text-[10px] font-black ${badgeClass} shrink-0">${r.qty_bags != null ? r.qty_bags : 0} ถุง${r.result ? ' • ' + r.result : ''}</span>
+                          <span class="text-[10px] font-black text-amber-500 shrink-0">${r.qty_bags} ถุง</span>
                         </div>
                         <span class="text-[10px] font-bold text-[var(--text-sub)] mt-1 block truncate">${m.code_name || '-'} • อัปเดต ${formatScrapTime(r.checked_at)}</span>
                     </div>`;
@@ -1595,10 +1694,10 @@
                     )
                 ).slice(0, 5);
                 if (newMatches.length) {
-                    html += `<div class="text-[10px] font-bold text-[var(--text-sub)] uppercase mt-2 mb-1 px-1">+ เพิ่มไอเทมใหม่</div>` +
+                    html += `<div class="text-[10px] font-bold text-[var(--text-sub)] uppercase mt-2 mb-1 px-1">+ เพิ่ม/เช็คไอเทมอื่น</div>` +
                         newMatches.map(item => `<div class="suggestion-item opacity-80" onclick="selectScrapItem('${item.item_code.replace(/'/g, "\\'")}')">
                             <span class="text-sm font-black text-[var(--text-main)]">${item.item_code}</span>
-                            <span class="text-[10px] font-bold text-[var(--text-sub)] mt-1 block">${item.code_name || '-'} • ยังไม่มีข้อมูลเศษ</span>
+                            <span class="text-[10px] font-bold text-[var(--text-sub)] mt-1 block">${item.code_name || '-'}</span>
                         </div>`).join('');
                 }
             }
@@ -1606,31 +1705,43 @@
         }
 
         function onScrapItemSearchInput(val) {
-            document.getElementById('scrapBackToList').classList.add('hidden');
-            document.getElementById('scrapCurrentBox').classList.add('hidden');
-            document.getElementById('scrapUpdateForm').classList.add('hidden');
-            document.getElementById('scrapHistoryWrap').classList.add('hidden');
-            currentScrapItemCode = null;
+            resetScrapDetailUI();
             document.getElementById('scrapAllList').style.display = 'block';
             renderScrapAllList(val);
         }
 
         function backToScrapList() {
-            currentScrapItemCode = null;
             document.getElementById('scrapItemSearch').value = '';
-            document.getElementById('scrapBackToList').classList.add('hidden');
-            document.getElementById('scrapCurrentBox').classList.add('hidden');
-            document.getElementById('scrapUpdateForm').classList.add('hidden');
-            document.getElementById('scrapHistoryWrap').classList.add('hidden');
+            resetScrapDetailUI();
             document.getElementById('scrapAllList').style.display = 'block';
             renderScrapAllList('');
         }
 
-        let currentEntryType = 'check';
         function setEntryType(type) {
             currentEntryType = type;
             document.getElementById('entryTypeCheckBtn').classList.toggle('active', type === 'check');
             document.getElementById('entryTypeRepackBtn').classList.toggle('active', type === 'repack');
+            document.getElementById('checkModeFields').classList.toggle('hidden', type !== 'check');
+            document.getElementById('repackModeFields').classList.toggle('hidden', type !== 'repack');
+            const btnText = document.getElementById('scrapSubmitBtnText');
+            btnText.textContent = type === 'repack' ? 'บันทึกผล Repack' : 'บันทึกการเช็คนี้';
+        }
+
+        // 🆕 กดปุ่ม "ทำ Repack ตอนนี้" จากการ์ดสถานะปัจจุบัน — สลับโหมด + ดึงจำนวนถุงปัจจุบันมาตั้งต้นให้เลย
+        function startRepackFromCurrent() {
+            setEntryType('repack');
+            const current = allScrapCacheFind(currentScrapItemCode);
+            const currentBags = current ? Number(current.qty_bags) || 0 : 0;
+            document.getElementById('repackBagsBefore').value = currentBags || '';
+            onRepackBagsBeforeChange();
+            document.getElementById('repackBagsCompleted').value = '';
+            document.getElementById('repackBagsRemaining').value = '';
+            document.getElementById('repackRemainingPieces').value = '';
+            updateRepackSummary();
+            document.getElementById('repackBagsCompleted').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        function allScrapCacheFind(itemCode) {
+            return allScrapCache.find(r => r.item_code === itemCode) || window._scrapHistoryCache && window._scrapHistoryCache[0];
         }
 
         async function selectScrapItem(itemCode) {
@@ -1638,20 +1749,26 @@
             document.getElementById('scrapItemSearch').value = itemCode;
             document.getElementById('scrapAllList').style.display = 'none';
             document.getElementById('scrapBackToList').classList.remove('hidden');
-            document.getElementById('scrapUpdateForm').classList.remove('hidden');
+            document.getElementById('scrapEmptyState').classList.add('hidden');
+            document.getElementById('scrapDetailWrap').classList.remove('hidden');
+
             document.getElementById('scrapShift').value = 'A';
-            document.getElementById('scrapResult').value = 'ยังเป็นเศษ';
             document.getElementById('scrapQtyBags').value = '';
             document.getElementById('scrapQtyPieces').value = '';
             document.getElementById('scrapReceived').value = '';
             document.getElementById('scrapReprint').value = '';
             document.getElementById('scrapNote').value = '';
+            document.getElementById('repackBagsBefore').value = '';
+            document.getElementById('repackBagsCompleted').value = '';
+            document.getElementById('repackBagsRemaining').value = '';
+            document.getElementById('repackRemainingPieces').value = '';
+            document.getElementById('repackPerBagWrap').innerHTML = '';
             setEntryType('check');
-            onScrapBagsChange(); // รีเซ็ตกลับเป็นโหมดถุงเดียว
+            onScrapBagsChange();
             await loadScrapDataForItem(itemCode);
         }
 
-        // 🆕 ถ้าจำนวนถุง >= 2 ให้โชว์ช่องกรอกจำนวนชิ้นแยกทีละถุง แทนช่องรวมช่องเดียว
+        // 🆕 ถ้าจำนวนถุง >= 2 ให้โชว์ช่องกรอกจำนวนชิ้นแยกทีละถุง แทนช่องรวมช่องเดียว (โหมดเช็คสต็อก)
         function onScrapBagsChange() {
             const bags = parseInt(document.getElementById('scrapQtyBags').value) || 0;
             const singleWrap = document.getElementById('scrapSingleBagWrap');
@@ -1659,7 +1776,7 @@
             if (bags >= 2) {
                 singleWrap.classList.add('hidden');
                 perBagWrap.classList.remove('hidden');
-                renderPerBagInputs(bags);
+                renderPerBagInputs(perBagWrap, bags, 'scrapQtyPieces', 'per-bag-input');
             } else {
                 perBagWrap.classList.add('hidden');
                 perBagWrap.innerHTML = '';
@@ -1667,30 +1784,63 @@
             }
         }
 
-        function renderPerBagInputs(bags) {
-            const wrap = document.getElementById('scrapPerBagWrap');
-            const prevVals = Array.from(wrap.querySelectorAll('.per-bag-input')).map(i => i.value);
-            let html = `<label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block">จำนวนชิ้นแยกทีละถุง</label><div class="grid grid-cols-3 gap-1.5">`;
-            for (let i = 0; i < bags; i++) {
-                html += `<input type="number" min="0" class="per-bag-input glass-input rounded-lg p-2 text-xs text-center outline-none" placeholder="ถุง ${i + 1}" value="${prevVals[i] || ''}" oninput="updatePerBagSum()">`;
+        // 🆕 เหมือนกันแต่สำหรับฝั่ง "ก่อนรวม" ในโหมด Repack
+        function onRepackBagsBeforeChange() {
+            const bags = parseInt(document.getElementById('repackBagsBefore').value) || 0;
+            const wrap = document.getElementById('repackPerBagWrap');
+            if (bags >= 1) {
+                renderPerBagInputs(wrap, bags, null, 'repack-per-bag-input');
+            } else {
+                wrap.innerHTML = '';
             }
-            html += `</div><div class="text-[10px] text-[var(--text-sub)] mt-1.5">รวมทั้งหมด: <span id="perBagSumDisplay" class="font-bold text-[var(--text-main)]">0</span> ชิ้น</div>`;
-            wrap.innerHTML = html;
-            updatePerBagSum();
+            updateRepackSummary();
         }
 
-        function updatePerBagSum() {
-            const vals = Array.from(document.querySelectorAll('.per-bag-input')).map(i => Number(i.value) || 0);
+        // ฟังก์ชันกลาง ใช้ได้ทั้ง 2 โหมด — ต่างกันแค่ syncTargetId (ช่องที่จะ sync ผลรวมชิ้นไปให้) และ class ที่ใช้อ้างอิง
+        function renderPerBagInputs(wrap, bags, syncTargetId, cls) {
+            const prevVals = Array.from(wrap.querySelectorAll('.' + cls)).map(i => i.value);
+            let html = `<label class="text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1 block">จำนวนชิ้นแยกทีละถุง</label><div class="grid grid-cols-3 gap-1.5">`;
+            for (let i = 0; i < bags; i++) {
+                html += `<input type="number" min="0" class="${cls} glass-input rounded-lg p-2 text-xs text-center outline-none" placeholder="ถุง ${i + 1}" value="${prevVals[i] || ''}" oninput="onPerBagInput('${cls}', '${syncTargetId || ''}')">`;
+            }
+            html += `</div><div class="text-[10px] text-[var(--text-sub)] mt-1.5">รวมทั้งหมด: <span class="perbag-sum-display font-bold text-[var(--text-main)]">0</span> ชิ้น</div>`;
+            wrap.innerHTML = html;
+            onPerBagInput(cls, syncTargetId);
+        }
+
+        function onPerBagInput(cls, syncTargetId) {
+            const inputs = document.querySelectorAll('.' + cls);
+            const vals = Array.from(inputs).map(i => Number(i.value) || 0);
             const sum = vals.reduce((a, b) => a + b, 0);
-            const disp = document.getElementById('perBagSumDisplay');
-            if (disp) disp.innerText = sum;
-            document.getElementById('scrapQtyPieces').value = sum; // sync ไว้ให้ submit อ่านค่าง่ายๆ
+            const wrap = inputs.length ? inputs[0].closest('div').parentElement : null;
+            if (wrap) { const disp = wrap.querySelector('.perbag-sum-display'); if (disp) disp.innerText = sum; }
+            if (syncTargetId) document.getElementById(syncTargetId).value = sum;
+            if (cls === 'repack-per-bag-input') updateRepackSummary();
+        }
+
+        // 🆕 ถ้ากรอก "เหลือเป็นเศษ" มากกว่า 0 ให้โชว์ช่องกรอกจำนวนชิ้นที่เหลือด้วย
+        function onRepackRemainingChange() {
+            const remaining = parseInt(document.getElementById('repackBagsRemaining').value) || 0;
+            document.getElementById('repackRemainingPiecesWrap').classList.toggle('hidden', remaining <= 0);
+            updateRepackSummary();
+        }
+
+        function updateRepackSummary() {
+            const before = parseInt(document.getElementById('repackBagsBefore').value) || 0;
+            const completed = parseInt(document.getElementById('repackBagsCompleted').value) || 0;
+            const remaining = parseInt(document.getElementById('repackBagsRemaining').value) || 0;
+            const el = document.getElementById('repackSummaryText');
+            const diff = before - (completed + remaining);
+            let msg = `ก่อนรวม ${before} ถุง → ถุงเต็ม ${completed} + เศษเหลือ ${remaining} = ${completed + remaining} ถุง`;
+            if (before > 0 && diff !== 0) msg += ` <span class="text-amber-500">(ไม่ตรงกับก่อนรวม ${diff > 0 ? 'ขาด ' + diff : 'เกิน ' + Math.abs(diff)} ถุง ตรวจสอบอีกครั้ง)</span>`;
+            el.innerHTML = msg;
         }
 
         async function loadScrapDataForItem(itemCode) {
             const currentBox = document.getElementById('scrapCurrentBox');
             const historyWrap = document.getElementById('scrapHistoryWrap');
             const historyList = document.getElementById('scrapHistoryList');
+            const repackCta = document.getElementById('scrapRepackCta');
 
             const { data, error } = await sbClient
                 .from('scrap_stock_log')
@@ -1700,6 +1850,7 @@
                 .limit(10);
 
             if (error) { console.error(error); return; }
+            window._scrapHistoryCache = data || [];
 
             if (!data || data.length === 0) {
                 currentBox.classList.add('hidden');
@@ -1708,29 +1859,34 @@
             }
 
             const latest = data[0];
-            document.getElementById('scrapCurrentQty').innerText =
-                `${latest.qty_bags != null ? latest.qty_bags : 0} ถุง` + (latest.qty_pieces != null ? ` (${latest.qty_pieces} ชิ้น)` : '') + (latest.result ? ` • ${latest.result}` : '');
+            const stillHasScrap = hasRemainingScrap(latest);
+            document.getElementById('scrapCurrentQty').innerText = stillHasScrap
+                ? `${latest.qty_bags} ถุง` + (latest.qty_pieces != null ? ` (${latest.qty_pieces} ชิ้น)` : '')
+                : 'ไม่มีเศษคงเหลือ (จบงานแล้ว)';
             document.getElementById('scrapCurrentMeta').innerText =
                 `อัปเดตล่าสุด: ${formatScrapTime(latest.checked_at)} โดย ${latest.checked_by || '-'}` +
                 (latest.shift ? ` • กะ ${latest.shift}` : '') +
                 (latest.note ? ` • ${latest.note}` : '');
             currentBox.classList.remove('hidden');
-
-            // เก็บไว้ให้ปุ่ม export ของไอเทมนี้ใช้
-            window._scrapHistoryCache = data;
+            repackCta.classList.toggle('hidden', !stillHasScrap);
 
             historyList.innerHTML = data.map(row => {
                 const perBagText = (row.pieces_per_bag && row.pieces_per_bag.length > 1)
-                    ? `<div class="text-[var(--text-sub)] mt-0.5">แยกทีละถุง: ${row.pieces_per_bag.map((v, i) => `ถุง${i + 1}=${v != null ? v : '-'}`).join(', ')}</div>`
-                    : '';
+                    ? `<div class="text-[var(--text-sub)] mt-0.5">แยกทีละถุง: ${row.pieces_per_bag.map((v, i) => `ถุง${i + 1}=${v != null ? v : '-'}`).join(', ')}</div>` : '';
+                const typeTag = row.entry_type === 'repack'
+                    ? `<span class="text-purple-400 font-black">Repack</span>${row.bags_completed ? ` (+${row.bags_completed} ถุงเต็ม)` : ''}`
+                    : `<span class="text-sky-400 font-black">เช็คสต็อก</span>`;
                 return `
-                <div class="flex justify-between items-center text-[11px] glass-input rounded-lg px-2.5 py-1.5 gap-2">
-                    <div class="min-w-0">
-                        <div class="font-bold text-[var(--text-main)] truncate">${row.qty_bags != null ? row.qty_bags : 0} ถุง${row.qty_pieces != null ? ` / ${row.qty_pieces} ชิ้น` : ''} ${row.result ? '• ' + row.result : ''}</div>
-                        <div class="text-[var(--text-sub)] truncate">${formatScrapTime(row.checked_at)} • ${row.checked_by || '-'}${row.shift ? ' • กะ ' + row.shift : ''}</div>
-                        ${perBagText}
+                <div class="text-[11px] glass-input rounded-lg px-2.5 py-2 mb-1.5">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="min-w-0">
+                            <div class="font-bold text-[var(--text-main)] truncate">${row.qty_bags != null ? row.qty_bags : 0} ถุงเหลือ${row.qty_pieces != null ? ` / ${row.qty_pieces} ชิ้น` : ''}</div>
+                            <div class="text-[var(--text-sub)] truncate">${typeTag} • ${formatScrapTime(row.checked_at)}</div>
+                            <div class="text-[var(--text-sub)] truncate">${row.checked_by || '-'}${row.shift ? ' • กะ ' + row.shift : ''}</div>
+                            ${perBagText}
+                        </div>
+                        <button onclick="deleteScrapEntry(${row.id}, '${itemCode.replace(/'/g, "\\'")}')" class="shrink-0 w-6 h-6 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 flex items-center justify-center" title="ลบรายการนี้"><i class="fa-solid fa-trash text-[10px]"></i></button>
                     </div>
-                    <button onclick="deleteScrapEntry(${row.id}, '${itemCode.replace(/'/g, "\\'")}')" class="shrink-0 w-6 h-6 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 flex items-center justify-center" title="ลบรายการนี้"><i class="fa-solid fa-trash text-[10px]"></i></button>
                 </div>`;
             }).join('');
             historyWrap.classList.remove('hidden');
@@ -1745,69 +1901,77 @@
 
         async function submitScrapCheck() {
             if (!currentScrapItemCode) { alert('กรุณาเลือกรหัสสินค้าก่อน'); return; }
-            const bags = document.getElementById('scrapQtyBags').value;
-            const pieces = document.getElementById('scrapQtyPieces').value;
-            if (bags === '' && pieces === '') { alert('กรุณากรอกจำนวนถุงหรือจำนวนชิ้นอย่างน้อย 1 ช่อง'); return; }
 
-            const staffId = getStaffId() || prompt('กรอกรหัสพนักงานผู้เช็ค:');
+            const staffId = getStaffId() || prompt('กรอกรหัสพนักงานผู้บันทึก:');
             if (!staffId) return;
             touchStaffSession();
 
             const received = document.getElementById('scrapReceived').value;
             const reprint = document.getElementById('scrapReprint').value;
+            const shift = document.getElementById('scrapShift').value;
+            const note = document.getElementById('scrapNote').value.trim() || null;
 
-            // 🆕 ถ้าเป็นโหมดหลายถุง (>=2) เก็บจำนวนชิ้นแยกทีละถุงไว้ด้วย
-            let piecesPerBag = null;
-            const perBagInputs = document.querySelectorAll('.per-bag-input');
-            if (perBagInputs.length > 0) {
-                piecesPerBag = Array.from(perBagInputs).map(i => i.value === '' ? null : Number(i.value));
-            }
-
-            const { error } = await sbClient.from('scrap_stock_log').insert({
+            let payload = {
                 item_code: currentScrapItemCode,
-                shift: document.getElementById('scrapShift').value,
-                result: document.getElementById('scrapResult').value,
-                entry_type: currentEntryType,
-                qty_bags: bags === '' ? null : Number(bags),
-                qty_pieces: pieces === '' ? null : Number(pieces),
-                pieces_per_bag: piecesPerBag,
+                shift, entry_type: currentEntryType,
                 received_from_packing: received === '' ? null : Number(received),
                 reprint_qty: reprint === '' ? null : Number(reprint),
-                note: document.getElementById('scrapNote').value.trim() || null,
-                checked_by: staffId
-            });
+                note, checked_by: staffId
+            };
+
+            if (currentEntryType === 'check') {
+                const bags = document.getElementById('scrapQtyBags').value;
+                const pieces = document.getElementById('scrapQtyPieces').value;
+                if (bags === '' && pieces === '') { alert('กรุณากรอกจำนวนถุงหรือจำนวนชิ้นอย่างน้อย 1 ช่อง'); return; }
+                const perBagInputs = document.querySelectorAll('.per-bag-input');
+                payload.qty_bags = bags === '' ? null : Number(bags);
+                payload.qty_pieces = pieces === '' ? null : Number(pieces);
+                payload.pieces_per_bag = perBagInputs.length ? Array.from(perBagInputs).map(i => i.value === '' ? null : Number(i.value)) : null;
+                payload.result = (Number(bags) || 0) > 0 ? 'ยังเป็นเศษ' : 'ถุงเต็ม';
+            } else {
+                const before = document.getElementById('repackBagsBefore').value;
+                const completed = document.getElementById('repackBagsCompleted').value;
+                const remaining = document.getElementById('repackBagsRemaining').value;
+                if (before === '' || completed === '' || remaining === '') { alert('กรุณากรอก จำนวนก่อนรวม, ได้ถุงเต็ม และเหลือเป็นเศษ ให้ครบ'); return; }
+                const remainingNum = Number(remaining);
+                const beforePerBagInputs = document.querySelectorAll('.repack-per-bag-input');
+                payload.qty_bags = remainingNum;
+                payload.qty_pieces = remainingNum > 0 ? Number(document.getElementById('repackRemainingPieces').value || 0) : 0;
+                payload.pieces_per_bag = beforePerBagInputs.length ? Array.from(beforePerBagInputs).map(i => i.value === '' ? null : Number(i.value)) : null;
+                payload.bags_completed = Number(completed);
+                payload.result = remainingNum > 0 ? 'ยังเป็นเศษ' : 'ถุงเต็ม';
+            }
+
+            const { error } = await sbClient.from('scrap_stock_log').insert(payload);
             if (error) { alert('บันทึกไม่สำเร็จ: ' + error.message); return; }
 
-            alert('✅ บันทึกการเช็คงานเศษเรียบร้อยแล้ว');
-            document.getElementById('scrapQtyBags').value = '';
-            document.getElementById('scrapQtyPieces').value = '';
-            document.getElementById('scrapReceived').value = '';
-            document.getElementById('scrapReprint').value = '';
-            document.getElementById('scrapNote').value = '';
-            onScrapBagsChange();
-            await loadScrapDataForItem(currentScrapItemCode);
-            // อัปเดต cache สำหรับผลค้นหาหลัก/รายละเอียดช่อง/รายการทั้งหมด โดยไม่ต้องโหลดหน้าใหม่
+            alert(currentEntryType === 'repack' ? '✅ บันทึกผล Repack เรียบร้อยแล้ว' : '✅ บันทึกการเช็คงานเศษเรียบร้อยแล้ว');
+
+            // รีเฟรชข้อมูลในจอ + cache ทุกจุดที่เกี่ยวข้อง (ค้นหาหลัก, รายการทั้งหมด, รายละเอียดช่อง)
             const res = await sbClient.from("latest_scrap_stock").select("*").eq("item_code", currentScrapItemCode).maybeSingle();
-            if (res.data) {
+            if (res.data && hasRemainingScrap(res.data)) {
                 scrapDataMap[currentScrapItemCode.toUpperCase()] = res.data;
                 const idx = allScrapCache.findIndex(r => r.item_code === currentScrapItemCode);
                 if (idx >= 0) allScrapCache[idx] = res.data; else allScrapCache.unshift(res.data);
+            } else {
+                delete scrapDataMap[currentScrapItemCode.toUpperCase()];
+                allScrapCache = allScrapCache.filter(r => r.item_code !== currentScrapItemCode);
             }
+            await selectScrapItem(currentScrapItemCode);
         }
 
         // 🆕 ลบรายการเช็คที่บันทึกผิด — ต้องเป็นพนักงานที่ยืนยันตัวตนแล้ว (เหมือนเงื่อนไขดูรายการแจ้งปัญหา)
         async function deleteScrapEntry(id, itemCode) {
             if (!isStaffVerified()) {
-                alert('ต้องกรอกรหัสพนักงานที่ผ่านการตรวจสอบแล้วก่อนถึงจะลบรายการได้ (กดที่กระดิ่งแจ้งปัญหาเพื่อยืนยันตัวตนก่อน)');
+                alert('ต้องกรอกรหัสพนักงานที่ผ่านการตรวจสอบแล้วก่อนถึงจะลบรายการได้ (กดที่เมนูเครื่องมือ > แจ้งปัญหา เพื่อยืนยันตัวตนก่อน)');
                 return;
             }
             if (!confirm('ยืนยันลบรายการนี้? การลบไม่สามารถย้อนกลับได้')) return;
             touchStaffSession();
             const { error } = await sbClient.from('scrap_stock_log').delete().eq('id', id);
             if (error) { alert('ลบไม่สำเร็จ: ' + error.message); return; }
-            await loadScrapDataForItem(itemCode);
             const res = await sbClient.from("latest_scrap_stock").select("*").eq("item_code", itemCode).maybeSingle();
-            if (res.data) {
+            if (res.data && hasRemainingScrap(res.data)) {
                 scrapDataMap[itemCode.toUpperCase()] = res.data;
                 const idx = allScrapCache.findIndex(r => r.item_code === itemCode);
                 if (idx >= 0) allScrapCache[idx] = res.data;
@@ -1815,6 +1979,7 @@
                 delete scrapDataMap[itemCode.toUpperCase()];
                 allScrapCache = allScrapCache.filter(r => r.item_code !== itemCode);
             }
+            await loadScrapDataForItem(itemCode);
         }
 
         // 🆕 Export: ไอเทมที่กำลังดูอยู่ (ประวัติที่โชว์ในหน้าจอ)
@@ -1824,7 +1989,7 @@
             exportScrapRowsToExcel(rows, `Scrap_${currentScrapItemCode}`);
         }
 
-        // 🆕 Export: ข้อมูลเศษทั้งหมดในระบบ
+        // 🆕 Export: ข้อมูลเศษทั้งหมดในระบบ (ทุกประวัติ ไม่ใช่แค่ที่ยังเหลือเศษ)
         async function exportAllScrapData() {
             const { data, error } = await sbClient.from('scrap_stock_log').select('*').order('checked_at', { ascending: false });
             if (error) { alert('ดึงข้อมูลไม่สำเร็จ: ' + error.message); return; }
@@ -1835,16 +2000,18 @@
         function exportScrapRowsToExcel(rows, filePrefix) {
             const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
                 "รหัส ITEM": r.item_code,
+                "ประเภท": r.entry_type === 'repack' ? 'Repack' : 'เช็คสต็อก',
                 "กะ": r.shift || '',
-                "จำนวนถุงเศษ": r.qty_bags,
-                "จำนวนชิ้นรวมในถุงเศษ": r.qty_pieces,
-                "จำนวนชิ้นแยกทีละถุง": (r.pieces_per_bag && r.pieces_per_bag.length) ? r.pieces_per_bag.join(' / ') : '',
+                "จำนวนถุงเหลือ": r.qty_bags,
+                "จำนวนชิ้นที่เหลือ": r.qty_pieces,
+                "จำนวนชิ้นแยกทีละถุง (ก่อนรวม)": (r.pieces_per_bag && r.pieces_per_bag.length) ? r.pieces_per_bag.join(' / ') : '',
+                "ได้ถุงเต็ม (Repack)": r.bags_completed,
                 "รับเข้าจาก Packing (ชิ้น)": r.received_from_packing,
                 "ผลลัพธ์": r.result || '',
                 "RePrint ยอด": r.reprint_qty,
                 "หมายเหตุ": r.note || '',
-                "เช็คโดย": r.checked_by || '',
-                "เช็คเมื่อ": formatScrapTime(r.checked_at)
+                "บันทึกโดย": r.checked_by || '',
+                "บันทึกเมื่อ": formatScrapTime(r.checked_at)
             })));
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Scrap Data");
@@ -1853,6 +2020,7 @@
             const fname = `${filePrefix}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.xlsx`;
             XLSX.writeFile(wb, fname);
         }
+
 
         // ==========================================
         // 🆕 สถิติ Repack (Heatmap + กราฟแท่ง) — ไม่ผูกโซนตอนบันทึก คำนวณโซนที่เกี่ยวข้องจาก
@@ -1910,31 +2078,18 @@
 
         // 🆕 เดินไล่ log ทีละไอเทม เทียบยอดก่อน-หลัง หาว่า "ลดลง" กี่ถุงจากการ Repack
         function computeRepackStats(rows) {
-            const byItem = {};
-            rows.forEach(r => {
-                if (!byItem[r.item_code]) byItem[r.item_code] = [];
-                byItem[r.item_code].push(r);
-            });
-
             let totalEvents = 0, totalBagsReduced = 0;
             const itemScores = {};
             const shiftScores = { A: 0, B: 0 };
 
-            Object.keys(byItem).forEach(itemCode => {
-                const entries = byItem[itemCode].sort((a, b) => new Date(a.checked_at) - new Date(b.checked_at));
-                for (let i = 1; i < entries.length; i++) {
-                    const cur = entries[i];
-                    if (cur.entry_type !== 'repack') continue;
-                    const prevBags = Number(entries[i - 1].qty_bags) || 0;
-                    const curBags = Number(cur.qty_bags) || 0;
-                    const reduced = prevBags - curBags;
-                    if (reduced > 0) {
-                        totalEvents++;
-                        totalBagsReduced += reduced;
-                        itemScores[itemCode] = (itemScores[itemCode] || 0) + reduced;
-                        if (cur.shift === 'A' || cur.shift === 'B') shiftScores[cur.shift] += reduced;
-                    }
-                }
+            rows.forEach(r => {
+                if (r.entry_type !== 'repack') return;
+                const completed = Number(r.bags_completed) || 0;
+                if (completed <= 0) return;
+                totalEvents++;
+                totalBagsReduced += completed;
+                itemScores[r.item_code] = (itemScores[r.item_code] || 0) + completed;
+                if (r.shift === 'A' || r.shift === 'B') shiftScores[r.shift] += completed;
             });
 
             // แปลง itemScores -> zoneScores โดยเทียบจาก locationData (items_list) ที่โหลดไว้แล้ว
@@ -2051,14 +2206,61 @@
             document.getElementById('rosterModal').classList.remove('active');
         }
 
+        let pendingRosterPhoto = null;
+
+        // 🆕 บีบอัดรูปก่อนอัปโหลด (เหมือน pattern ที่ใช้ใน index.html/notices.html)
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+                    let width = img.width, height = img.height;
+                    if (width > height) { if (width > 800) { height *= 800 / width; width = 800; } } else { if (height > 800) { width *= 800 / height; height = 800; } }
+                    canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(blob => { callback(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' })); }, 'image/jpeg', 0.75);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
         function openRosterAddForm() {
             document.getElementById('rosterStaffId').value = '';
             document.getElementById('rosterName').value = '';
             document.getElementById('rosterShift').value = 'A';
             document.getElementById('rosterPosition').value = '';
             document.getElementById('rosterNote').value = '';
+            resetRosterPhotoUI();
             document.getElementById('rosterAddForm').classList.toggle('hidden');
         }
+
+        function resetRosterPhotoUI(existingUrl) {
+            pendingRosterPhoto = null;
+            document.getElementById('rosterPhotoInput').value = '';
+            const preview = document.getElementById('rosterPhotoPreview');
+            const placeholder = document.getElementById('rosterPhotoPlaceholder');
+            if (existingUrl) {
+                preview.src = existingUrl; preview.classList.remove('hidden'); placeholder.classList.add('hidden');
+            } else {
+                preview.src = ''; preview.classList.add('hidden'); placeholder.classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('rosterPhotoInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            compressImage(file, function (compressedFile) {
+                pendingRosterPhoto = compressedFile;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    document.getElementById('rosterPhotoPreview').src = ev.target.result;
+                    document.getElementById('rosterPhotoPreview').classList.remove('hidden');
+                    document.getElementById('rosterPhotoPlaceholder').classList.add('hidden');
+                };
+                reader.readAsDataURL(compressedFile);
+            });
+        });
 
         async function fetchRosterList() {
             const { data, error } = await sbClient.from('store_roster').select('*').order('shift').order('staff_id');
@@ -2073,14 +2275,20 @@
                 list.innerHTML = `<div class="text-center text-xs text-[var(--text-sub)] py-6"><i class="fa-solid fa-users-slash text-2xl mb-2 block opacity-50"></i>ยังไม่มีข้อมูลพนักงาน</div>`;
                 return;
             }
+            const shiftClass = { A: 'bg-amber-500/15 text-amber-500', B: 'bg-blue-500/15 text-blue-500', D: 'bg-purple-500/15 text-purple-400' };
             list.innerHTML = rosterCache.map(r => `
                 <div class="roster-card">
                     <div class="flex justify-between items-start gap-2">
-                        <div>
-                            <div class="text-sm font-black text-[var(--text-main)]">${r.name || r.staff_id} <span class="text-[10px] text-[var(--text-sub)] font-mono">(${r.staff_id})</span></div>
-                            <div class="text-[11px] text-[var(--text-sub)] font-bold mt-0.5">${r.position || '-'}</div>
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            ${r.photo_url
+                                ? `<img src="${r.photo_url}" class="w-11 h-11 rounded-full object-cover border border-[var(--glass-border)] shrink-0">`
+                                : `<div class="w-11 h-11 rounded-full bg-[var(--input-bg)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-sub)] shrink-0"><i class="fa-solid fa-user"></i></div>`}
+                            <div class="min-w-0">
+                                <div class="text-sm font-black text-[var(--text-main)] truncate">${r.name || r.staff_id} <span class="text-[10px] text-[var(--text-sub)] font-mono">(${r.staff_id})</span></div>
+                                <div class="text-[11px] text-[var(--text-sub)] font-bold mt-0.5 truncate">${r.position || '-'}</div>
+                            </div>
                         </div>
-                        <span class="roster-shift-badge ${r.shift === 'A' ? 'bg-amber-500/15 text-amber-500' : 'bg-blue-500/15 text-blue-500'}">กะ ${r.shift || '-'}</span>
+                        <span class="roster-shift-badge shrink-0 ${shiftClass[r.shift] || shiftClass.A}">กะ ${r.shift || '-'}</span>
                     </div>
                     ${r.note ? `<div class="text-[10px] text-[var(--text-sub)] mt-2 italic">${r.note}</div>` : ''}
                     <div class="flex gap-2 mt-2">
@@ -2098,6 +2306,7 @@
             document.getElementById('rosterShift').value = r.shift || 'A';
             document.getElementById('rosterPosition').value = r.position || '';
             document.getElementById('rosterNote').value = r.note || '';
+            resetRosterPhotoUI(r.photo_url);
             document.getElementById('rosterAddForm').classList.remove('hidden');
             document.getElementById('rosterAddForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
@@ -2105,12 +2314,25 @@
         async function saveRosterEntry() {
             const staffId = document.getElementById('rosterStaffId').value.trim().toUpperCase();
             if (!staffId) { alert('กรุณากรอกรหัสพนักงาน'); return; }
+
+            let photoUrl = document.getElementById('rosterPhotoPreview').classList.contains('hidden')
+                ? null
+                : (rosterCache.find(x => x.staff_id === staffId) || {}).photo_url || null;
+
+            if (pendingRosterPhoto) {
+                const path = `${staffId}_${Date.now()}.jpg`;
+                const { error: upErr } = await sbClient.storage.from('staff-photos').upload(path, pendingRosterPhoto, { upsert: true });
+                if (upErr) { alert('อัปโหลดรูปไม่สำเร็จ: ' + upErr.message); return; }
+                photoUrl = sbClient.storage.from('staff-photos').getPublicUrl(path).data.publicUrl;
+            }
+
             const { error } = await sbClient.from('store_roster').upsert({
                 staff_id: staffId,
                 name: document.getElementById('rosterName').value.trim(),
                 shift: document.getElementById('rosterShift').value,
                 position: document.getElementById('rosterPosition').value.trim(),
                 note: document.getElementById('rosterNote').value.trim() || null,
+                photo_url: photoUrl,
                 updated_at: new Date().toISOString()
             });
             if (error) { alert('บันทึกไม่สำเร็จ: ' + error.message); return; }

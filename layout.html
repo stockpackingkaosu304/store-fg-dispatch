@@ -679,6 +679,9 @@
                     <option value="90">90 วันล่าสุด</option>
                     <option value="9999">ทั้งหมด</option>
                 </select>
+                <button onclick="exportRepackReport()" class="glass-input rounded-xl px-3 flex items-center gap-1.5 text-xs font-bold text-emerald-500 hover:border-emerald-400 transition-colors shrink-0" title="ส่งออกรายงาน Excel (A4)">
+                    <i class="fa-solid fa-file-export"></i> <span class="hidden sm:inline" data-i18n="statsExportReportBtn">รายงาน (A4)</span>
+                </button>
             </div>
 
             <div class="grid grid-cols-3 gap-2 mb-4">
@@ -2078,7 +2081,8 @@
 
         async function loadRepackStats() {
             document.getElementById('statsLoading').classList.remove('hidden');
-            const days = Number(document.getElementById('statsDaysFilter').value);
+            const daysSelect = document.getElementById('statsDaysFilter');
+            const days = Number(daysSelect.value);
             const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
             let q = sbClient.from('scrap_stock_log').select('*').order('checked_at', { ascending: true });
@@ -2093,6 +2097,9 @@
             document.getElementById('statsShiftCompare').innerText = `${stats.shiftScores.A || 0} / ${stats.shiftScores.B || 0}`;
 
             window._lastZoneScores = stats.zoneScores;
+            // 🆕 เก็บไว้ใช้ตอนกดส่งออกรายงาน Excel
+            window._lastRepackStats = stats;
+            window._lastStatsRangeLabel = daysSelect.options[daysSelect.selectedIndex].text;
             renderHeatmapSvg(stats.zoneScores);
             renderStatsCharts(stats.itemScores, stats.zoneScores);
         }
@@ -2200,6 +2207,70 @@
                 data: { labels: topZones.map(x => x[0]), datasets: [{ label: 'ถุงที่ลดลง', data: topZones.map(x => x[1]), backgroundColor: '#f43f5e' }] },
                 options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
             });
+        }
+
+        // ==========================================
+        // 🆕 ส่งออกรายงานสรุปการ Repack เป็น Excel จัดหน้าสำหรับพิมพ์ A4
+        // ==========================================
+        function exportRepackReport() {
+            const stats = window._lastRepackStats;
+            if (!stats) { alert('กรุณารอให้สถิติโหลดเสร็จก่อน (หรือเปลี่ยนช่วงเวลาอีกครั้ง)'); return; }
+            const rangeLabel = window._lastStatsRangeLabel || '-';
+            const now = new Date();
+            const nowStr = now.toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+            const topItems = Object.entries(stats.itemScores).sort((a, b) => b[1] - a[1]);
+            const topZones = Object.entries(stats.zoneScores).sort((a, b) => b[1] - a[1]);
+
+            const rows = [];
+            rows.push(['รายงานสรุปการ Repack']);
+            rows.push([`ช่วงเวลา: ${rangeLabel}    |    ออกรายงานเมื่อ: ${nowStr}`]);
+            rows.push([]);
+            rows.push(['สรุปภาพรวม']);
+            rows.push(['จำนวนครั้ง Repack', 'ถุงเศษที่ลดลงรวม (ถุง)', 'กะ A (ถุง)', 'กะ B (ถุง)']);
+            rows.push([stats.totalEvents, stats.totalBagsReduced, stats.shiftScores.A || 0, stats.shiftScores.B || 0]);
+            rows.push([]);
+            rows.push(['Top ไอเทมที่ Repack เยอะสุด']);
+            rows.push(['ลำดับ', 'รหัส ITEM', 'ชื่อสินค้า', 'ลูกค้า', 'ถุงเศษที่ลดลง (ถุง)']);
+            topItems.forEach((x, i) => {
+                const m = masterData[x[0].toUpperCase()] || {};
+                rows.push([i + 1, x[0], m.code_name || '-', m.cl || '-', x[1]]);
+            });
+            rows.push([]);
+            const zoneHeaderRow = rows.length;
+            rows.push(['Top โซน/ตำแหน่งที่เกี่ยวข้องกับการ Repack']);
+            rows.push(['ลำดับ', 'รหัสช่อง', 'ถุงเศษที่ลดลง (ถุง)']);
+            topZones.forEach((x, i) => { rows.push([i + 1, x[0], x[1]]); });
+            rows.push([]);
+            const noteRow = rows.length;
+            rows.push(['หมายเหตุ: ตัวเลข "โซนที่เกี่ยวข้อง" คำนวณจากไอเทมที่ถูก Repack ว่าถูกจัดเก็บอยู่ที่ช่องใดบ้างในผัง Layout ปัจจุบัน']);
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+
+            // ผสานเซลล์หัวเรื่อง/หัวข้อส่วนต่างๆ ให้ดูเป็นรายงาน ไม่ใช่ตารางดิบ
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+                { s: { r: 3, c: 0 }, e: { r: 3, c: 4 } },
+                { s: { r: 7, c: 0 }, e: { r: 7, c: 4 } },
+                { s: { r: zoneHeaderRow, c: 0 }, e: { r: zoneHeaderRow, c: 4 } },
+                { s: { r: noteRow, c: 0 }, e: { r: noteRow, c: 4 } }
+            ];
+
+            // ความกว้างคอลัมน์ ปรับให้พอดีหน้า A4 แนวตั้งตอนพิมพ์
+            ws['!cols'] = [{ wch: 8 }, { wch: 16 }, { wch: 28 }, { wch: 14 }, { wch: 20 }];
+
+            // ตั้งค่าหน้ากระดาษ A4 แนวตั้ง + ระยะขอบแคบ
+            // (best-effort — บาง Excel อาจต้องกดปรับ Page Layout > Size > A4 เองอีกครั้งถ้าไม่ขึ้นอัตโนมัติ)
+            ws['!margins'] = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 };
+            ws['!pageSetup'] = { paperSize: 9, orientation: 'portrait', fitToWidth: 1, fitToHeight: 0, scale: 90 };
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'สรุป Repack');
+
+            const pad = n => ("0" + n).slice(-2);
+            const fname = `Repack_Report_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.xlsx`;
+            XLSX.writeFile(wb, fname, { compression: true });
         }
 
         // ==========================================

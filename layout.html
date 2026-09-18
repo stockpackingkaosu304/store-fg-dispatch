@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         /* 🎨 1. Dynamic Theme Engine (แก้ปัญหาคอนทราสต์สีกลืนกัน) */
         :root{
@@ -668,7 +670,7 @@
                 <button onclick="closeRepackStats()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <div class="flex gap-2 mb-3">
+            <div class="flex gap-2 mb-2">
                 <div class="flex-1 grid grid-cols-2 gap-1 p-1 glass-input rounded-xl">
                     <button id="statsTabHeatmap" class="stats-tab-btn" onclick="switchStatsView('heatmap')"><i class="fa-solid fa-fire mr-1"></i><span data-i18n="statsTabHeatmap">Heatmap</span></button>
                     <button id="statsTabBar" class="stats-tab-btn" onclick="switchStatsView('bar')"><i class="fa-solid fa-chart-simple mr-1"></i><span data-i18n="statsTabBar">กราฟแท่ง</span></button>
@@ -679,8 +681,13 @@
                     <option value="90">90 วันล่าสุด</option>
                     <option value="9999">ทั้งหมด</option>
                 </select>
-                <button onclick="exportRepackReport()" class="glass-input rounded-xl px-3 flex items-center gap-1.5 text-xs font-bold text-emerald-500 hover:border-emerald-400 transition-colors shrink-0" title="ส่งออกรายงาน Excel (A4)">
-                    <i class="fa-solid fa-file-export"></i> <span class="hidden sm:inline" data-i18n="statsExportReportBtn">รายงาน (A4)</span>
+            </div>
+            <div class="flex gap-2 mb-3">
+                <button onclick="exportRepackReport()" class="flex-1 glass-input rounded-xl px-3 py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-500 hover:border-emerald-400 transition-colors" title="ส่งออกข้อมูลดิบเป็น Excel">
+                    <i class="fa-solid fa-file-excel"></i> <span data-i18n="statsExportReportBtn">ข้อมูล Excel (A4)</span>
+                </button>
+                <button id="exportPdfBtn" onclick="exportRepackReportPDF()" class="flex-1 bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white rounded-xl px-3 py-2 flex items-center justify-center gap-1.5 text-xs font-bold shadow-lg shadow-purple-500/25 active:scale-95 transition-all" title="รายงานพร้อมรูปกราฟและผัง Layout — ส่งให้หัวหน้าได้เลย">
+                    <i class="fa-solid fa-file-image"></i> <span data-i18n="statsExportPdfBtn">รายงานภาพ (PDF)</span>
                 </button>
             </div>
 
@@ -2136,8 +2143,8 @@
         }
 
         // 🆕 วาด Heatmap แบบ SVG แผนผังแบน (ใช้พิกัดเดียวกับ FLOOR1_DATA / FLOOR2_DATA ที่มีอยู่แล้ว)
-        function renderHeatmapSvg(zoneScores) {
-            const data = currentHeatFloor === 1 ? FLOOR1_DATA : FLOOR2_DATA;
+        function buildHeatmapSvgString(floorNum, zoneScores) {
+            const data = floorNum === 1 ? FLOOR1_DATA : FLOOR2_DATA;
             const maxScore = Math.max(1, ...Object.values(zoneScores).concat([0]));
             const CELL = 12, PAD = 6;
             const W = 47 * CELL + PAD * 2, H = 30 * CELL + PAD * 2;
@@ -2157,7 +2164,7 @@
                 };
             }
 
-            let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%; min-width:600px; font-family:Arial,sans-serif;">`;
+            let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="width:100%; min-width:600px; font-family:Arial,sans-serif;">`;
             svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="#0f172a"/>`;
 
             data.forEach(loc => {
@@ -2183,6 +2190,11 @@
             });
 
             svg += `</svg>`;
+            return svg;
+        }
+
+        function renderHeatmapSvg(zoneScores) {
+            const svg = buildHeatmapSvgString(currentHeatFloor, zoneScores);
             document.getElementById('heatmapSvgWrap').innerHTML = svg;
         }
 
@@ -2271,6 +2283,148 @@
             const pad = n => ("0" + n).slice(-2);
             const fname = `Repack_Report_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.xlsx`;
             XLSX.writeFile(wb, fname, { compression: true });
+        }
+
+        // ==========================================
+        // 🆕 ส่งออกรายงานแบบภาพ (PDF) — มีกราฟ + ผัง Layout (Heatmap) ฝังในตัว ไม่ต้องจัดเอง
+        // ==========================================
+        function svgStringToPngDataUrl(svgString, widthPx, heightPx) {
+            return new Promise((resolve, reject) => {
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = widthPx; canvas.height = heightPx;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, widthPx, heightPx);
+                    URL.revokeObjectURL(url);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+                img.src = url;
+            });
+        }
+
+        async function exportRepackReportPDF() {
+            const stats = window._lastRepackStats;
+            if (!stats) { alert('กรุณารอให้สถิติโหลดเสร็จก่อน (หรือเปลี่ยนช่วงเวลาอีกครั้ง)'); return; }
+            if (typeof html2canvas === 'undefined' || !window.jspdf) { alert('ระบบสร้าง PDF ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่'); return; }
+
+            const btn = document.getElementById('exportPdfBtn');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังสร้าง...';
+            btn.disabled = true;
+
+            try {
+                const rangeLabel = window._lastStatsRangeLabel || '-';
+                const now = new Date();
+                const nowStr = now.toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+                // ให้แน่ใจว่ากราฟแท่งถูกวาดจริง (Chart.js วาดไม่ถูกต้องถ้า canvas ซ่อนอยู่ตอนสร้าง)
+                const originalView = currentStatsView;
+                switchStatsView('bar');
+                if (topItemsChartInstance) topItemsChartInstance.resize();
+                if (topZonesChartInstance) topZonesChartInstance.resize();
+                await new Promise(r => setTimeout(r, 80));
+
+                const topItemsImg = topItemsChartInstance ? topItemsChartInstance.toBase64Image() : null;
+                const topZonesImg = topZonesChartInstance ? topZonesChartInstance.toBase64Image() : null;
+                switchStatsView(originalView);
+
+                // สร้างรูป Heatmap ทั้ง 2 ชั้น แยกต่างหาก ไม่พึ่งสถานะที่โชว์อยู่บนจอ
+                const [heat1Img, heat2Img] = await Promise.all([
+                    svgStringToPngDataUrl(buildHeatmapSvgString(1, stats.zoneScores), 1128, 720),
+                    svgStringToPngDataUrl(buildHeatmapSvgString(2, stats.zoneScores), 1128, 720)
+                ]);
+
+                const topItems = Object.entries(stats.itemScores).sort((a, b) => b[1] - a[1]);
+                const topZones = Object.entries(stats.zoneScores).sort((a, b) => b[1] - a[1]);
+
+                const rowHtml = (cells, isHeader) => `<tr>${cells.map(c => `<td style="padding:6px 8px; border-bottom:1px solid #e2e8f0; font-size:11px; ${isHeader ? 'background:#0f172a;color:#fff;font-weight:800;' : 'color:#1e293b;'}">${c}</td>`).join('')}</tr>`;
+                const itemRows = [rowHtml(['#', 'รหัส ITEM', 'ชื่อสินค้า', 'ลูกค้า', 'ถุงลดลง'], true)]
+                    .concat(topItems.map((x, i) => {
+                        const m = masterData[x[0].toUpperCase()] || {};
+                        return rowHtml([i + 1, x[0], m.code_name || '-', m.cl || '-', x[1]]);
+                    })).join('');
+                const zoneRows = [rowHtml(['#', 'รหัสช่อง', 'ถุงลดลง'], true)]
+                    .concat(topZones.map((x, i) => rowHtml([i + 1, x[0], x[1]]))).join('');
+
+                const container = document.createElement('div');
+                container.id = 'pdfReportContainer';
+                container.style.cssText = 'position:fixed; left:-9999px; top:0; width:780px; background:#ffffff; padding:28px; font-family:Arial,\'Segoe UI\',sans-serif; color:#1e293b;';
+                container.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:12px; border-bottom:3px solid #0ea5e9; padding-bottom:14px; margin-bottom:18px;">
+                        <img src="logo.png" style="height:44px;" onerror="this.style.display='none'">
+                        <div>
+                            <div style="font-size:20px; font-weight:900; color:#0f172a;">รายงานสรุปการ Repack</div>
+                            <div style="font-size:11px; color:#64748b; font-weight:700; margin-top:2px;">ช่วงเวลา: ${rangeLabel} &nbsp;|&nbsp; ออกรายงานเมื่อ: ${nowStr}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:22px;">
+                        <div style="flex:1; background:#f1f5f9; border-radius:10px; padding:12px; text-align:center;">
+                            <div style="font-size:9px; font-weight:800; color:#64748b; text-transform:uppercase;">จำนวนครั้ง Repack</div>
+                            <div style="font-size:24px; font-weight:900; color:#a855f7;">${stats.totalEvents}</div>
+                        </div>
+                        <div style="flex:1; background:#f1f5f9; border-radius:10px; padding:12px; text-align:center;">
+                            <div style="font-size:9px; font-weight:800; color:#64748b; text-transform:uppercase;">ถุงเศษที่ลดลงรวม</div>
+                            <div style="font-size:24px; font-weight:900; color:#10b981;">${stats.totalBagsReduced}</div>
+                        </div>
+                        <div style="flex:1; background:#f1f5f9; border-radius:10px; padding:12px; text-align:center;">
+                            <div style="font-size:9px; font-weight:800; color:#64748b; text-transform:uppercase;">กะ A / กะ B</div>
+                            <div style="font-size:24px; font-weight:900; color:#0ea5e9;">${stats.shiftScores.A || 0} / ${stats.shiftScores.B || 0}</div>
+                        </div>
+                    </div>
+                    ${topItemsImg ? `<div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px;">Top ไอเทมที่ Repack เยอะสุด</div>
+                    <img src="${topItemsImg}" style="width:100%; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:18px;">` : ''}
+                    ${topZonesImg ? `<div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px;">Top โซนที่เกี่ยวข้อง</div>
+                    <img src="${topZonesImg}" style="width:100%; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:18px;">` : ''}
+                    <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px;">ผังคลัง (Heatmap) — ชั้น 1</div>
+                    <img src="${heat1Img}" style="width:100%; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:18px;">
+                    <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px;">ผังคลัง (Heatmap) — ชั้น 2</div>
+                    <img src="${heat2Img}" style="width:100%; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:18px;">
+                    <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px;">รายละเอียด Top ไอเทม</div>
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:18px;"><tbody>${itemRows}</tbody></table>
+                    <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px;">รายละเอียด Top โซน</div>
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:8px;"><tbody>${zoneRows}</tbody></table>
+                    <div style="margin-top:16px; font-size:9px; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:10px;">
+                        รายงานนี้สร้างจากระบบ WMS KAOSU 3D อัตโนมัติ — ตัวเลข "โซนที่เกี่ยวข้อง" คำนวณจากไอเทมที่ถูก Repack ว่าถูกจัดเก็บอยู่ที่ช่องใดบ้างในผัง Layout ปัจจุบัน
+                    </div>`;
+                document.body.appendChild(container);
+
+                // รอให้รูปทั้งหมดใน container โหลด/decode เสร็จก่อนถ่ายภาพ
+                const imgs = Array.from(container.querySelectorAll('img'));
+                await Promise.all(imgs.map(im => im.decode ? im.decode().catch(() => {}) : Promise.resolve()));
+
+                const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                document.body.removeChild(container);
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = 210, pageHeight = 297;
+                const imgWidthMm = pageWidth;
+                const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+                const imgData = canvas.toDataURL('image/png');
+
+                let heightLeft = imgHeightMm, position = 0;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidthMm, imgHeightMm);
+                heightLeft -= pageHeight;
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeightMm;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidthMm, imgHeightMm);
+                    heightLeft -= pageHeight;
+                }
+
+                const pad2 = n => ("0" + n).slice(-2);
+                pdf.save(`Repack_Report_${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}.pdf`);
+            } catch (err) {
+                console.error(err);
+                alert('สร้างรายงานไม่สำเร็จ: ' + err.message);
+            } finally {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
         }
 
         // ==========================================
@@ -2462,7 +2616,7 @@
                 issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
                 issuesPanelTitle: "รายการแจ้งปัญหา", issuesFilterPending: "รอตรวจสอบ", issuesFilterAll: "ทั้งหมด", noIssues: "ไม่มีรายการแจ้งปัญหา",
                 issueCardReporter: "ผู้แจ้ง", issueCardResolve: "ทำเครื่องหมายว่าแก้ไขแล้ว", issueResolved: "แก้ไขแล้ว",
-                scrapCheckBtn: "เช็คงานเศษ", scrapCheckTitle: "เช็คงานเศษ", scrapSearchPh: "พิมพ์รหัส ITEM...", scrapCurrentLabel: "จำนวนเศษล่าสุดที่บันทึกไว้", scrapBagsLabel: "จำนวนถุงเศษ", scrapPiecesLabel: "จำนวนชิ้นรวมในถุงเศษ", scrapNotePh: "หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน", scrapSaveBtn: "บันทึกการเช็คนี้", scrapHistoryLabel: "ประวัติการเช็คล่าสุด", scrapShiftLabel: "กะ", scrapResultLabel: "ผลลัพธ์", scrapReceivedLabel: "รับเข้าจาก Packing (ชิ้น)", scrapReprintLabel: "RePrint ยอด", scrapExportItemBtn: "ส่งออกไอเทมนี้", scrapExportAllBtn: "ส่งออกข้อมูลเศษทั้งหมด (Excel)", scrapBackToList: "กลับไปดูรายการทั้งหมด", repackStatsBtn: "สถิติ Repack", rosterBtn: "ผู้รับผิดชอบ STORE", entryTypeCheck: "เช็คสต็อก", entryTypeRepack: "Repack (รวมถุง)", repackStatsTitle: "สถิติ Repack", statsTabHeatmap: "Heatmap", statsTabBar: "กราฟแท่ง", statsTotalEvents: "จำนวนครั้ง Repack", statsTotalBags: "ถุงเศษที่ลดลง", statsShiftCompare: "กะ A / กะ B", statsTopItems: "Top ไอเทมที่ Repack เยอะสุด", statsTopZones: "Top โซนที่เกี่ยวข้องเยอะสุด", rosterTitle: "ผู้รับผิดชอบ STORE", rosterAddBtn: "เพิ่ม/แก้ไขพนักงาน" },
+                scrapCheckBtn: "เช็คงานเศษ", scrapCheckTitle: "เช็คงานเศษ", scrapSearchPh: "พิมพ์รหัส ITEM...", scrapCurrentLabel: "จำนวนเศษล่าสุดที่บันทึกไว้", scrapBagsLabel: "จำนวนถุงเศษ", scrapPiecesLabel: "จำนวนชิ้นรวมในถุงเศษ", scrapNotePh: "หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน", scrapSaveBtn: "บันทึกการเช็คนี้", scrapHistoryLabel: "ประวัติการเช็คล่าสุด", scrapShiftLabel: "กะ", scrapResultLabel: "ผลลัพธ์", scrapReceivedLabel: "รับเข้าจาก Packing (ชิ้น)", scrapReprintLabel: "RePrint ยอด", scrapExportItemBtn: "ส่งออกไอเทมนี้", scrapExportAllBtn: "ส่งออกข้อมูลเศษทั้งหมด (Excel)", scrapBackToList: "กลับไปดูรายการทั้งหมด", repackStatsBtn: "สถิติ Repack", rosterBtn: "ผู้รับผิดชอบ STORE", entryTypeCheck: "เช็คสต็อก", entryTypeRepack: "Repack (รวมถุง)", repackStatsTitle: "สถิติ Repack", statsTabHeatmap: "Heatmap", statsTabBar: "กราฟแท่ง", statsTotalEvents: "จำนวนครั้ง Repack", statsTotalBags: "ถุงเศษที่ลดลง", statsShiftCompare: "กะ A / กะ B", statsTopItems: "Top ไอเทมที่ Repack เยอะสุด", statsTopZones: "Top โซนที่เกี่ยวข้องเยอะสุด", rosterTitle: "ผู้รับผิดชอบ STORE", rosterAddBtn: "เพิ่ม/แก้ไขพนักงาน", statsExportReportBtn: "ข้อมูล Excel (A4)", statsExportPdfBtn: "รายงานภาพ (PDF)" },
             zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
                 reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
                 staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
@@ -2472,7 +2626,7 @@
                 issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
                 issuesPanelTitle: "問題回報列表", issuesFilterPending: "待處理", issuesFilterAll: "全部", noIssues: "沒有回報項目",
                 issueCardReporter: "回報人", issueCardResolve: "標記為已解決", issueResolved: "已解決",
-                scrapCheckBtn: "檢查廢料", scrapCheckTitle: "檢查廢料", scrapSearchPh: "輸入 ITEM 代碼...", scrapCurrentLabel: "最近記錄的廢料數量", scrapBagsLabel: "袋數", scrapPiecesLabel: "袋內總件數", scrapNotePh: "備註 (例如已賣出部分)", scrapSaveBtn: "儲存這次檢查", scrapHistoryLabel: "最近檢查紀錄", scrapShiftLabel: "班次", scrapResultLabel: "結果", scrapReceivedLabel: "從 Packing 收到 (件)", scrapReprintLabel: "RePrint 數量", scrapExportItemBtn: "匯出此項目", scrapExportAllBtn: "匯出全部廢料資料 (Excel)", scrapBackToList: "返回完整列表", repackStatsBtn: "Repack 統計", rosterBtn: "STORE 負責人", entryTypeCheck: "庫存檢查", entryTypeRepack: "Repack (合併袋)", repackStatsTitle: "Repack 統計", statsTabHeatmap: "熱力圖", statsTabBar: "長條圖", statsTotalEvents: "Repack 次數", statsTotalBags: "減少的袋數", statsShiftCompare: "A班 / B班", statsTopItems: "Repack 最多的項目", statsTopZones: "相關最多的區域", rosterTitle: "STORE 負責人", rosterAddBtn: "新增/編輯員工" },
+                scrapCheckBtn: "檢查廢料", scrapCheckTitle: "檢查廢料", scrapSearchPh: "輸入 ITEM 代碼...", scrapCurrentLabel: "最近記錄的廢料數量", scrapBagsLabel: "袋數", scrapPiecesLabel: "袋內總件數", scrapNotePh: "備註 (例如已賣出部分)", scrapSaveBtn: "儲存這次檢查", scrapHistoryLabel: "最近檢查紀錄", scrapShiftLabel: "班次", scrapResultLabel: "結果", scrapReceivedLabel: "從 Packing 收到 (件)", scrapReprintLabel: "RePrint 數量", scrapExportItemBtn: "匯出此項目", scrapExportAllBtn: "匯出全部廢料資料 (Excel)", scrapBackToList: "返回完整列表", repackStatsBtn: "Repack 統計", rosterBtn: "STORE 負責人", entryTypeCheck: "庫存檢查", entryTypeRepack: "Repack (合併袋)", repackStatsTitle: "Repack 統計", statsTabHeatmap: "熱力圖", statsTabBar: "長條圖", statsTotalEvents: "Repack 次數", statsTotalBags: "減少的袋數", statsShiftCompare: "A班 / B班", statsTopItems: "Repack 最多的項目", statsTopZones: "相關最多的區域", rosterTitle: "STORE 負責人", rosterAddBtn: "新增/編輯員工", statsExportReportBtn: "Excel 資料 (A4)", statsExportPdfBtn: "圖像報告 (PDF)" },
             mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
                 reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
                 staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
@@ -2482,7 +2636,7 @@
                 issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
                 issuesPanelTitle: "ပြဿနာတိုင်ကြားမှုများ", issuesFilterPending: "စောင့်ဆိုင်းဆဲ", issuesFilterAll: "အားလုံး", noIssues: "တိုင်ကြားမှုမရှိပါ",
                 issueCardReporter: "တိုင်ကြားသူ", issueCardResolve: "ပြီးမြောက်ကြောင်းအမှတ်အသားပြုရန်", issueResolved: "ပြီးမြောက်ပါပြီ",
-                scrapCheckBtn: "အပိုအကြွင်းစစ်ရန်", scrapCheckTitle: "အပိုအကြွင်းစစ်ရန်", scrapSearchPh: "ITEM ကုဒ်ရိုက်ပါ...", scrapCurrentLabel: "မှတ်တမ်းတင်ထားသော နောက်ဆုံးအရေအတွက်", scrapBagsLabel: "အိတ်အရေအတွက်", scrapPiecesLabel: "အိတ်ထဲ စုစုပေါင်းအရေအတွက်", scrapNotePh: "မှတ်ချက် (ရှိလျှင်)", scrapSaveBtn: "ဤစစ်ဆေးမှုကို သိမ်းရန်", scrapHistoryLabel: "နောက်ဆုံးစစ်ဆေးမှုများ", scrapShiftLabel: "အဆိုင်း", scrapResultLabel: "ရလဒ်", scrapReceivedLabel: "Packing မှလက်ခံရရှိ (ခု)", scrapReprintLabel: "RePrint အရေအတွက်", scrapExportItemBtn: "ဒီပစ္စည်းကို Export လုပ်ရန်", scrapExportAllBtn: "အကြွင်းအားလုံး Export (Excel)", scrapBackToList: "စာရင်းအားလုံးသို့ ပြန်သွားရန်", repackStatsBtn: "Repack စာရင်းအင်း", rosterBtn: "STORE တာဝန်ခံများ", entryTypeCheck: "စတော့စစ်ဆေးခြင်း", entryTypeRepack: "Repack (အိတ်ပေါင်းစည်းခြင်း)", repackStatsTitle: "Repack စာရင်းအင်း", statsTabHeatmap: "Heatmap", statsTabBar: "ဘားချပ်", statsTotalEvents: "Repack အကြိမ်ရေ", statsTotalBags: "လျော့သွားသောအိတ်", statsShiftCompare: "အဆိုင်း A / B", statsTopItems: "Repack အများဆုံးပစ္စည်းများ", statsTopZones: "သက်ဆိုင်ရာနေရာများ", rosterTitle: "STORE တာဝန်ခံများ", rosterAddBtn: "ဝန်ထမ်းထည့်/ပြင်ရန်" },
+                scrapCheckBtn: "အပိုအကြွင်းစစ်ရန်", scrapCheckTitle: "အပိုအကြွင်းစစ်ရန်", scrapSearchPh: "ITEM ကုဒ်ရိုက်ပါ...", scrapCurrentLabel: "မှတ်တမ်းတင်ထားသော နောက်ဆုံးအရေအတွက်", scrapBagsLabel: "အိတ်အရေအတွက်", scrapPiecesLabel: "အိတ်ထဲ စုစုပေါင်းအရေအတွက်", scrapNotePh: "မှတ်ချက် (ရှိလျှင်)", scrapSaveBtn: "ဤစစ်ဆေးမှုကို သိမ်းရန်", scrapHistoryLabel: "နောက်ဆုံးစစ်ဆေးမှုများ", scrapShiftLabel: "အဆိုင်း", scrapResultLabel: "ရလဒ်", scrapReceivedLabel: "Packing မှလက်ခံရရှိ (ခု)", scrapReprintLabel: "RePrint အရေအတွက်", scrapExportItemBtn: "ဒီပစ္စည်းကို Export လုပ်ရန်", scrapExportAllBtn: "အကြွင်းအားလုံး Export (Excel)", scrapBackToList: "စာရင်းအားလုံးသို့ ပြန်သွားရန်", repackStatsBtn: "Repack စာရင်းအင်း", rosterBtn: "STORE တာဝန်ခံများ", entryTypeCheck: "စတော့စစ်ဆေးခြင်း", entryTypeRepack: "Repack (အိတ်ပေါင်းစည်းခြင်း)", repackStatsTitle: "Repack စာရင်းအင်း", statsTabHeatmap: "Heatmap", statsTabBar: "ဘားချပ်", statsTotalEvents: "Repack အကြိမ်ရေ", statsTotalBags: "လျော့သွားသောအိတ်", statsShiftCompare: "အဆိုင်း A / B", statsTopItems: "Repack အများဆုံးပစ္စည်းများ", statsTopZones: "သက်ဆိုင်ရာနေရာများ", rosterTitle: "STORE တာဝန်ခံများ", rosterAddBtn: "ဝန်ထမ်းထည့်/ပြင်ရန်", statsExportReportBtn: "Excel ဒေတာ (A4)", statsExportPdfBtn: "ပုံစံအစီရင်ခံစာ (PDF)" },
             en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
                 reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
                 staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
@@ -2492,7 +2646,7 @@
                 issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",
                 issuesPanelTitle: "Reported Issues", issuesFilterPending: "Pending", issuesFilterAll: "All", noIssues: "No issues reported",
                 issueCardReporter: "Reporter", issueCardResolve: "Mark as resolved", issueResolved: "Resolved",
-                scrapCheckBtn: "Check Scrap", scrapCheckTitle: "Check Scrap", scrapSearchPh: "Type ITEM code...", scrapCurrentLabel: "Last recorded scrap quantity", scrapBagsLabel: "Bags", scrapPiecesLabel: "Total pieces in bag", scrapNotePh: "Note (optional) e.g. partially sold", scrapSaveBtn: "Save this check", scrapHistoryLabel: "Recent check history", scrapShiftLabel: "Shift", scrapResultLabel: "Result", scrapReceivedLabel: "Received from Packing (pcs)", scrapReprintLabel: "RePrint Qty", scrapExportItemBtn: "Export this item", scrapExportAllBtn: "Export all scrap data (Excel)", scrapBackToList: "Back to full list", repackStatsBtn: "Repack Stats", rosterBtn: "STORE Roster", entryTypeCheck: "Stock Check", entryTypeRepack: "Repack (combine bags)", repackStatsTitle: "Repack Statistics", statsTabHeatmap: "Heatmap", statsTabBar: "Bar Chart", statsTotalEvents: "Repack Events", statsTotalBags: "Bags Reduced", statsShiftCompare: "Shift A / Shift B", statsTopItems: "Top Items by Repack", statsTopZones: "Top Related Zones", rosterTitle: "STORE Roster", rosterAddBtn: "Add/Edit Staff" }
+                scrapCheckBtn: "Check Scrap", scrapCheckTitle: "Check Scrap", scrapSearchPh: "Type ITEM code...", scrapCurrentLabel: "Last recorded scrap quantity", scrapBagsLabel: "Bags", scrapPiecesLabel: "Total pieces in bag", scrapNotePh: "Note (optional) e.g. partially sold", scrapSaveBtn: "Save this check", scrapHistoryLabel: "Recent check history", scrapShiftLabel: "Shift", scrapResultLabel: "Result", scrapReceivedLabel: "Received from Packing (pcs)", scrapReprintLabel: "RePrint Qty", scrapExportItemBtn: "Export this item", scrapExportAllBtn: "Export all scrap data (Excel)", scrapBackToList: "Back to full list", repackStatsBtn: "Repack Stats", rosterBtn: "STORE Roster", entryTypeCheck: "Stock Check", entryTypeRepack: "Repack (combine bags)", repackStatsTitle: "Repack Statistics", statsTabHeatmap: "Heatmap", statsTabBar: "Bar Chart", statsTotalEvents: "Repack Events", statsTotalBags: "Bags Reduced", statsShiftCompare: "Shift A / Shift B", statsTopItems: "Top Items by Repack", statsTopZones: "Top Related Zones", rosterTitle: "STORE Roster", rosterAddBtn: "Add/Edit Staff", statsExportReportBtn: "Excel Data (A4)", statsExportPdfBtn: "Visual Report (PDF)" }
         };
 
         function changeLanguage(lang) {

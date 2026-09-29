@@ -554,6 +554,9 @@
                     </div>
 
                     <div id="scrapDetailWrap" class="hidden space-y-3">
+                        <!-- 🆕 เตือนถ้าไอเทมนี้มีใบติดต่องานผูกอยู่ (แสดงไม่ว่าจะมีเศษหรือไม่) -->
+                        <div id="scrapNoticeWarning"></div>
+
                         <!-- สถานะปัจจุบัน + ปุ่ม Repack เด้งเตือน -->
                         <div id="scrapCurrentBox" class="hidden glass-input rounded-2xl p-4">
                             <div class="flex items-center justify-between gap-3 flex-wrap">
@@ -1004,6 +1007,7 @@
         let locationData = {};
         let masterData = {}; 
         let scrapDataMap = {}; // 🆕 item_code -> แถวล่าสุดจาก latest_scrap_stock (สำหรับโชว์ในผลค้นหา)
+        let noticesByItemMap = {}; // 🆕 item_code (upper) -> [{category, content, created_at}, ...] จากใบติดต่องาน
 
         function boxIdsFor(locId) {
             const ids = ['box-' + locId];
@@ -1014,6 +1018,21 @@
                 }
             });
             return ids;
+        }
+
+        // 🆕 สร้างแถบเตือน "มีใบติดต่องาน" ใช้ร่วมกันทั้งผลค้นหา/รายละเอียดช่อง/เช็คงานเศษ
+        function noticeWarningHtml(itemCode) {
+            const notices = noticesByItemMap[itemCode.toUpperCase()];
+            if (!notices || notices.length === 0) return '';
+            const latest = notices[0];
+            const more = notices.length > 1 ? ` <span class="opacity-75">(+${notices.length - 1} ใบอื่น)</span>` : '';
+            return `<div class="mt-1.5 bg-red-500/15 text-red-400 border border-red-500/30 rounded-lg px-2 py-1.5 text-[10px] font-bold flex items-start gap-1.5">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                <span>มีใบติดต่องาน [${escapeHtmlLite(latest.category)}]: ${escapeHtmlLite(latest.content).slice(0, 60)}${latest.content.length > 60 ? '…' : ''}${more}</span>
+            </div>`;
+        }
+        function escapeHtmlLite(s) {
+            return (s || '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
 
         async function fetchAllData() {
@@ -1028,6 +1047,20 @@
             const resScrap = await sbClient.from("latest_scrap_stock").select("*");
             if (!resScrap.error && resScrap.data) {
                 resScrap.data.forEach(row => { if (hasRemainingScrap(row)) scrapDataMap[row.item_code.toUpperCase()] = row; });
+            }
+
+            // 🆕 โหลดใบติดต่องานที่ผูกกับไอเทม เพื่อเตือนตอนค้นหา/ดูรายละเอียด/เช็คงานเศษ
+            const resNotices = await sbClient.from("job_notice_items").select("item_code, job_notices(category, content, created_at)");
+            if (!resNotices.error && resNotices.data) {
+                resNotices.data.forEach(row => {
+                    if (!row.job_notices) return;
+                    const key = row.item_code.toUpperCase();
+                    if (!noticesByItemMap[key]) noticesByItemMap[key] = [];
+                    noticesByItemMap[key].push(row.job_notices);
+                });
+                Object.keys(noticesByItemMap).forEach(key => {
+                    noticesByItemMap[key].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                });
             }
 
             const resLoc = await sbClient.from("locations").select("*");
@@ -1140,6 +1173,7 @@
                                 <span><i class="fa-solid fa-box-open text-slate-500"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></span>
                             </div>
                             ${scrapLine}
+                            ${noticeWarningHtml(itemCode)}
                         </div>`;
                     });
 
@@ -1218,6 +1252,7 @@
                                 <div><i class="fa-solid fa-box-open text-slate-400 mr-1"></i> ${t.labelPack}: <span class="text-[var(--text-main)] font-bold">${mData.pack_type} ${mData.bag_color}</span></div>
                             </div>
                             ${scrapLine}
+                            ${noticeWarningHtml(itemCode)}
                         </div>
                     </div>`;
                 }
@@ -1705,9 +1740,10 @@
             } else {
                 html += rows.map(r => {
                     const m = masterData[r.item_code.toUpperCase()] || {};
+                    const hasNotice = (noticesByItemMap[r.item_code.toUpperCase()] || []).length > 0;
                     return `<div class="suggestion-item" onclick="selectScrapItem('${r.item_code.replace(/'/g, "\\'")}')">
                         <div class="flex justify-between items-center gap-2">
-                          <span class="text-sm font-black text-[var(--text-main)] truncate">${r.item_code}</span>
+                          <span class="text-sm font-black text-[var(--text-main)] truncate">${r.item_code}${hasNotice ? ' <i class="fa-solid fa-triangle-exclamation text-red-400 text-[10px]" title="มีใบติดต่องานผูกอยู่"></i>' : ''}</span>
                           <span class="text-[10px] font-black text-amber-500 shrink-0">${r.qty_bags} ถุง</span>
                         </div>
                         <span class="text-[10px] font-bold text-[var(--text-sub)] mt-1 block truncate">${m.code_name || '-'} • อัปเดต ${formatScrapTime(r.checked_at)}</span>
@@ -1783,6 +1819,8 @@
             document.getElementById('scrapEmptyState').classList.add('hidden');
             document.getElementById('scrapDetailWrap').classList.remove('hidden');
 
+            renderScrapNoticeWarning(itemCode);
+
             document.getElementById('scrapShift').value = 'A';
             document.getElementById('scrapQtyBags').value = '';
             document.getElementById('scrapQtyPieces').value = '';
@@ -1797,6 +1835,22 @@
             setEntryType('check');
             onScrapBagsChange();
             await loadScrapDataForItem(itemCode);
+        }
+
+        // 🆕 โชว์ใบติดต่องานทั้งหมดที่ผูกกับไอเทมนี้ (เต็มรูปแบบ ไม่ตัดทอน) ในหน้าเช็คงานเศษ
+        function renderScrapNoticeWarning(itemCode) {
+            const box = document.getElementById('scrapNoticeWarning');
+            const notices = noticesByItemMap[itemCode.toUpperCase()];
+            if (!notices || notices.length === 0) { box.innerHTML = ''; return; }
+            box.innerHTML = `<div class="bg-red-500/15 border border-red-500/30 rounded-2xl p-3">
+                <div class="text-[11px] font-black text-red-400 uppercase mb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i> มีใบติดต่องานผูกกับไอเทมนี้ (${notices.length} ใบ)</div>
+                <div class="space-y-1.5">
+                    ${notices.map(n => `<div class="text-[11px] text-[var(--text-main)] font-semibold bg-[var(--input-bg)] rounded-lg px-2.5 py-1.5">
+                        <span class="text-red-400 font-black">[${escapeHtmlLite(n.category)}]</span> ${escapeHtmlLite(n.content)}
+                        <span class="text-[var(--text-sub)] font-medium block mt-0.5">${new Date(n.created_at).toLocaleDateString('th-TH')}</span>
+                    </div>`).join('')}
+                </div>
+            </div>`;
         }
 
         // 🆕 ถ้าจำนวนถุง >= 2 ให้โชว์ช่องกรอกจำนวนชิ้นแยกทีละถุง แทนช่องรวมช่องเดียว (โหมดเช็คสต็อก)

@@ -328,6 +328,16 @@
             </div>
 
             <div>
+                <label class="text-subhead block mb-1.5" data-i18n="labelItems">ไอเทมที่เกี่ยวข้อง (ถ้ามี)</label>
+                <div class="relative mb-2">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
+                    <input type="text" id="noticeItemSearch" oninput="onNoticeItemSearchInput(this.value)" data-i18n-placeholder="itemSearchPh" placeholder="ค้นหารหัส ITEM หรือชื่อสินค้า..." autocomplete="off" class="w-full glass-input rounded-2xl py-2.5 pl-9 pr-3 text-sm outline-none">
+                    <div id="noticeItemSuggest" class="hidden absolute z-20 top-[calc(100%+4px)] left-0 right-0 max-h-[160px] overflow-y-auto custom-scroll material card p-1.5"></div>
+                </div>
+                <div id="selectedItemTags" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
+            <div>
                 <label class="text-subhead block mb-1.5" data-i18n="labelCustomers">ลูกค้าที่เกี่ยวข้อง (เลือกได้หลายราย)</label>
                 <div id="customerCheckList" class="max-h-[150px] overflow-y-auto custom-scroll mb-2"></div>
                 <button type="button" onclick="toggleNewCustomerForm()" class="text-xs font-bold text-sky-500"><i class="fa-solid fa-circle-plus mr-1"></i><span data-i18n="btnAddCustomer">เพิ่มลูกค้าใหม่</span></button>
@@ -364,6 +374,7 @@
             <button onclick="closeDetailModal()" class="w-8 h-8 flex items-center justify-center rounded-full btn-ghost"><i class="fa-solid fa-xmark text-sm"></i></button>
         </div>
         <p id="detailContent" class="text-sm font-semibold text-[var(--text-main)] mb-3 whitespace-pre-wrap"></p>
+        <div id="detailItems" class="mb-2 flex flex-wrap gap-1.5"></div>
         <div id="detailCustomers" class="mb-3 flex flex-wrap gap-1.5"></div>
         <p id="detailMeta" class="text-footnote mb-4"></p>
         <div id="detailPhotos" class="grid grid-cols-2 gap-2"></div>
@@ -411,6 +422,8 @@ var allNotices = [];
 var pendingPhotos = [];
 var pendingPhotoPreviews = [];
 var selectedCustomerCodes = new Set();
+var selectedItemCodes = new Set();
+var itemMasterMap = {}; // item_code (upper) -> { item_code, code_name, cl }
 var activeCategoryFilter = '';
 
 function escapeHtml(s) {
@@ -421,6 +434,12 @@ function showLoading(show) {
     const el = document.getElementById("loadingState");
     if (show) { el.classList.remove("hidden"); el.classList.remove("opacity-0"); }
     else { el.classList.add("opacity-0"); setTimeout(() => el.classList.add("hidden"), 250); }
+}
+
+async function fetchItemMaster() {
+    const { data, error } = await sbClient.from('part_master').select('item_code, code_name, cl');
+    if (error) { console.error(error); return; }
+    (data || []).forEach(item => { itemMasterMap[item.item_code.toUpperCase()] = item; });
 }
 
 async function fetchCategories() {
@@ -496,6 +515,61 @@ function toggleCustomerSelect(code) {
     renderCustomerCheckboxes();
 }
 
+/* --- 🆕 เลือกไอเทมที่เกี่ยวข้องกับใบติดต่องาน (ค้นหาแบบ autocomplete เพราะไอเทมมีเยอะ) --- */
+function onNoticeItemSearchInput(val) {
+    const term = val.trim().toUpperCase();
+    const box = document.getElementById('noticeItemSuggest');
+    if (term.length < 2) { box.classList.add('hidden'); return; }
+
+    const matches = Object.values(itemMasterMap).filter(item =>
+        !selectedItemCodes.has(item.item_code.toUpperCase()) && (
+            item.item_code.toUpperCase().includes(term) ||
+            (item.code_name && item.code_name.toUpperCase().includes(term))
+        )
+    ).slice(0, 8);
+
+    if (matches.length === 0) {
+        box.innerHTML = `<div class="p-2.5 text-xs text-[var(--text-sub)] text-center">ไม่พบไอเทมนี้</div>`;
+    } else {
+        box.innerHTML = matches.map(item => `
+            <div class="p-2.5 rounded-xl hover:bg-[var(--card-hover)] cursor-pointer" onclick="selectNoticeItem('${item.item_code.replace(/'/g, "\\'")}')">
+                <div class="text-xs font-black text-[var(--text-main)]">${escapeHtml(item.item_code)}</div>
+                <div class="text-[10px] text-[var(--text-sub)] font-semibold">${escapeHtml(item.code_name || '-')} ${item.cl ? '• ' + escapeHtml(item.cl) : ''}</div>
+            </div>`).join('');
+    }
+    box.classList.remove('hidden');
+}
+
+function selectNoticeItem(code) {
+    selectedItemCodes.add(code.toUpperCase());
+    document.getElementById('noticeItemSearch').value = '';
+    document.getElementById('noticeItemSuggest').classList.add('hidden');
+    renderSelectedItemTags();
+}
+
+function removeNoticeItem(code) {
+    selectedItemCodes.delete(code);
+    renderSelectedItemTags();
+}
+
+function renderSelectedItemTags() {
+    const wrap = document.getElementById('selectedItemTags');
+    wrap.innerHTML = Array.from(selectedItemCodes).map(code => {
+        const m = itemMasterMap[code] || {};
+        return `<span class="tag-badge text-sky-500 flex items-center gap-1.5">
+            ${escapeHtml(code)}${m.code_name ? ' · ' + escapeHtml(m.code_name) : ''}
+            <i class="fa-solid fa-xmark cursor-pointer" onclick="removeNoticeItem('${code.replace(/'/g, "\\'")}')"></i>
+        </span>`;
+    }).join('');
+}
+
+document.addEventListener('click', (e) => {
+    const box = document.getElementById('noticeItemSuggest');
+    if (box && !box.classList.contains('hidden') && !e.target.closest('#noticeItemSearch') && !e.target.closest('#noticeItemSuggest')) {
+        box.classList.add('hidden');
+    }
+});
+
 function toggleNewCustomerForm() { document.getElementById('newCustomerWrap').classList.toggle('hidden'); }
 
 async function addNewCustomerInline() {
@@ -564,8 +638,12 @@ function openAddModal() {
     document.getElementById('noticeContent').value = '';
     document.getElementById('newCustomerWrap').classList.add('hidden');
     selectedCustomerCodes.clear();
+    selectedItemCodes.clear();
+    document.getElementById('noticeItemSearch').value = '';
+    document.getElementById('noticeItemSuggest').classList.add('hidden');
     pendingPhotos = []; pendingPhotoPreviews = [];
     renderCustomerCheckboxes();
+    renderSelectedItemTags();
     renderPhotoStrip();
     document.getElementById('addModal').classList.add('active');
 }
@@ -611,6 +689,10 @@ async function submitNotice() {
             const rows = Array.from(selectedCustomerCodes).map(code => ({ notice_id: noticeId, customer_code: code }));
             await sbClient.from('job_notice_customers').insert(rows);
         }
+        if (selectedItemCodes.size > 0) {
+            const itemRows = Array.from(selectedItemCodes).map(code => ({ notice_id: noticeId, item_code: code }));
+            await sbClient.from('job_notice_items').insert(itemRows);
+        }
 
         alert('✅ บันทึกใบติดต่องานเรียบร้อยแล้ว');
         closeAddModal();
@@ -628,7 +710,7 @@ async function submitNotice() {
 async function fetchNotices() {
     showLoading(true);
     let q = sbClient.from('job_notices')
-        .select('*, job_notice_customers(customer_code, notice_customers(customer_code, customer_name))')
+        .select('*, job_notice_customers(customer_code, notice_customers(customer_code, customer_name)), job_notice_items(item_code)')
         .order('created_at', { ascending: false });
 
     if (activeCategoryFilter) q = q.eq('category', activeCategoryFilter);
@@ -658,7 +740,8 @@ function renderNotices() {
 
     let list = allNotices.filter(n => {
         if (custFilter && !(n.job_notice_customers || []).some(c => c.customer_code === custFilter)) return false;
-        if (term && !((n.content || '').toLowerCase().includes(term) || (n.category || '').toLowerCase().includes(term))) return false;
+        if (term && !((n.content || '').toLowerCase().includes(term) || (n.category || '').toLowerCase().includes(term) ||
+            (n.job_notice_items || []).some(it => it.item_code.toLowerCase().includes(term)))) return false;
         return true;
     });
 
@@ -672,12 +755,14 @@ function renderNotices() {
 
 function noticeCardHtml(n) {
     const custs = (n.job_notice_customers || []).map(c => c.notice_customers ? (c.notice_customers.customer_name || c.notice_customers.customer_code) : c.customer_code);
+    const items = (n.job_notice_items || []).map(it => it.item_code);
     const thumb = (n.photo_urls || [])[0];
     return `<div class="notice-card material card overflow-hidden" onclick="openDetail('${n.id}')">
         ${thumb ? `<img src="${thumb}" class="w-full h-32 object-cover">` : `<div class="w-full h-32 flex items-center justify-center bg-[var(--input-bg)]"><i class="fa-solid fa-file-lines text-2xl text-[var(--text-sub)] opacity-60"></i></div>`}
         <div class="p-3.5">
             <div class="flex items-center gap-1.5 mb-1.5"><span class="cat-dot"></span><span class="text-[11px] font-bold text-sky-500">${escapeHtml(n.category || '-')}</span></div>
             <p class="text-sm font-bold text-[var(--text-main)] line-clamp-2 mb-2 leading-snug">${escapeHtml(n.content || '')}</p>
+            ${items.length ? `<div class="flex flex-wrap gap-1 mb-1.5">${items.slice(0, 3).map(code => `<span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full font-mono">${escapeHtml(code)}</span>`).join('')}${items.length > 3 ? `<span class="text-[10px] font-semibold text-[var(--text-sub)]">+${items.length - 3}</span>` : ''}</div>` : ''}
             ${custs.length ? `<div class="flex flex-wrap gap-1 mb-2">${custs.slice(0, 2).map(c => `<span class="text-[10px] font-semibold text-[var(--text-sub)] bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded-full">${escapeHtml(c)}</span>`).join('')}${custs.length > 2 ? `<span class="text-[10px] font-semibold text-[var(--text-sub)]">+${custs.length - 2}</span>` : ''}</div>` : ''}
             <div class="text-footnote flex justify-between font-medium">
                 <span>${new Date(n.created_at).toLocaleDateString('th-TH')}</span>
@@ -691,9 +776,11 @@ function openDetail(id) {
     const n = allNotices.find(x => x.id === id);
     if (!n) return;
     const custs = (n.job_notice_customers || []).map(c => c.notice_customers ? (c.notice_customers.customer_name || c.notice_customers.customer_code) : c.customer_code);
+    const items = (n.job_notice_items || []).map(it => it.item_code);
 
     document.getElementById('detailCategory').innerHTML = `<span class="cat-dot"></span> ${escapeHtml(n.category || '-')}`;
     document.getElementById('detailContent').innerText = n.content || '';
+    document.getElementById('detailItems').innerHTML = items.length ? items.map(code => `<span class="text-[11px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full font-mono">${escapeHtml(code)}</span>`).join('') : '';
     document.getElementById('detailCustomers').innerHTML = custs.length ? custs.map(c => `<span class="text-[11px] font-semibold text-[var(--text-sub)] bg-[var(--input-bg)] border border-[var(--glass-border)] px-2.5 py-1 rounded-full">${escapeHtml(c)}</span>`).join('') : '';
     document.getElementById('detailMeta').innerHTML = `${new Date(n.created_at).toLocaleString('th-TH')} · ${escapeHtml(n.created_by || '-')}`;
     const photos = n.photo_urls || [];
@@ -808,10 +895,10 @@ function enableSheetDrag(sheetId, handleId, closeFn) {
    🌍 ระบบแปลภาษา 4 ชาติ
 ============================================================= */
 const translations = {
-    th: { appTitle: "ใบติดต่องาน", appDesc: "Job Notices · Packing Store", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน", navNotices: "ใบติดต่องาน", filterTitle: "ตัวกรอง", btnAddNotice: "เพิ่มใบติดต่องาน", filterCustomer: "ลูกค้า", filterStartDate: "เริ่มต้น", filterEndDate: "สิ้นสุด", searchPh: "ค้นหาข้อความ...", quickClear: "ล้างตัวกรอง", loadingText: "กำลังโหลด...", emptyTitle: "ไม่พบใบติดต่องาน", filterAllOption: "ทั้งหมด", selectCategoryPh: "-- เลือกประเภท --", addNewCategoryOption: "+ เพิ่มประเภทใหม่", modalAddTitle: "เพิ่มใบติดต่องาน", labelCategory: "ประเภทใบติดต่องาน", newCategoryPh: "พิมพ์ชื่อประเภทใหม่", labelContent: "เนื้อหา / รายละเอียด", contentPh: "สรุปว่าใบนี้แจ้งเรื่องอะไร...", labelCustomers: "ลูกค้าที่เกี่ยวข้อง (เลือกได้หลายราย)", btnAddCustomer: "เพิ่มลูกค้าใหม่", newCustomerCodePh: "รหัสลูกค้า", newCustomerNamePh: "ชื่อเต็ม", btnConfirmAdd: "เพิ่มลูกค้า", labelPhotos: "รูปเอกสาร", btnTakePhoto: "ถ่าย/แนบรูปเอกสาร", btnSubmit: "บันทึกใบติดต่องาน", accessDeniedMsg: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณาเข้าจากหน้าเมนูหลักแล้วยืนยันตัวตนก่อน", backToMenu: "กลับหน้าเมนูหลัก" },
-    en: { appTitle: "Job Notices", appDesc: "Job Notices · Packing Store", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report", navNotices: "Notices", filterTitle: "Filters", btnAddNotice: "Add Job Notice", filterCustomer: "Customer", filterStartDate: "Start Date", filterEndDate: "End Date", searchPh: "Search text...", quickClear: "Clear filters", loadingText: "Loading...", emptyTitle: "No notices found", filterAllOption: "All", selectCategoryPh: "-- Select category --", addNewCategoryOption: "+ Add new category", modalAddTitle: "Add Job Notice", labelCategory: "Notice Category", newCategoryPh: "Type new category name", labelContent: "Content / Details", contentPh: "Summarize what this notice is about...", labelCustomers: "Related Customers (multi-select)", btnAddCustomer: "Add New Customer", newCustomerCodePh: "Customer code", newCustomerNamePh: "Full name", btnConfirmAdd: "Add Customer", labelPhotos: "Document Photos", btnTakePhoto: "Take/Attach Photo", btnSubmit: "Save Job Notice", accessDeniedMsg: "This page is for supervisors only. Please log in from the main menu first.", backToMenu: "Back to Main Menu" },
-    zh: { appTitle: "工作通知單", appDesc: "工作通知單 · Packing Store", navMenu: "主頁", navDispatch: "發貨", navReport: "報告", navNotices: "通知單", filterTitle: "篩選", btnAddNotice: "新增通知單", filterCustomer: "客戶", filterStartDate: "開始日期", filterEndDate: "結束日期", searchPh: "搜尋文字...", quickClear: "清除篩選", loadingText: "載入中...", emptyTitle: "找不到通知單", filterAllOption: "全部", selectCategoryPh: "-- 選擇類別 --", addNewCategoryOption: "+ 新增類別", modalAddTitle: "新增通知單", labelCategory: "通知單類別", newCategoryPh: "輸入新類別名稱", labelContent: "內容/詳情", contentPh: "簡述此通知單內容...", labelCustomers: "相關客戶 (可多選)", btnAddCustomer: "新增客戶", newCustomerCodePh: "客戶代碼", newCustomerNamePh: "全名", btnConfirmAdd: "新增客戶", labelPhotos: "文件照片", btnTakePhoto: "拍照/附加照片", btnSubmit: "儲存通知單", accessDeniedMsg: "此頁面僅供主管使用，請先從主選單登入。", backToMenu: "返回主選單" },
-    mm: { appTitle: "ဆက်သွယ်ရေးစာ", appDesc: "ဆက်သွယ်ရေးစာ · Packing Store", navMenu: "ပင်မ", navDispatch: "ထုတ်ပေး", navReport: "အစီရင်ခံစာ", navNotices: "ဆက်သွယ်ရေးစာ", filterTitle: "စစ်ထုတ်ရန်", btnAddNotice: "ဆက်သွယ်ရေးစာထည့်ရန်", filterCustomer: "ဖောက်သည်", filterStartDate: "စတင်ရက်", filterEndDate: "ပြီးဆုံးရက်", searchPh: "စာသားရှာရန်...", quickClear: "စစ်ထုတ်မှုရှင်းရန်", loadingText: "ဖွင့်နေသည်...", emptyTitle: "ဆက်သွယ်ရေးစာမတွေ့ပါ", filterAllOption: "အားလုံး", selectCategoryPh: "-- အမျိုးအစားရွေးပါ --", addNewCategoryOption: "+ အမျိုးအစားအသစ်", modalAddTitle: "ဆက်သွယ်ရေးစာထည့်ရန်", labelCategory: "စာအမျိုးအစား", newCategoryPh: "အမျိုးအစားအသစ်အမည်ရိုက်ပါ", labelContent: "အကြောင်းအရာ", contentPh: "အကျဉ်းချုပ်ရေးပါ...", labelCustomers: "သက်ဆိုင်သောဖောက်သည်များ", btnAddCustomer: "ဖောက်သည်အသစ်", newCustomerCodePh: "ဖောက်သည်ကုဒ်", newCustomerNamePh: "အမည်အပြည့်အစုံ", btnConfirmAdd: "ဖောက်သည်ထည့်ရန်", labelPhotos: "စာရွက်ဓာတ်ပုံများ", btnTakePhoto: "ဓာတ်ပုံရိုက်ရန်", btnSubmit: "သိမ်းရန်", accessDeniedMsg: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။", backToMenu: "ပင်မမီနူးသို့" }
+    th: { appTitle: "ใบติดต่องาน", appDesc: "Job Notices · Packing Store", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน", navNotices: "ใบติดต่องาน", filterTitle: "ตัวกรอง", btnAddNotice: "เพิ่มใบติดต่องาน", filterCustomer: "ลูกค้า", filterStartDate: "เริ่มต้น", filterEndDate: "สิ้นสุด", searchPh: "ค้นหาข้อความ...", quickClear: "ล้างตัวกรอง", loadingText: "กำลังโหลด...", emptyTitle: "ไม่พบใบติดต่องาน", filterAllOption: "ทั้งหมด", selectCategoryPh: "-- เลือกประเภท --", addNewCategoryOption: "+ เพิ่มประเภทใหม่", modalAddTitle: "เพิ่มใบติดต่องาน", labelCategory: "ประเภทใบติดต่องาน", newCategoryPh: "พิมพ์ชื่อประเภทใหม่", labelContent: "เนื้อหา / รายละเอียด", contentPh: "สรุปว่าใบนี้แจ้งเรื่องอะไร...", labelItems: "ไอเทมที่เกี่ยวข้อง (ถ้ามี)", itemSearchPh: "ค้นหารหัส ITEM หรือชื่อสินค้า...", labelCustomers: "ลูกค้าที่เกี่ยวข้อง (เลือกได้หลายราย)", btnAddCustomer: "เพิ่มลูกค้าใหม่", newCustomerCodePh: "รหัสลูกค้า", newCustomerNamePh: "ชื่อเต็ม", btnConfirmAdd: "เพิ่มลูกค้า", labelPhotos: "รูปเอกสาร", btnTakePhoto: "ถ่าย/แนบรูปเอกสาร", btnSubmit: "บันทึกใบติดต่องาน", accessDeniedMsg: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณาเข้าจากหน้าเมนูหลักแล้วยืนยันตัวตนก่อน", backToMenu: "กลับหน้าเมนูหลัก" },
+    en: { appTitle: "Job Notices", appDesc: "Job Notices · Packing Store", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report", navNotices: "Notices", filterTitle: "Filters", btnAddNotice: "Add Job Notice", filterCustomer: "Customer", filterStartDate: "Start Date", filterEndDate: "End Date", searchPh: "Search text...", quickClear: "Clear filters", loadingText: "Loading...", emptyTitle: "No notices found", filterAllOption: "All", selectCategoryPh: "-- Select category --", addNewCategoryOption: "+ Add new category", modalAddTitle: "Add Job Notice", labelCategory: "Notice Category", newCategoryPh: "Type new category name", labelContent: "Content / Details", contentPh: "Summarize what this notice is about...", labelItems: "Related Items (optional)", itemSearchPh: "Search ITEM code or name...", labelCustomers: "Related Customers (multi-select)", btnAddCustomer: "Add New Customer", newCustomerCodePh: "Customer code", newCustomerNamePh: "Full name", btnConfirmAdd: "Add Customer", labelPhotos: "Document Photos", btnTakePhoto: "Take/Attach Photo", btnSubmit: "Save Job Notice", accessDeniedMsg: "This page is for supervisors only. Please log in from the main menu first.", backToMenu: "Back to Main Menu" },
+    zh: { appTitle: "工作通知單", appDesc: "工作通知單 · Packing Store", navMenu: "主頁", navDispatch: "發貨", navReport: "報告", navNotices: "通知單", filterTitle: "篩選", btnAddNotice: "新增通知單", filterCustomer: "客戶", filterStartDate: "開始日期", filterEndDate: "結束日期", searchPh: "搜尋文字...", quickClear: "清除篩選", loadingText: "載入中...", emptyTitle: "找不到通知單", filterAllOption: "全部", selectCategoryPh: "-- 選擇類別 --", addNewCategoryOption: "+ 新增類別", modalAddTitle: "新增通知單", labelCategory: "通知單類別", newCategoryPh: "輸入新類別名稱", labelContent: "內容/詳情", contentPh: "簡述此通知單內容...", labelItems: "相關項目 (選填)", itemSearchPh: "搜尋 ITEM 代碼或名稱...", labelCustomers: "相關客戶 (可多選)", btnAddCustomer: "新增客戶", newCustomerCodePh: "客戶代碼", newCustomerNamePh: "全名", btnConfirmAdd: "新增客戶", labelPhotos: "文件照片", btnTakePhoto: "拍照/附加照片", btnSubmit: "儲存通知單", accessDeniedMsg: "此頁面僅供主管使用，請先從主選單登入。", backToMenu: "返回主選單" },
+    mm: { appTitle: "ဆက်သွယ်ရေးစာ", appDesc: "ဆက်သွယ်ရေးစာ · Packing Store", navMenu: "ပင်မ", navDispatch: "ထုတ်ပေး", navReport: "အစီရင်ခံစာ", navNotices: "ဆက်သွယ်ရေးစာ", filterTitle: "စစ်ထုတ်ရန်", btnAddNotice: "ဆက်သွယ်ရေးစာထည့်ရန်", filterCustomer: "ဖောက်သည်", filterStartDate: "စတင်ရက်", filterEndDate: "ပြီးဆုံးရက်", searchPh: "စာသားရှာရန်...", quickClear: "စစ်ထုတ်မှုရှင်းရန်", loadingText: "ဖွင့်နေသည်...", emptyTitle: "ဆက်သွယ်ရေးစာမတွေ့ပါ", filterAllOption: "အားလုံး", selectCategoryPh: "-- အမျိုးအစားရွေးပါ --", addNewCategoryOption: "+ အမျိုးအစားအသစ်", modalAddTitle: "ဆက်သွယ်ရေးစာထည့်ရန်", labelCategory: "စာအမျိုးအစား", newCategoryPh: "အမျိုးအစားအသစ်အမည်ရိုက်ပါ", labelContent: "အကြောင်းအရာ", contentPh: "အကျဉ်းချုပ်ရေးပါ...", labelItems: "သက်ဆိုင်သော ITEM (ရွေးချယ်ခွင့်)", itemSearchPh: "ITEM ကုဒ် သို့ အမည်ရှာရန်...", labelCustomers: "သက်ဆိုင်သောဖောက်သည်များ", btnAddCustomer: "ဖောက်သည်အသစ်", newCustomerCodePh: "ဖောက်သည်ကုဒ်", newCustomerNamePh: "အမည်အပြည့်အစုံ", btnConfirmAdd: "ဖောက်သည်ထည့်ရန်", labelPhotos: "စာရွက်ဓာတ်ပုံများ", btnTakePhoto: "ဓာတ်ပုံရိုက်ရန်", btnSubmit: "သိမ်းရန်", accessDeniedMsg: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။", backToMenu: "ပင်မမီနူးသို့" }
 };
 
 let currentLang = localStorage.getItem('wms_lang') || 'th';
@@ -833,6 +920,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     changeLanguage(currentLang);
     enableSheetDrag('addSheet', 'addSheetHandle', closeAddModal);
     enableSheetDrag('detailSheet', 'detailSheetHandle', closeDetailModal);
+    await fetchItemMaster();
     await fetchCategories();
     await fetchCustomers();
     await fetchNotices();

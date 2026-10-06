@@ -512,6 +512,19 @@
         </div>
     </div>
 
+    <!-- 🆕 Notice Detail Modal: กดจากแถบเตือน "มีใบติดต่องาน" ในหน้า layout เพื่อดูรายละเอียดเต็มๆ โดยไม่ต้องย้อนไปหน้าใบติดต่องาน (ยังต้องยืนยันรหัสพนักงานก่อนเหมือนฟีเจอร์อื่น) -->
+    <div id="noticeDetailModal" class="modal-overlay" onclick="closeNoticeDetail(event)">
+        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-lg shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-500/20 rounded-full blur-2xl"></div>
+            <div class="flex justify-between items-center mb-1 relative z-10">
+                <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-red-500"></i> <span data-i18n="noticeDetailTitle">รายละเอียดใบติดต่องาน</span></h3>
+                <button onclick="closeNoticeDetail(event)" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="noticeDetailItemLabel" class="text-sky-500 font-black text-sm mb-3 relative z-10"></div>
+            <div id="noticeDetailListContent" class="relative z-10 max-h-[55vh] overflow-y-auto custom-scroll pr-1 space-y-2"></div>
+        </div>
+    </div>
+
     <!-- 🆕 Staff ID Prompt Modal -->
     <div id="staffIdModal" class="modal-overlay">
         <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-xs shadow-2xl m-auto relative overflow-hidden staff-id-prompt" onclick="event.stopPropagation()">
@@ -1026,13 +1039,55 @@
             if (!notices || notices.length === 0) return '';
             const latest = notices[0];
             const more = notices.length > 1 ? ` <span class="opacity-75">(+${notices.length - 1} ใบอื่น)</span>` : '';
-            return `<div class="mt-1.5 bg-red-500/15 text-red-400 border border-red-500/30 rounded-lg px-2 py-1.5 text-[10px] font-bold flex items-start gap-1.5">
+            const safeCode = itemCode.toUpperCase().replace(/'/g, "\\'");
+            // 🆕 กดเข้าไปดูรายละเอียดใบติดต่องานได้เลย (ต้องยืนยันรหัสพนักงานก่อนเหมือนเดิม)
+            return `<div class="mt-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 rounded-lg px-2 py-1.5 text-[10px] font-bold flex items-start gap-1.5 cursor-pointer transition-colors" onclick="event.stopPropagation(); openNoticeDetail('${safeCode}')">
                 <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
-                <span>มีใบติดต่องาน [${escapeHtmlLite(latest.category)}]: ${escapeHtmlLite(latest.content).slice(0, 60)}${latest.content.length > 60 ? '…' : ''}${more}</span>
+                <span>มีใบติดต่องาน [${escapeHtmlLite(latest.category)}]: ${escapeHtmlLite(latest.content).slice(0, 60)}${latest.content.length > 60 ? '…' : ''}${more} <span class="underline opacity-80" data-i18n="noticeDetailHint">(กดดูรายละเอียด)</span></span>
             </div>`;
         }
         function escapeHtmlLite(s) {
             return (s || '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        // 🆕 กดที่แถบเตือน "มีใบติดต่องาน" ในหน้า layout → ต้องกรอกรหัสพนักงานยืนยันก่อน (เหมือนฟีเจอร์อื่นในไฟล์นี้) แล้วค่อยเปิดดูรายละเอียดทั้งหมด
+        function openNoticeDetail(itemCode) {
+            if (!isStaffVerified()) {
+                pendingStaffAction = { type: 'viewNotice', itemCode: itemCode };
+                document.getElementById('staffIdInput').value = '';
+                document.getElementById('staffIdModal').classList.add('active');
+                return;
+            }
+            touchStaffSession();
+            openNoticeDetailContent(itemCode);
+        }
+
+        function openNoticeDetailContent(itemCode) {
+            const t = translations[currentLang] || translations.th;
+            const code = itemCode.toUpperCase();
+            const notices = noticesByItemMap[code] || [];
+            const mData = masterData[code] || {};
+            document.getElementById('noticeDetailItemLabel').innerHTML =
+                `<i class="fa-solid fa-tag mr-1"></i> ${code}${mData.code_name ? ' — ' + escapeHtmlLite(mData.code_name) : ''}`;
+
+            const list = document.getElementById('noticeDetailListContent');
+            if (notices.length === 0) {
+                list.innerHTML = `<div class="text-center text-[var(--text-sub)] py-8 text-xs font-bold"><i class="fa-solid fa-circle-check text-2xl mb-2 block opacity-50"></i>${t.noIssues || 'ไม่มีรายการ'}</div>`;
+            } else {
+                list.innerHTML = notices.map(n => `
+                    <div class="issue-card">
+                        <div class="flex justify-between items-start gap-2">
+                            <span class="ic-type-badge bg-red-500/20 text-red-400 border border-red-500/30">${escapeHtmlLite(n.category)}</span>
+                            <span class="ic-meta"><i class="fa-solid fa-clock mr-1"></i>${formatIssueTime(n.created_at)}</span>
+                        </div>
+                        <div class="text-[12px] text-[var(--text-main)] font-semibold mt-2 leading-relaxed whitespace-pre-wrap">${escapeHtmlLite(n.content)}</div>
+                    </div>`).join('');
+            }
+            document.getElementById('noticeDetailModal').classList.add('active');
+        }
+
+        function closeNoticeDetail(e) {
+            document.getElementById('noticeDetailModal').classList.remove('active');
         }
 
         async function fetchAllData() {
@@ -1050,7 +1105,7 @@
             }
 
             // 🆕 โหลดใบติดต่องานที่ผูกกับไอเทม เพื่อเตือนตอนค้นหา/ดูรายละเอียด/เช็คงานเศษ
-            const resNotices = await sbClient.from("job_notice_items").select("item_code, job_notices(category, content, created_at)");
+            const resNotices = await sbClient.from("job_notice_items").select("item_code, job_notices(id, category, content, created_at)");
             if (!resNotices.error && resNotices.data) {
                 resNotices.data.forEach(row => {
                     if (!row.job_notices) return;
@@ -1267,7 +1322,7 @@
         // ==========================================
         // 🆕 ระบบแจ้งปัญหา (Report Issue) + Item Quick-Pick
         // ==========================================
-        let pendingStaffAction = null; // { type: 'issue', issueType: '...' } | { type: 'viewIssues' }
+        let pendingStaffAction = null; // { type: 'issue', issueType: '...' } | { type: 'viewIssues' } | { type: 'viewRoster' } | { type: 'viewNotice', itemCode: '...' }
         let currentIssueItems = [];   // [{code, name, cl}] items in currentModalLocId
         let selectedIssueItemCode = null; // null = ไม่ระบุ SKU (ทั้งช่อง)
 
@@ -1509,6 +1564,8 @@
                         openIssuesPanelContent();
                     } else if (action.type === 'viewRoster') {
                         openRosterPanelContent();
+                    } else if (action.type === 'viewNotice') {
+                        openNoticeDetailContent(action.itemCode);
                     }
                 }
             } finally {
@@ -2670,7 +2727,7 @@
                 issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
                 issuesPanelTitle: "รายการแจ้งปัญหา", issuesFilterPending: "รอตรวจสอบ", issuesFilterAll: "ทั้งหมด", noIssues: "ไม่มีรายการแจ้งปัญหา",
                 issueCardReporter: "ผู้แจ้ง", issueCardResolve: "ทำเครื่องหมายว่าแก้ไขแล้ว", issueResolved: "แก้ไขแล้ว",
-                scrapCheckBtn: "เช็คงานเศษ", scrapCheckTitle: "เช็คงานเศษ", scrapSearchPh: "พิมพ์รหัส ITEM...", scrapCurrentLabel: "จำนวนเศษล่าสุดที่บันทึกไว้", scrapBagsLabel: "จำนวนถุงเศษ", scrapPiecesLabel: "จำนวนชิ้นรวมในถุงเศษ", scrapNotePh: "หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน", scrapSaveBtn: "บันทึกการเช็คนี้", scrapHistoryLabel: "ประวัติการเช็คล่าสุด", scrapShiftLabel: "กะ", scrapResultLabel: "ผลลัพธ์", scrapReceivedLabel: "รับเข้าจาก Packing (ชิ้น)", scrapReprintLabel: "RePrint ยอด", scrapExportItemBtn: "ส่งออกไอเทมนี้", scrapExportAllBtn: "ส่งออกข้อมูลเศษทั้งหมด (Excel)", scrapBackToList: "กลับไปดูรายการทั้งหมด", repackStatsBtn: "สถิติ Repack", rosterBtn: "ผู้รับผิดชอบ STORE", entryTypeCheck: "เช็คสต็อก", entryTypeRepack: "Repack (รวมถุง)", repackStatsTitle: "สถิติ Repack", statsTabHeatmap: "Heatmap", statsTabBar: "กราฟแท่ง", statsTotalEvents: "จำนวนครั้ง Repack", statsTotalBags: "ถุงเศษที่ลดลง", statsShiftCompare: "กะ A / กะ B", statsTopItems: "Top ไอเทมที่ Repack เยอะสุด", statsTopZones: "Top โซนที่เกี่ยวข้องเยอะสุด", rosterTitle: "ผู้รับผิดชอบ STORE", rosterAddBtn: "เพิ่ม/แก้ไขพนักงาน", statsExportReportBtn: "ข้อมูล Excel (A4)", statsExportPdfBtn: "รายงานภาพ (PDF)" },
+                scrapCheckBtn: "เช็คงานเศษ", scrapCheckTitle: "เช็คงานเศษ", scrapSearchPh: "พิมพ์รหัส ITEM...", scrapCurrentLabel: "จำนวนเศษล่าสุดที่บันทึกไว้", scrapBagsLabel: "จำนวนถุงเศษ", scrapPiecesLabel: "จำนวนชิ้นรวมในถุงเศษ", scrapNotePh: "หมายเหตุ (ถ้ามี) เช่น ขายออกแล้วบางส่วน", scrapSaveBtn: "บันทึกการเช็คนี้", scrapHistoryLabel: "ประวัติการเช็คล่าสุด", scrapShiftLabel: "กะ", scrapResultLabel: "ผลลัพธ์", scrapReceivedLabel: "รับเข้าจาก Packing (ชิ้น)", scrapReprintLabel: "RePrint ยอด", scrapExportItemBtn: "ส่งออกไอเทมนี้", scrapExportAllBtn: "ส่งออกข้อมูลเศษทั้งหมด (Excel)", scrapBackToList: "กลับไปดูรายการทั้งหมด", repackStatsBtn: "สถิติ Repack", rosterBtn: "ผู้รับผิดชอบ STORE", entryTypeCheck: "เช็คสต็อก", entryTypeRepack: "Repack (รวมถุง)", repackStatsTitle: "สถิติ Repack", statsTabHeatmap: "Heatmap", statsTabBar: "กราฟแท่ง", statsTotalEvents: "จำนวนครั้ง Repack", statsTotalBags: "ถุงเศษที่ลดลง", statsShiftCompare: "กะ A / กะ B", statsTopItems: "Top ไอเทมที่ Repack เยอะสุด", statsTopZones: "Top โซนที่เกี่ยวข้องเยอะสุด", rosterTitle: "ผู้รับผิดชอบ STORE", rosterAddBtn: "เพิ่ม/แก้ไขพนักงาน", statsExportReportBtn: "ข้อมูล Excel (A4)", statsExportPdfBtn: "รายงานภาพ (PDF)", noticeDetailTitle: "รายละเอียดใบติดต่องาน", noticeDetailHint: "(กดดูรายละเอียด)" },
             zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
                 reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
                 staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
@@ -2680,7 +2737,7 @@
                 issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
                 issuesPanelTitle: "問題回報列表", issuesFilterPending: "待處理", issuesFilterAll: "全部", noIssues: "沒有回報項目",
                 issueCardReporter: "回報人", issueCardResolve: "標記為已解決", issueResolved: "已解決",
-                scrapCheckBtn: "檢查廢料", scrapCheckTitle: "檢查廢料", scrapSearchPh: "輸入 ITEM 代碼...", scrapCurrentLabel: "最近記錄的廢料數量", scrapBagsLabel: "袋數", scrapPiecesLabel: "袋內總件數", scrapNotePh: "備註 (例如已賣出部分)", scrapSaveBtn: "儲存這次檢查", scrapHistoryLabel: "最近檢查紀錄", scrapShiftLabel: "班次", scrapResultLabel: "結果", scrapReceivedLabel: "從 Packing 收到 (件)", scrapReprintLabel: "RePrint 數量", scrapExportItemBtn: "匯出此項目", scrapExportAllBtn: "匯出全部廢料資料 (Excel)", scrapBackToList: "返回完整列表", repackStatsBtn: "Repack 統計", rosterBtn: "STORE 負責人", entryTypeCheck: "庫存檢查", entryTypeRepack: "Repack (合併袋)", repackStatsTitle: "Repack 統計", statsTabHeatmap: "熱力圖", statsTabBar: "長條圖", statsTotalEvents: "Repack 次數", statsTotalBags: "減少的袋數", statsShiftCompare: "A班 / B班", statsTopItems: "Repack 最多的項目", statsTopZones: "相關最多的區域", rosterTitle: "STORE 負責人", rosterAddBtn: "新增/編輯員工", statsExportReportBtn: "Excel 資料 (A4)", statsExportPdfBtn: "圖像報告 (PDF)" },
+                scrapCheckBtn: "檢查廢料", scrapCheckTitle: "檢查廢料", scrapSearchPh: "輸入 ITEM 代碼...", scrapCurrentLabel: "最近記錄的廢料數量", scrapBagsLabel: "袋數", scrapPiecesLabel: "袋內總件數", scrapNotePh: "備註 (例如已賣出部分)", scrapSaveBtn: "儲存這次檢查", scrapHistoryLabel: "最近檢查紀錄", scrapShiftLabel: "班次", scrapResultLabel: "結果", scrapReceivedLabel: "從 Packing 收到 (件)", scrapReprintLabel: "RePrint 數量", scrapExportItemBtn: "匯出此項目", scrapExportAllBtn: "匯出全部廢料資料 (Excel)", scrapBackToList: "返回完整列表", repackStatsBtn: "Repack 統計", rosterBtn: "STORE 負責人", entryTypeCheck: "庫存檢查", entryTypeRepack: "Repack (合併袋)", repackStatsTitle: "Repack 統計", statsTabHeatmap: "熱力圖", statsTabBar: "長條圖", statsTotalEvents: "Repack 次數", statsTotalBags: "減少的袋數", statsShiftCompare: "A班 / B班", statsTopItems: "Repack 最多的項目", statsTopZones: "相關最多的區域", rosterTitle: "STORE 負責人", rosterAddBtn: "新增/編輯員工", statsExportReportBtn: "Excel 資料 (A4)", statsExportPdfBtn: "圖像報告 (PDF)", noticeDetailTitle: "工作聯絡單詳情", noticeDetailHint: "(點擊查看詳情)" },
             mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
                 reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
                 staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
@@ -2690,7 +2747,7 @@
                 issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
                 issuesPanelTitle: "ပြဿနာတိုင်ကြားမှုများ", issuesFilterPending: "စောင့်ဆိုင်းဆဲ", issuesFilterAll: "အားလုံး", noIssues: "တိုင်ကြားမှုမရှိပါ",
                 issueCardReporter: "တိုင်ကြားသူ", issueCardResolve: "ပြီးမြောက်ကြောင်းအမှတ်အသားပြုရန်", issueResolved: "ပြီးမြောက်ပါပြီ",
-                scrapCheckBtn: "အပိုအကြွင်းစစ်ရန်", scrapCheckTitle: "အပိုအကြွင်းစစ်ရန်", scrapSearchPh: "ITEM ကုဒ်ရိုက်ပါ...", scrapCurrentLabel: "မှတ်တမ်းတင်ထားသော နောက်ဆုံးအရေအတွက်", scrapBagsLabel: "အိတ်အရေအတွက်", scrapPiecesLabel: "အိတ်ထဲ စုစုပေါင်းအရေအတွက်", scrapNotePh: "မှတ်ချက် (ရှိလျှင်)", scrapSaveBtn: "ဤစစ်ဆေးမှုကို သိမ်းရန်", scrapHistoryLabel: "နောက်ဆုံးစစ်ဆေးမှုများ", scrapShiftLabel: "အဆိုင်း", scrapResultLabel: "ရလဒ်", scrapReceivedLabel: "Packing မှလက်ခံရရှိ (ခု)", scrapReprintLabel: "RePrint အရေအတွက်", scrapExportItemBtn: "ဒီပစ္စည်းကို Export လုပ်ရန်", scrapExportAllBtn: "အကြွင်းအားလုံး Export (Excel)", scrapBackToList: "စာရင်းအားလုံးသို့ ပြန်သွားရန်", repackStatsBtn: "Repack စာရင်းအင်း", rosterBtn: "STORE တာဝန်ခံများ", entryTypeCheck: "စတော့စစ်ဆေးခြင်း", entryTypeRepack: "Repack (အိတ်ပေါင်းစည်းခြင်း)", repackStatsTitle: "Repack စာရင်းအင်း", statsTabHeatmap: "Heatmap", statsTabBar: "ဘားချပ်", statsTotalEvents: "Repack အကြိမ်ရေ", statsTotalBags: "လျော့သွားသောအိတ်", statsShiftCompare: "အဆိုင်း A / B", statsTopItems: "Repack အများဆုံးပစ္စည်းများ", statsTopZones: "သက်ဆိုင်ရာနေရာများ", rosterTitle: "STORE တာဝန်ခံများ", rosterAddBtn: "ဝန်ထမ်းထည့်/ပြင်ရန်", statsExportReportBtn: "Excel ဒေတာ (A4)", statsExportPdfBtn: "ပုံစံအစီရင်ခံစာ (PDF)" },
+                scrapCheckBtn: "အပိုအကြွင်းစစ်ရန်", scrapCheckTitle: "အပိုအကြွင်းစစ်ရန်", scrapSearchPh: "ITEM ကုဒ်ရိုက်ပါ...", scrapCurrentLabel: "မှတ်တမ်းတင်ထားသော နောက်ဆုံးအရေအတွက်", scrapBagsLabel: "အိတ်အရေအတွက်", scrapPiecesLabel: "အိတ်ထဲ စုစုပေါင်းအရေအတွက်", scrapNotePh: "မှတ်ချက် (ရှိလျှင်)", scrapSaveBtn: "ဤစစ်ဆေးမှုကို သိမ်းရန်", scrapHistoryLabel: "နောက်ဆုံးစစ်ဆေးမှုများ", scrapShiftLabel: "အဆိုင်း", scrapResultLabel: "ရလဒ်", scrapReceivedLabel: "Packing မှလက်ခံရရှိ (ခု)", scrapReprintLabel: "RePrint အရေအတွက်", scrapExportItemBtn: "ဒီပစ္စည်းကို Export လုပ်ရန်", scrapExportAllBtn: "အကြွင်းအားလုံး Export (Excel)", scrapBackToList: "စာရင်းအားလုံးသို့ ပြန်သွားရန်", repackStatsBtn: "Repack စာရင်းအင်း", rosterBtn: "STORE တာဝန်ခံများ", entryTypeCheck: "စတော့စစ်ဆေးခြင်း", entryTypeRepack: "Repack (အိတ်ပေါင်းစည်းခြင်း)", repackStatsTitle: "Repack စာရင်းအင်း", statsTabHeatmap: "Heatmap", statsTabBar: "ဘားချပ်", statsTotalEvents: "Repack အကြိမ်ရေ", statsTotalBags: "လျော့သွားသောအိတ်", statsShiftCompare: "အဆိုင်း A / B", statsTopItems: "Repack အများဆုံးပစ္စည်းများ", statsTopZones: "သက်ဆိုင်ရာနေရာများ", rosterTitle: "STORE တာဝန်ခံများ", rosterAddBtn: "ဝန်ထမ်းထည့်/ပြင်ရန်", statsExportReportBtn: "Excel ဒေတာ (A4)", statsExportPdfBtn: "ပုံစံအစီရင်ခံစာ (PDF)", noticeDetailTitle: "အလုပ်ညွှန်ကြားစာ အသေးစိတ်", noticeDetailHint: "(အသေးစိတ်ကြည့်ရန်)" },
             en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
                 reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
                 staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
@@ -2700,7 +2757,7 @@
                 issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",
                 issuesPanelTitle: "Reported Issues", issuesFilterPending: "Pending", issuesFilterAll: "All", noIssues: "No issues reported",
                 issueCardReporter: "Reporter", issueCardResolve: "Mark as resolved", issueResolved: "Resolved",
-                scrapCheckBtn: "Check Scrap", scrapCheckTitle: "Check Scrap", scrapSearchPh: "Type ITEM code...", scrapCurrentLabel: "Last recorded scrap quantity", scrapBagsLabel: "Bags", scrapPiecesLabel: "Total pieces in bag", scrapNotePh: "Note (optional) e.g. partially sold", scrapSaveBtn: "Save this check", scrapHistoryLabel: "Recent check history", scrapShiftLabel: "Shift", scrapResultLabel: "Result", scrapReceivedLabel: "Received from Packing (pcs)", scrapReprintLabel: "RePrint Qty", scrapExportItemBtn: "Export this item", scrapExportAllBtn: "Export all scrap data (Excel)", scrapBackToList: "Back to full list", repackStatsBtn: "Repack Stats", rosterBtn: "STORE Roster", entryTypeCheck: "Stock Check", entryTypeRepack: "Repack (combine bags)", repackStatsTitle: "Repack Statistics", statsTabHeatmap: "Heatmap", statsTabBar: "Bar Chart", statsTotalEvents: "Repack Events", statsTotalBags: "Bags Reduced", statsShiftCompare: "Shift A / Shift B", statsTopItems: "Top Items by Repack", statsTopZones: "Top Related Zones", rosterTitle: "STORE Roster", rosterAddBtn: "Add/Edit Staff", statsExportReportBtn: "Excel Data (A4)", statsExportPdfBtn: "Visual Report (PDF)" }
+                scrapCheckBtn: "Check Scrap", scrapCheckTitle: "Check Scrap", scrapSearchPh: "Type ITEM code...", scrapCurrentLabel: "Last recorded scrap quantity", scrapBagsLabel: "Bags", scrapPiecesLabel: "Total pieces in bag", scrapNotePh: "Note (optional) e.g. partially sold", scrapSaveBtn: "Save this check", scrapHistoryLabel: "Recent check history", scrapShiftLabel: "Shift", scrapResultLabel: "Result", scrapReceivedLabel: "Received from Packing (pcs)", scrapReprintLabel: "RePrint Qty", scrapExportItemBtn: "Export this item", scrapExportAllBtn: "Export all scrap data (Excel)", scrapBackToList: "Back to full list", repackStatsBtn: "Repack Stats", rosterBtn: "STORE Roster", entryTypeCheck: "Stock Check", entryTypeRepack: "Repack (combine bags)", repackStatsTitle: "Repack Statistics", statsTabHeatmap: "Heatmap", statsTabBar: "Bar Chart", statsTotalEvents: "Repack Events", statsTotalBags: "Bags Reduced", statsShiftCompare: "Shift A / Shift B", statsTopItems: "Top Items by Repack", statsTopZones: "Top Related Zones", rosterTitle: "STORE Roster", rosterAddBtn: "Add/Edit Staff", statsExportReportBtn: "Excel Data (A4)", statsExportPdfBtn: "Visual Report (PDF)", noticeDetailTitle: "Job Notice Details", noticeDetailHint: "(tap for details)" }
         };
 
         function changeLanguage(lang) {

@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS Store FG - Stock Count</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 🎨 Dynamic Theme Engine (เหมือนหน้าอื่นในระบบทุกประการ) */
+        :root {
+            --bg-gradient: linear-gradient(-45deg, #f1f5f9, #e2e8f0, #cbd5e1, #f8fafc);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(0, 0, 0, 0.15);
+            --input-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --card-hover: rgba(241, 245, 249, 1);
+            --glow-color: rgba(14, 165, 233, 0.15);
+            --grid-line: rgba(0, 0, 0, 0.08);
+        }
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(-45deg, #0f172a, #1e293b, #020617, #0f172a);
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --input-bg: rgba(15, 23, 42, 0.8);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --card-hover: rgba(51, 65, 85, 0.9);
+            --glow-color: rgba(56, 189, 248, 0.15);
+            --grid-line: rgba(255, 255, 255, 0.08);
+        }
+        [data-theme="kaosu"] {
+            --bg-gradient: linear-gradient(-45deg, #450a0a, #7f1d1d, #220303, #450a0a);
+            --glass-bg: rgba(69, 10, 10, 0.8);
+            --glass-border: rgba(250, 204, 21, 0.3);
+            --input-bg: rgba(0, 0, 0, 0.6);
+            --text-main: #fef08a;
+            --text-sub: #fca5a5;
+            --card-hover: rgba(127, 29, 29, 0.9);
+            --glow-color: rgba(250, 204, 21, 0.15);
+            --grid-line: rgba(250, 204, 21, 0.15);
+        }
+
+        body {
+            background: var(--bg-gradient); background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite; color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.5s ease, color 0.5s ease;
+        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); transition: all 0.3s ease; }
+        .glass-input { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); backdrop-filter: blur(8px); transition: all 0.3s ease; }
+        .glass-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
+
+        .mouse-glow { position: fixed; top: var(--y, 50%); left: var(--x, 50%); transform: translate(-50%, -50%); width: 600px; height: 600px; background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%); pointer-events: none; z-index: 0; transition: width 0.2s, height 0.2s; }
+
+        .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
+
+        .suggestions-box { position: fixed; z-index: 200; background: var(--input-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 0.75rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); max-height: 240px; overflow-y: auto; display: none; }
+        .suggestion-item { padding: 10px 14px; border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.15s; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover, .suggestion-item.active { background: var(--card-hover); }
+
+        .nav-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-weight: 900; font-size: 11px; white-space: nowrap; }
+        .badge-over { background: rgba(16,185,129,0.15); color: #10b981; }
+        .badge-short { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .badge-match { background: rgba(148,163,184,0.15); color: var(--text-sub); }
+
+        .fade-in { animation: fadeInUp 0.25s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .role-only { display: none; }
+        body.is-admin .role-only { display: inline-flex; }
+
+        /* ===== Excel-like Count Sheet ===== */
+        .cs-wrap { border: 1px solid var(--grid-line); border-radius: 1rem; overflow: auto; max-height: 560px; }
+        table.cs-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12.5px; }
+        .cs-table thead th { position: sticky; top: 0; z-index: 20; background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 2px solid var(--grid-line); padding: 9px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-sub); white-space: nowrap; }
+        .cs-table tbody td { border-bottom: 1px solid var(--grid-line); border-right: 1px solid var(--grid-line); padding: 0; height: 38px; }
+        .cs-table tbody td:last-child { border-right: none; }
+        .cs-table tbody tr:nth-child(even) td { background: rgba(127,127,127,0.035); }
+        .cs-table tbody tr.new-row-tr td { background: rgba(16,185,129,0.06); }
+        .cs-table tbody tr.fade-in td { background: rgba(56,189,248,0.1); }
+        .cs-table td.rn { text-align: center; color: var(--text-sub); font-weight: 700; font-size: 11px; width: 34px; padding: 0 4px; }
+        .cs-table td.static-cell { padding: 0 10px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+        .cs-table input.cs-cell { width: 100%; height: 38px; background: transparent; border: 1px solid transparent; border-radius: 0; padding: 0 9px; font-weight: 700; font-size: 12.5px; color: var(--text-main); outline: none; }
+        .cs-table input.cs-cell:focus { background: var(--input-bg); border: 2px solid #38bdf8; box-shadow: 0 0 0 1px #38bdf8 inset; z-index: 5; position: relative; }
+        .cs-table input.cs-num { text-align: center; }
+        .cs-table input.cs-cell.invalid { background: rgba(239,68,68,0.1); color: #ef4444; }
+        .cs-table td.cs-total-cell { text-align: center; font-weight: 900; color: #10b981; }
+        .cs-table td.cs-del { text-align: center; width: 36px; }
+        .cs-table td.cs-who { text-align: center; width: 70px; }
+        .cs-col-loc { min-width: 110px; }
+        .cs-col-item { min-width: 130px; }
+        .cs-col-name { min-width: 170px; }
+        .cs-col-num { width: 64px; }
+
+        table.summary-table { border-collapse: separate; border-spacing: 0; }
+        table.summary-table th { position: sticky; top: 0; background: var(--glass-bg); backdrop-filter: blur(20px); z-index: 10; }
+        table.summary-table td, table.summary-table th { border-bottom: 1px solid var(--glass-border); padding: 8px 10px; }
+    </style>
+</head>
+<body class="min-h-screen p-3 md:p-6 relative" data-theme="dark">
+
+<div class="mouse-glow"></div>
+
+<div id="masterLoading" class="fixed inset-0 bg-[var(--glass-bg)] backdrop-blur-md z-[100] flex flex-col items-center justify-center transition-opacity duration-300">
+    <div class="w-16 h-16 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin mb-4"></div>
+    <p class="text-xs font-bold text-[var(--text-main)] tracking-widest animate-pulse">CONNECTING DB...</p>
+</div>
+
+<div class="max-w-7xl mx-auto relative z-10">
+
+    <!-- Header -->
+    <div class="glass-panel rounded-3xl overflow-hidden mb-4">
+        <div class="p-5 md:p-6 relative border-b border-[var(--glass-border)]">
+            <div class="flex justify-end gap-2 mb-4 relative z-[60]">
+                <div class="glass-input rounded-full px-2 py-1 flex items-center gap-1.5 shadow-inner">
+                    <button onclick="changeTheme('light')" class="w-5 h-5 rounded-full bg-slate-200 border border-slate-300 shadow-sm transition-transform hover:scale-110" title="Light Theme"></button>
+                    <button onclick="changeTheme('dark')" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 shadow-sm transition-transform hover:scale-110" title="Dark Theme"></button>
+                    <button onclick="changeTheme('kaosu')" class="w-5 h-5 rounded-full bg-red-800 border border-red-500 shadow-sm transition-transform hover:scale-110" title="Kaosu Theme"></button>
+                </div>
+                <div class="glass-input rounded-full px-3 py-1 flex items-center gap-1.5 shadow-inner cursor-pointer hover:border-sky-400 transition-colors">
+                    <i class="fa-solid fa-earth-asia text-sky-500 text-sm"></i>
+                    <select id="globalLangSwitcher" onchange="changeLanguage(this.value)" class="bg-transparent text-[var(--text-main)] text-xs font-bold outline-none cursor-pointer appearance-none text-center pr-1 tracking-wider">
+                        <option value="th" class="bg-slate-800 text-white">🇹🇭 TH</option>
+                        <option value="zh" class="bg-slate-800 text-white">🇹🇼 ZH</option>
+                        <option value="mm" class="bg-slate-800 text-white">🇲🇲 MM</option>
+                        <option value="en" class="bg-slate-800 text-white">🇬🇧 EN</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down text-[var(--text-sub)] text-[9px] pointer-events-none"></i>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 mb-5">
+                <div class="group relative cursor-pointer flex items-center justify-center shrink-0">
+                    <div class="absolute inset-0 bg-red-500/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <img src="logo.png" alt="KSS Logo" class="h-10 md:h-12 w-auto object-contain relative z-10 drop-shadow-md transition-all duration-300 group-hover:scale-110 group-active:scale-95">
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-wider text-[var(--text-main)]" data-i18n="appTitle">STOCK COUNT</h1>
+                    <p class="text-[10px] font-semibold text-[var(--text-sub)] tracking-widest uppercase">Kaosu Logistics</p>
+                </div>
+            </div>
+
+            <div class="nav-row">
+                <a href="menu.html" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-[11px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all">
+                    <i class="fa-solid fa-house"></i> <span data-i18n="navMenu">หน้าหลัก</span>
+                </a>
+                <a href="index.html" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-[11px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all">
+                    <i class="fa-solid fa-barcode"></i> <span data-i18n="navDispatch">จ่ายงาน</span>
+                </a>
+                <a href="report.html" class="glass-input hover:bg-[var(--card-hover)] text-[var(--text-sub)] hover:text-sky-500 text-[11px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all">
+                    <i class="fa-solid fa-chart-pie"></i> <span data-i18n="navReport">รายงาน</span>
+                </a>
+                <a href="stockcount.html" class="bg-gradient-to-r from-sky-500 to-blue-600 text-white text-[11px] font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30">
+                    <i class="fa-solid fa-clipboard-check"></i> <span data-i18n="navStockCount">เช็คสต็อก</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Session Bar -->
+        <div class="p-5 md:p-6 space-y-3">
+            <div class="flex flex-col md:flex-row gap-3 md:items-end">
+                <div class="flex-1">
+                    <label class="block text-[10px] font-bold text-[var(--text-sub)] uppercase mb-1.5 ml-1 tracking-wider" data-i18n="sessionLabel">รอบนับสต็อกที่ใช้งาน</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-layer-group absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs z-10"></i>
+                        <select id="sessionSelect" class="w-full glass-input rounded-xl p-3 pl-9 text-sm font-bold text-[var(--text-main)] outline-none appearance-none cursor-pointer">
+                            <option value="" data-i18n="noOpenSession">— ยังไม่มีรอบนับที่เปิดอยู่ —</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-2 role-only">
+                    <button id="btnNewSession" type="button" class="glass-input hover:bg-[var(--card-hover)] text-emerald-500 text-[11px] font-bold py-3 px-4 rounded-xl items-center justify-center gap-2 transition-all active:scale-95 whitespace-nowrap role-only">
+                        <i class="fa-solid fa-circle-plus"></i> <span data-i18n="newSessionBtn">เปิดรอบใหม่</span>
+                    </button>
+                    <button id="btnImportSap" type="button" class="glass-input hover:bg-[var(--card-hover)] text-sky-500 text-[11px] font-bold py-3 px-4 rounded-xl items-center justify-center gap-2 transition-all active:scale-95 whitespace-nowrap role-only">
+                        <i class="fa-solid fa-file-import"></i> <span data-i18n="importSapBtn">Import SAP</span>
+                    </button>
+                    <button id="btnCloseSession" type="button" class="glass-input hover:bg-[var(--card-hover)] text-red-500 text-[11px] font-bold py-3 px-4 rounded-xl items-center justify-center gap-2 transition-all active:scale-95 whitespace-nowrap role-only">
+                        <i class="fa-solid fa-lock"></i> <span data-i18n="closeSessionBtn">ปิดรอบ</span>
+                    </button>
+                </div>
+            </div>
+            <input type="file" id="sapFileInput" accept=".xlsx,.xls" style="display:none">
+            <p id="sessionMeta" class="text-[11px] text-[var(--text-sub)] font-semibold ml-1"></p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-5 gap-4">
+
+        <!-- 🧮 Excel-like Count Sheet -->
+        <div class="xl:col-span-3 glass-panel rounded-3xl p-5 md:p-6">
+            <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="bg-sky-500/20 text-sky-500 p-1.5 rounded-lg border border-sky-500/30"><i class="fa-solid fa-table-cells"></i></div>
+                    <span class="text-xs font-black text-[var(--text-main)] uppercase tracking-wider" data-i18n="countSheetTitle">สมุดคีย์ยอดนับ (ทุกคนเห็นพร้อมกัน)</span>
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-sub)] text-xs"></i>
+                    <input type="text" id="csFind" class="glass-input rounded-xl pl-8 pr-3 py-2 text-xs font-bold text-[var(--text-main)] outline-none w-48" data-i18n-placeholder="findPlaceholder" placeholder="ค้นหา... (Ctrl+F)">
+                </div>
+            </div>
+            <p id="csCounter" class="text-[10px] font-bold text-[var(--text-sub)] mb-2 ml-1"></p>
+
+            <div class="cs-wrap custom-scroll">
+                <table class="cs-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="colNo">#</th>
+                            <th class="cs-col-loc" data-i18n="colLocation">ช่อง/โซน</th>
+                            <th class="cs-col-item" data-i18n="colItemCode">Item Code</th>
+                            <th class="cs-col-name" data-i18n="colPartName">ชื่อสินค้า</th>
+                            <th class="cs-col-num" data-i18n="colBag">ถุง</th>
+                            <th class="cs-col-num" data-i18n="colPack">บรรจุ</th>
+                            <th class="cs-col-num" data-i18n="colFrac">เศษ</th>
+                            <th class="cs-col-num" data-i18n="colTotal">รวม</th>
+                            <th data-i18n="colKeyedBy">คีย์โดย</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="countSheetBody">
+                        <!-- rows injected by JS; permanent blank "new row" is always last -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="lastActionBar" class="mt-3 hidden fade-in rounded-xl p-3 border text-xs font-bold"></div>
+            <p class="text-[10px] text-[var(--text-sub)] font-semibold mt-3 ml-1">
+                <i class="fa-solid fa-circle-info mr-1"></i>
+                <span data-i18n="gridHint">ใช้ลูกศร / Tab / Enter เลื่อนเซลล์ได้เหมือน Excel — พิมพ์รหัส Item แล้วเลือกจากรายการ ระบบจะบันทึกให้อัตโนมัติ</span>
+            </p>
+        </div>
+
+        <!-- Summary vs SAP -->
+        <div class="xl:col-span-2 glass-panel rounded-3xl p-5 md:p-6 h-fit">
+            <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
+                    <div class="bg-emerald-500/20 text-emerald-500 p-1.5 rounded-lg border border-emerald-500/30"><i class="fa-solid fa-chart-column"></i></div>
+                    <span class="text-xs font-black text-[var(--text-main)] uppercase tracking-wider" data-i18n="summaryTitle">สรุปยอดเทียบ SAP แบบเรียลไทม์</span>
+                </div>
+                <input type="text" id="summarySearch" class="glass-input rounded-xl px-3 py-2 text-xs font-bold text-[var(--text-main)] outline-none w-36" data-i18n-placeholder="searchItemPh" placeholder="ค้นหา Item...">
+            </div>
+            <div class="overflow-auto custom-scroll max-h-[560px] rounded-xl border border-[var(--glass-border)]">
+                <table class="summary-table w-full text-xs">
+                    <thead>
+                        <tr class="text-[var(--text-sub)] uppercase text-[10px] tracking-wider">
+                            <th class="text-left" data-i18n="colItemCode">Item Code</th>
+                            <th class="text-left" data-i18n="colSapQty">ยอด SAP</th>
+                            <th class="text-left" data-i18n="colCounted">นับได้</th>
+                            <th class="text-left" data-i18n="colVariance">ส่วนต่าง</th>
+                            <th class="text-left" data-i18n="colLocations">จำนวนช่อง</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryTbody">
+                        <tr><td colspan="5" class="text-center py-6 text-[var(--text-sub)] font-bold" data-i18n="noSessionSelected">กรุณาเลือกรอบนับก่อน</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating autocomplete dropdowns (positioned via JS, fixed to viewport so they escape the scrollable grid) -->
+<div class="suggestions-box custom-scroll" id="csItemDropdown"></div>
+<div class="suggestions-box custom-scroll" id="csLocationDropdown"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* =============================================================
+   🎨 Theme & Glow Logic
+============================================================= */
+function changeTheme(themeName) {
+    document.body.setAttribute('data-theme', themeName);
+    localStorage.setItem('wms_theme', themeName);
+}
+document.body.setAttribute('data-theme', localStorage.getItem('wms_theme') || 'dark');
+
+document.addEventListener('mousemove', (e) => { document.documentElement.style.setProperty('--x', e.clientX + 'px'); document.documentElement.style.setProperty('--y', e.clientY + 'px'); });
+document.addEventListener('touchmove', (e) => { document.documentElement.style.setProperty('--x', e.touches[0].clientX + 'px'); document.documentElement.style.setProperty('--y', e.touches[0].clientY + 'px'); });
+
+/* =============================================================
+   🌍 ระบบแปลภาษา 4 ชาติ
+============================================================= */
+const translations = {
+    th: {
+        appTitle: "STOCK COUNT", navMenu: "หน้าหลัก", navDispatch: "จ่ายงาน", navReport: "รายงาน", navStockCount: "เช็คสต็อก",
+        sessionLabel: "รอบนับสต็อกที่ใช้งาน", noOpenSession: "— ยังไม่มีรอบนับที่เปิดอยู่ —",
+        newSessionBtn: "เปิดรอบใหม่", importSapBtn: "Import SAP", closeSessionBtn: "ปิดรอบ", sessionMetaOpen: "สถานะ: เปิดอยู่ | สร้างโดย",
+        countSheetTitle: "สมุดคีย์ยอดนับ (ทุกคนเห็นพร้อมกัน)", findPlaceholder: "ค้นหา... (Ctrl+F)", gridHint: "ใช้ลูกศร / Tab / Enter เลื่อนเซลล์ได้เหมือน Excel — พิมพ์รหัส Item แล้วเลือกจากรายการ ระบบจะบันทึกให้อัตโนมัติ",
+        colNo: "#", colLocation: "ช่อง/โซน", colItemCode: "Item Code", colPartName: "ชื่อสินค้า", colBag: "ถุง", colPack: "บรรจุ", colFrac: "เศษ", colTotal: "รวม", colKeyedBy: "คีย์โดย",
+        showingRows: "แสดง {shown} จาก {total} แถว", keyedByMe: "ฉัน", readOnlyRowTitle: "รายการของ {staff} (แก้ไขได้เฉพาะเจ้าของ)",
+        summaryTitle: "สรุปยอดเทียบ SAP แบบเรียลไทม์", searchItemPh: "ค้นหา Item...",
+        colSapQty: "ยอด SAP", colCounted: "นับได้", colVariance: "ส่วนต่าง", colLocations: "จำนวนช่อง",
+        noSessionSelected: "กรุณาเลือกรอบนับก่อน", noSummaryData: "ยังไม่มีข้อมูล",
+        over: "เกิน", short: "ขาด", match: "ตรง", noSapRef: "ไม่มียอด SAP",
+        liveCounted: "ยอดสะสมตอนนี้", liveSap: "เทียบยอด SAP", liveVariance: "ส่วนต่าง",
+        confirmDelete: "ยืนยันลบรายการนี้?", promptSessionName: "ตั้งชื่อรอบนับสต็อก เช่น นับสต็อกประจำปี ธ.ค. 2026",
+        confirmCloseSession: "ยืนยันปิดรอบนี้? หลังปิดจะคีย์เพิ่มไม่ได้", sessionClosed: "ปิดรอบเรียบร้อย",
+        sessionCreated: "เปิดรอบใหม่เรียบร้อย", importSuccess: "Import ยอด SAP สำเร็จ", importFail: "Import ไม่สำเร็จ",
+        selectSessionFirst: "กรุณาเลือกรอบนับก่อน", itemNotFound: "ไม่พบรหัสสินค้านี้ในระบบ กรุณาเลือกจากรายการค้นหา",
+        notActiveStaff: "บัญชีของคุณไม่มีสิทธิ์ใช้งาน กรุณาติดต่อหัวหน้างาน", mustLogin: "กรุณาเข้าสู่ระบบก่อนใช้งานหน้านี้",
+        saveFail: "บันทึกไม่สำเร็จ", loadingSessions: "กำลังโหลดรอบนับ...",
+        importParsing: "กำลังอ่านไฟล์...", importUploading: "กำลังอัปโหลดยอด SAP...",
+        colHeaderNotFound: "ไม่พบคอลัมน์ Item No. หรือ End Balance Qty ในไฟล์",
+    },
+    zh: {
+        appTitle: "庫存盤點", navMenu: "主頁", navDispatch: "發貨", navReport: "報告", navStockCount: "庫存盤點",
+        sessionLabel: "目前使用的盤點回合", noOpenSession: "— 尚無進行中的盤點回合 —",
+        newSessionBtn: "開啟新回合", importSapBtn: "匯入 SAP", closeSessionBtn: "結束回合", sessionMetaOpen: "狀態：進行中 | 建立者",
+        countSheetTitle: "盤點表 (所有人即時共用)", findPlaceholder: "搜尋... (Ctrl+F)", gridHint: "使用方向鍵 / Tab / Enter 可像 Excel 一樣移動儲存格 — 輸入 Item 代碼後從清單選擇，系統會自動儲存",
+        colNo: "#", colLocation: "貨位/區域", colItemCode: "Item 代碼", colPartName: "物料名稱", colBag: "袋", colPack: "包裝", colFrac: "零數", colTotal: "合計", colKeyedBy: "輸入者",
+        showingRows: "顯示 {shown} / {total} 列", keyedByMe: "我", readOnlyRowTitle: "{staff} 輸入的紀錄（僅本人可編輯）",
+        summaryTitle: "與 SAP 即時比對摘要", searchItemPh: "搜尋 Item...",
+        colSapQty: "SAP 數量", colCounted: "實盤數量", colVariance: "差異", colLocations: "貨位數",
+        noSessionSelected: "請先選擇盤點回合", noSummaryData: "尚無資料",
+        over: "盤盈", short: "盤虧", match: "相符", noSapRef: "無 SAP 數量",
+        liveCounted: "目前累計數量", liveSap: "對比 SAP 數量", liveVariance: "差異",
+        confirmDelete: "確定要刪除此紀錄嗎？", promptSessionName: "請輸入盤點回合名稱 例如 2026年12月年度盤點",
+        confirmCloseSession: "確定要結束此回合嗎？結束後將無法再輸入", sessionClosed: "回合已結束",
+        sessionCreated: "新回合已開啟", importSuccess: "SAP 數量匯入成功", importFail: "匯入失敗",
+        selectSessionFirst: "請先選擇盤點回合", itemNotFound: "系統找不到此料號，請從搜尋清單中選擇",
+        notActiveStaff: "您的帳號沒有使用權限，請聯繫主管", mustLogin: "請先登入才能使用此頁面",
+        saveFail: "儲存失敗", loadingSessions: "正在載入盤點回合...",
+        importParsing: "正在讀取檔案...", importUploading: "正在上傳 SAP 數量...",
+        colHeaderNotFound: "檔案中找不到 Item No. 或 End Balance Qty 欄位",
+    },
+    mm: {
+        appTitle: "စတော့ရေတွက်ခြင်း", navMenu: "ပင်မ", navDispatch: "ထုတ်ပေး", navReport: "အစီရင်ခံစာ", navStockCount: "စတော့ရေတွက်ခြင်း",
+        sessionLabel: "အသုံးပြုနေသော ရေတွက်မှုအပတ်စဉ်", noOpenSession: "— ဖွင့်ထားသော အပတ်စဉ်မရှိပါ —",
+        newSessionBtn: "အပတ်စဉ်အသစ်ဖွင့်ရန်", importSapBtn: "SAP ထည့်သွင်းရန်", closeSessionBtn: "အပတ်စဉ်ပိတ်ရန်", sessionMetaOpen: "အခြေအနေ: ဖွင့်ထားသည် | ဖန်တီးသူ",
+        countSheetTitle: "ရေတွက်မှု စာရွက် (လူတိုင်း တစ်ပြိုင်နက် မြင်ရသည်)", findPlaceholder: "ရှာဖွေရန်... (Ctrl+F)", gridHint: "Excel ကဲ့သို့ မြှား / Tab / Enter သုံး၍ ဆဲလ်များ ရွှေ့နိုင်သည် — Item ကုဒ်ရိုက်ပြီး စာရင်းမှ ရွေးပါ၊ အလိုအလျောက် သိမ်းပေးမည်",
+        colNo: "#", colLocation: "နေရာ/ဇုန်", colItemCode: "Item ကုဒ်", colPartName: "ပစ္စည်းအမည်", colBag: "အိတ်", colPack: "ထုပ်ပိုး", colFrac: "အပို", colTotal: "စုစုပေါင်း", colKeyedBy: "ထည့်သွင်းသူ",
+        showingRows: "{shown} / {total} တန်း ပြသထားသည်", keyedByMe: "ကျွန်ုပ်", readOnlyRowTitle: "{staff} ၏ မှတ်တမ်း (ပိုင်ရှင်သာ ပြင်ဆင်နိုင်သည်)",
+        summaryTitle: "SAP နှင့် တိုက်ဆိုင်ချက် (Real-time)", searchItemPh: "Item ရှာရန်...",
+        colSapQty: "SAP အရေအတွက်", colCounted: "ရေတွက်ရရှိ", colVariance: "ခြားနားချက်", colLocations: "နေရာအရေအတွက်",
+        noSessionSelected: "အပတ်စဉ်ကို အရင်ရွေးပါ", noSummaryData: "အချက်အလက်မရှိသေးပါ",
+        over: "ပိုနေ", short: "လိုနေ", match: "ညီမျှ", noSapRef: "SAP အရေအတွက်မရှိပါ",
+        liveCounted: "လက်ရှိစုစုပေါင်း", liveSap: "SAP နှင့်ယှဉ်", liveVariance: "ခြားနားချက်",
+        confirmDelete: "ဤမှတ်တမ်းကို ဖျက်မှာသေချာပါသလား?", promptSessionName: "အပတ်စဉ်အမည်ထည့်ပါ ဥပမာ 2026 ဒီဇင်ဘာ နှစ်ပတ်လည်ရေတွက်ခြင်း",
+        confirmCloseSession: "ဤအပတ်စဉ်ကို ပိတ်မှာသေချာပါသလား? ပိတ်ပြီးပါက ထပ်မံထည့်သွင်း၍မရတော့ပါ", sessionClosed: "အပတ်စဉ်ပိတ်ပြီးပါပြီ",
+        sessionCreated: "အပတ်စဉ်အသစ်ဖွင့်ပြီးပါပြီ", importSuccess: "SAP အရေအတွက် ထည့်သွင်းမှုအောင်မြင်ပါသည်", importFail: "ထည့်သွင်းမှု မအောင်မြင်ပါ",
+        selectSessionFirst: "အပတ်စဉ်ကို အရင်ရွေးပါ", itemNotFound: "ဤပစ္စည်းကုဒ်ကို စနစ်တွင်မတွေ့ပါ၊ စာရင်းမှ ရွေးပါ",
+        notActiveStaff: "သင့်အကောင့်တွင် အသုံးပြုခွင့်မရှိပါ၊ ကျေးဇူးပြု၍ ဆရာကြီးကို ဆက်သွယ်ပါ", mustLogin: "ဤစာမျက်နှာကို အသုံးပြုရန် အရင်လော့ဂ်အင်ဝင်ပါ",
+        saveFail: "သိမ်းဆည်းမှု မအောင်မြင်ပါ", loadingSessions: "အပတ်စဉ်များ ဖွင့်နေသည်...",
+        importParsing: "ဖိုင်ကို ဖတ်နေသည်...", importUploading: "SAP အရေအတွက် တင်နေသည်...",
+        colHeaderNotFound: "ဖိုင်တွင် Item No. (သို့) End Balance Qty ကော်လံမတွေ့ပါ",
+    },
+    en: {
+        appTitle: "STOCK COUNT", navMenu: "Home", navDispatch: "Dispatch", navReport: "Report", navStockCount: "Stock Count",
+        sessionLabel: "Active Count Session", noOpenSession: "— No open session —",
+        newSessionBtn: "New Session", importSapBtn: "Import SAP", closeSessionBtn: "Close Session", sessionMetaOpen: "Status: Open | Created by",
+        countSheetTitle: "Count Sheet (shared live, all staff)", findPlaceholder: "Find... (Ctrl+F)", gridHint: "Use arrow keys / Tab / Enter to move cells like Excel — type an Item code and pick from the list, it saves automatically",
+        colNo: "#", colLocation: "Location/Zone", colItemCode: "Item Code", colPartName: "Part Name", colBag: "Bag", colPack: "Pack", colFrac: "Frac.", colTotal: "Total", colKeyedBy: "Keyed by",
+        showingRows: "Showing {shown} of {total} rows", keyedByMe: "Me", readOnlyRowTitle: "Entry by {staff} (only they can edit)",
+        summaryTitle: "Live Variance vs SAP", searchItemPh: "Search item...",
+        colSapQty: "SAP Qty", colCounted: "Counted", colVariance: "Variance", colLocations: "Locations",
+        noSessionSelected: "Select a session first", noSummaryData: "No data yet",
+        over: "Over", short: "Short", match: "Match", noSapRef: "No SAP qty",
+        liveCounted: "Running total", liveSap: "vs SAP", liveVariance: "Variance",
+        confirmDelete: "Delete this entry?", promptSessionName: "Name this count session, e.g. Annual Count Dec 2026",
+        confirmCloseSession: "Close this session? No more entries can be added after closing.", sessionClosed: "Session closed",
+        sessionCreated: "New session opened", importSuccess: "SAP quantities imported", importFail: "Import failed",
+        selectSessionFirst: "Please select a session first", itemNotFound: "Item code not found — please pick one from the search list",
+        notActiveStaff: "Your account is not authorized. Please contact your supervisor.", mustLogin: "Please log in before using this page",
+        saveFail: "Save failed", loadingSessions: "Loading sessions...",
+        importParsing: "Reading file...", importUploading: "Uploading SAP quantities...",
+        colHeaderNotFound: "Could not find 'Item No.' or 'End Balance Qty' columns in the file",
+    }
+};
+
+let currentLang = localStorage.getItem('wms_lang') || 'th';
+function t(key) { const d = translations[currentLang] || translations.th; return d[key] !== undefined ? d[key] : key; }
+function changeLanguage(lang) {
+    currentLang = lang; localStorage.setItem('wms_lang', lang);
+    document.querySelectorAll('#globalLangSwitcher').forEach(s => s.value = lang);
+    const tr = translations[lang];
+    document.querySelectorAll("[data-i18n]").forEach(el => { if (tr[el.getAttribute("data-i18n")]) el.textContent = tr[el.getAttribute("data-i18n")]; });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => { if (tr[el.getAttribute("data-i18n-placeholder")]) el.setAttribute("placeholder", tr[el.getAttribute("data-i18n-placeholder")]); });
+    renderSummaryTable(); renumber();
+}
+
+/* =============================================================
+   🚀 DB & State
+============================================================= */
+const sbClient = window.supabase.createClient("https://suardrnsfpdqwcgupqkb.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI");
+
+let currentStaffId = null;
+let currentRole = 'staff';
+let masterDataList = [];
+let locationsList = [];
+let sessionsList = [];
+let currentSessionId = null;
+let entriesMap = new Map();   // entry_id -> entry row
+let sapRefMap = {};           // item_code -> end_balance_qty
+let rtChannel = null;
+let lastUsedLocation = '';
+const saveTimers = {};        // rowkey -> debounce timeout id
+
+function partNameOf(itemCode) {
+    const m = masterDataList.find(x => x.item_code === itemCode);
+    return m ? `${m.cl || ''} | ${m.code_name || m.part_name || ''}` : (itemCode || '');
+}
+const STAFF_COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+function staffColor(id) {
+    let h = 0; for (const c of String(id || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return STAFF_COLORS[h % STAFF_COLORS.length];
+}
+
+/* ---------- Access check (reuses the same staff whitelist as the rest of the app) ---------- */
+async function checkAccess() {
+    currentStaffId = localStorage.getItem("savedStaffId");
+    if (!currentStaffId) { alert(t('mustLogin')); window.location.href = "menu.html"; return false; }
+    try {
+        const { data, error } = await sbClient.from('staff').select('staff_id, role, active').eq('staff_id', currentStaffId).maybeSingle();
+        if (error) throw error;
+        if (!data || !data.active) { alert(t('notActiveStaff')); window.location.href = "menu.html"; return false; }
+        currentRole = data.role || 'staff';
+        if (currentRole === 'supervisor' || currentRole === 'manager') document.body.classList.add('is-admin');
+        return true;
+    } catch (err) {
+        console.error(err); alert(t('notActiveStaff')); window.location.href = "menu.html"; return false;
+    }
+}
+
+/* ---------- Master data / Locations ---------- */
+async function fetchMasterData() { const { data } = await sbClient.from("part_master").select("*"); masterDataList = data || []; }
+async function fetchLocations() { const { data } = await sbClient.from("locations").select("location_id, zone"); locationsList = data || []; }
+
+/* ---------- Sessions ---------- */
+async function fetchOpenSessions() {
+    const { data, error } = await sbClient.from('stock_count_sessions').select('*').eq('status', 'OPEN').order('created_at', { ascending: false });
+    if (error) { console.error(error); return; }
+    sessionsList = data || [];
+    renderSessionSelect();
+}
+function renderSessionSelect() {
+    const sel = document.getElementById('sessionSelect');
+    if (sessionsList.length === 0) { sel.innerHTML = `<option value="">${t('noOpenSession')}</option>`; currentSessionId = null; updateSessionMeta(); return; }
+    const lastUsed = localStorage.getItem('stockcount_last_session');
+    const selected = sessionsList.find(s => s.session_id === lastUsed) ? lastUsed : sessionsList[0].session_id;
+    sel.innerHTML = sessionsList.map(s => `<option value="${s.session_id}">${s.session_name}</option>`).join('');
+    sel.value = selected;
+    selectSession(selected);
+}
+function updateSessionMeta() {
+    const meta = document.getElementById('sessionMeta');
+    const s = sessionsList.find(x => x.session_id === currentSessionId);
+    meta.textContent = s ? `${t('sessionMetaOpen')} ${s.created_by || '-'}` : '';
+}
+async function selectSession(sessionId) {
+    currentSessionId = sessionId || null;
+    localStorage.setItem('stockcount_last_session', currentSessionId || '');
+    updateSessionMeta();
+    entriesMap = new Map(); sapRefMap = {};
+    resetGrid();
+    if (!currentSessionId) { unsubscribeSession(); renderSummaryTable(); return; }
+    await Promise.all([loadEntries(), loadSapRef()]);
+    subscribeSession(currentSessionId);
+}
+
+/* ---------- Entries & SAP ref loading ---------- */
+async function loadEntries() {
+    if (!currentSessionId) return;
+    const { data, error } = await sbClient.from('stock_count_entries').select('*').eq('session_id', currentSessionId).order('created_at', { ascending: true });
+    if (error) { console.error(error); return; }
+    entriesMap = new Map();
+    (data || []).forEach(e => entriesMap.set(e.entry_id, e));
+    rebuildGridFromScratch();
+    renderSummaryTable();
+}
+async function loadSapRef() {
+    if (!currentSessionId) return;
+    const { data, error } = await sbClient.from('stock_count_sap_ref').select('item_code, end_balance_qty').eq('session_id', currentSessionId);
+    if (error) { console.error(error); return; }
+    sapRefMap = {};
+    (data || []).forEach(r => { sapRefMap[r.item_code] = Number(r.end_balance_qty) || 0; });
+    renderSummaryTable();
+}
+function subscribeSession(sessionId) {
+    unsubscribeSession();
+    rtChannel = sbClient.channel('stockcount-' + sessionId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_count_entries', filter: `session_id=eq.${sessionId}` }, (payload) => handleEntryRealtime(payload))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_count_sap_ref', filter: `session_id=eq.${sessionId}` }, () => loadSapRef())
+        .subscribe();
+}
+function unsubscribeSession() { if (rtChannel) { sbClient.removeChannel(rtChannel); rtChannel = null; } }
+
+function handleEntryRealtime(payload) {
+    if (payload.eventType === 'DELETE') {
+        const id = payload.old.entry_id;
+        entriesMap.delete(id);
+        removeRowDOM(id);
+    } else {
+        const entry = payload.new;
+        entriesMap.set(entry.entry_id, entry);
+        upsertRowDOM(entry);
+    }
+    renumber(); renderSummaryTable();
+}
+
+/* =============================================================
+   🧮 Count Sheet (Excel-like grid)
+============================================================= */
+const countSheetBody = document.getElementById('countSheetBody');
+let newRowTr = null;
+
+function makeNewRowTr() {
+    const tr = document.createElement('tr');
+    tr.className = 'new-row-tr';
+    tr.dataset.rowkey = 'new';
+    tr.innerHTML = cellsHtmlEditable('new', { location_id: lastUsedLocation, item_code: '', bag_qty: '', pack_qty: '', fraction_qty: '', total_qty: 0 }, true);
+    return tr;
+}
+
+function cellsHtmlEditable(rowkey, e, isNew) {
+    const total = isNew ? 0 : (Number(e.bag_qty || 0) * Number(e.pack_qty || 0)) + Number(e.fraction_qty || 0);
+    return `
+        <td class="rn">${isNew ? '<i class="fa-solid fa-plus text-emerald-500"></i>' : ''}</td>
+        <td><input type="text" class="cs-cell" data-col="location" data-rowkey="${rowkey}" value="${(e.location_id || '').replace(/"/g, '&quot;')}" autocomplete="off"></td>
+        <td><input type="text" class="cs-cell cs-item" data-col="item" data-rowkey="${rowkey}" value="${e.item_code || ''}" data-itemcode="${e.item_code || ''}" autocomplete="off"></td>
+        <td class="static-cell cs-partname">${partNameOf(e.item_code)}</td>
+        <td><input type="number" min="0" class="cs-cell cs-num" data-col="bag" data-rowkey="${rowkey}" value="${e.bag_qty === '' ? '' : (e.bag_qty || 0)}"></td>
+        <td><input type="number" min="0" class="cs-cell cs-num" data-col="pack" data-rowkey="${rowkey}" value="${e.pack_qty === '' ? '' : (e.pack_qty || 0)}"></td>
+        <td><input type="number" min="0" class="cs-cell cs-num" data-col="frac" data-rowkey="${rowkey}" value="${e.fraction_qty === '' ? '' : (e.fraction_qty || 0)}"></td>
+        <td class="cs-total-cell">${total}</td>
+        <td class="cs-who"><span class="badge" style="background:${staffColor(currentStaffId)}22;color:${staffColor(currentStaffId)}">${isNew ? '' : t('keyedByMe')}</span></td>
+        <td class="cs-del">${isNew ? '' : `<button type="button" class="text-red-500 hover:text-red-400" onclick="deleteRow('${rowkey}')" title="${t('confirmDelete')}"><i class="fa-solid fa-trash"></i></button>`}</td>
+    `;
+}
+function cellsHtmlReadonly(e) {
+    const color = staffColor(e.staff_id);
+    return `
+        <td class="rn"></td>
+        <td class="static-cell">${e.location_id || '-'}</td>
+        <td class="static-cell">${e.item_code}</td>
+        <td class="static-cell">${partNameOf(e.item_code)}</td>
+        <td class="static-cell" style="text-align:center">${e.bag_qty}</td>
+        <td class="static-cell" style="text-align:center">${e.pack_qty}</td>
+        <td class="static-cell" style="text-align:center">${e.fraction_qty}</td>
+        <td class="cs-total-cell">${e.total_qty}</td>
+        <td class="cs-who"><span class="badge" style="background:${color}22;color:${color}" title="${t('readOnlyRowTitle').replace('{staff}', e.staff_id)}">${e.staff_id}</span></td>
+        <td class="cs-del"></td>
+    `;
+}
+
+function resetGrid() {
+    countSheetBody.innerHTML = '';
+    newRowTr = makeNewRowTr();
+    countSheetBody.appendChild(newRowTr);
+    renumber();
+}
+function rebuildGridFromScratch() {
+    countSheetBody.innerHTML = '';
+    const sorted = Array.from(entriesMap.values()).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    sorted.forEach(e => {
+        const tr = document.createElement('tr');
+        tr.dataset.rowkey = String(e.entry_id);
+        tr.innerHTML = e.staff_id === currentStaffId ? cellsHtmlEditable(String(e.entry_id), e, false) : cellsHtmlReadonly(e);
+        countSheetBody.appendChild(tr);
+    });
+    newRowTr = makeNewRowTr();
+    countSheetBody.appendChild(newRowTr);
+    renumber();
+}
+function upsertRowDOM(entry) {
+    const key = String(entry.entry_id);
+    let tr = countSheetBody.querySelector(`tr[data-rowkey="${key}"]`);
+    const mine = entry.staff_id === currentStaffId;
+    if (mine && tr && tr.contains(document.activeElement)) return; // don't clobber active typing on my own row
+    if (!tr) {
+        tr = document.createElement('tr');
+        tr.dataset.rowkey = key;
+        tr.classList.add('fade-in');
+        countSheetBody.insertBefore(tr, newRowTr);
+        setTimeout(() => tr.classList.remove('fade-in'), 900);
+    }
+    tr.innerHTML = mine ? cellsHtmlEditable(key, entry, false) : cellsHtmlReadonly(entry);
+}
+function removeRowDOM(entryId) {
+    const tr = countSheetBody.querySelector(`tr[data-rowkey="${entryId}"]`);
+    if (tr) tr.remove();
+}
+function renumber() {
+    const rows = Array.from(countSheetBody.querySelectorAll('tr')).filter(r => r !== newRowTr);
+    rows.forEach((r, i) => { const c = r.querySelector('.rn'); if (c) c.textContent = i + 1; });
+    filterRows(document.getElementById('csFind').value);
+}
+
+/* ---------- Find / filter ---------- */
+function filterRows(query) {
+    const q = (query || '').trim().toUpperCase();
+    const rows = Array.from(countSheetBody.querySelectorAll('tr')).filter(r => r !== newRowTr);
+    let shown = 0;
+    rows.forEach(r => {
+        const match = !q || r.textContent.toUpperCase().includes(q);
+        r.style.display = match ? '' : 'none';
+        if (match) shown++;
+    });
+    document.getElementById('csCounter').textContent = t('showingRows').replace('{shown}', shown).replace('{total}', rows.length);
+}
+document.getElementById('csFind').addEventListener('input', (e) => filterRows(e.target.value));
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        document.getElementById('csFind').focus(); document.getElementById('csFind').select();
+    }
+});
+
+/* ---------- Cell focus helper ---------- */
+function focusCell(tr, col) {
+    const el = tr && tr.querySelector(`[data-col="${col}"]`);
+    if (el) { el.focus(); if (el.select) el.select(); }
+}
+function visibleRows() { return Array.from(countSheetBody.querySelectorAll('tr')).filter(r => r.style.display !== 'none'); }
+function isEditableRow(r) { return !!r.querySelector('.cs-cell'); }
+
+/* ---------- Keyboard navigation (Excel-like) ---------- */
+const COLS = ['location', 'item', 'bag', 'pack', 'frac'];
+countSheetBody.addEventListener('keydown', (e) => {
+    const input = e.target.closest('.cs-cell');
+    if (!input) return;
+    const col = input.dataset.col;
+    const tr = input.closest('tr');
+    const colIdx = COLS.indexOf(col);
+    const isNumCol = (col === 'bag' || col === 'pack' || col === 'frac');
+
+    if (col === 'item' && itemDropdownVisible()) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); moveSuggestionHighlight(1); return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); moveSuggestionHighlight(-1); return; }
+        if (e.key === 'Enter') { e.preventDefault(); selectHighlightedItemSuggestion(); return; }
+        if (e.key === 'Escape') { hideItemDropdown(); return; }
+    }
+    if (col === 'location' && locationDropdownVisible()) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); return; }
+        if (e.key === 'Escape') { hideLocationDropdown(); return; }
+    }
+
+    if (e.key === 'ArrowRight') {
+        if (!isNumCol && !(input.selectionStart === input.value.length && input.selectionEnd === input.value.length)) return;
+        e.preventDefault(); const nc = COLS[colIdx + 1]; if (nc) focusCell(tr, nc);
+    } else if (e.key === 'ArrowLeft') {
+        if (!isNumCol && !(input.selectionStart === 0 && input.selectionEnd === 0)) return;
+        e.preventDefault(); const pc = COLS[colIdx - 1]; if (pc) focusCell(tr, pc);
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const rows = visibleRows(); const idx = rows.indexOf(tr);
+        for (let i = idx + 1; i < rows.length; i++) { if (isEditableRow(rows[i])) { focusCell(rows[i], col); break; } }
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const rows = visibleRows(); const idx = rows.indexOf(tr);
+        for (let i = idx - 1; i >= 0; i--) { if (isEditableRow(rows[i])) { focusCell(rows[i], col); break; } }
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        commitCell(input);
+        const rows = visibleRows(); const idx = rows.indexOf(tr);
+        for (let i = idx + 1; i < rows.length; i++) { if (isEditableRow(rows[i])) { focusCell(rows[i], col); break; } }
+    } else if (e.key === 'Tab') {
+        e.preventDefault();
+        commitCell(input);
+        const nc = COLS[colIdx + 1];
+        if (nc) { focusCell(tr, nc); return; }
+        const rows = visibleRows(); const idx = rows.indexOf(tr);
+        for (let i = idx + 1; i < rows.length; i++) { if (isEditableRow(rows[i])) { focusCell(rows[i], COLS[0]); break; } }
+    }
+});
+
+/* ---------- Input / commit handling ---------- */
+countSheetBody.addEventListener('input', (e) => {
+    const input = e.target;
+    if (!input.classList.contains('cs-cell')) return;
+    const tr = input.closest('tr');
+    if (input.classList.contains('cs-num')) {
+        const b = Number(tr.querySelector('[data-col="bag"]').value) || 0;
+        const p = Number(tr.querySelector('[data-col="pack"]').value) || 0;
+        const f = Number(tr.querySelector('[data-col="frac"]').value) || 0;
+        const totalCell = tr.querySelector('.cs-total-cell');
+        if (totalCell) totalCell.textContent = (b * p) + f;
+    }
+    if (input.classList.contains('cs-item')) {
+        handleItemInput(input);
+    }
+    const rowkey = input.dataset.rowkey;
+    clearTimeout(saveTimers[rowkey]);
+    saveTimers[rowkey] = setTimeout(() => saveRow(rowkey), 700);
+});
+countSheetBody.addEventListener('focusout', (e) => {
+    const input = e.target;
+    if (!input.classList.contains('cs-cell')) return;
+    setTimeout(() => {
+        // skip commit if focus moved into an autocomplete dropdown item
+        if (document.activeElement && document.activeElement.closest('.suggestions-box')) return;
+        commitCell(input);
+    }, 120);
+});
+function commitCell(input) {
+    const rowkey = input.dataset.rowkey;
+    clearTimeout(saveTimers[rowkey]);
+    saveRow(rowkey);
+}
+
+async function saveRow(rowkey) {
+    const tr = countSheetBody.querySelector(`tr[data-rowkey="${rowkey}"]`);
+    if (!tr) return;
+    const locInput = tr.querySelector('[data-col="location"]');
+    const itemInput = tr.querySelector('[data-col="item"]');
+    const bagInput = tr.querySelector('[data-col="bag"]');
+    const packInput = tr.querySelector('[data-col="pack"]');
+    const fracInput = tr.querySelector('[data-col="frac"]');
+    if (!locInput || !itemInput) return;
+
+    const location = locInput.value.trim().toUpperCase();
+    const itemCode = resolveItemCode(itemInput);
+    const bag = Number(bagInput.value) || 0;
+    const pack = Number(packInput.value) || 0;
+    const frac = Number(fracInput.value) || 0;
+
+    if (rowkey === 'new') {
+        const hasAnyValue = location || itemInput.value.trim() || bagInput.value || packInput.value || fracInput.value;
+        if (!hasAnyValue) return;
+        if (!itemCode) { itemInput.classList.add('invalid'); return; }
+        itemInput.classList.remove('invalid');
+
+        const { data, error } = await sbClient.from('stock_count_entries').insert([{
+            session_id: currentSessionId, item_code: itemCode, location_id: location || null,
+            staff_id: currentStaffId, bag_qty: bag, pack_qty: pack, fraction_qty: frac
+        }]).select().single();
+
+        if (error) { alert(t('saveFail') + ': ' + error.message); return; }
+
+        entriesMap.set(data.entry_id, data);
+        lastUsedLocation = location;
+        // turn the template row into the saved row, then append a fresh blank template
+        tr.dataset.rowkey = String(data.entry_id);
+        tr.className = 'fade-in';
+        tr.innerHTML = cellsHtmlEditable(String(data.entry_id), data, false);
+        setTimeout(() => tr.classList.remove('fade-in'), 900);
+        newRowTr = makeNewRowTr();
+        countSheetBody.appendChild(newRowTr);
+        renumber();
+        flashVariance(itemCode, data.total_qty);
+        renderSummaryTable();
+    } else {
+        if (!itemCode) { itemInput.classList.add('invalid'); return; }
+        itemInput.classList.remove('invalid');
+        const existing = entriesMap.get(Number(rowkey)) || entriesMap.get(rowkey);
+        if (existing && existing.location_id === (location || null) && existing.item_code === itemCode && existing.bag_qty === bag && existing.pack_qty === pack && existing.fraction_qty === frac) {
+            return; // nothing changed, skip network call
+        }
+        const { data, error } = await sbClient.from('stock_count_entries')
+            .update({ location_id: location || null, item_code: itemCode, bag_qty: bag, pack_qty: pack, fraction_qty: frac })
+            .eq('entry_id', rowkey).eq('staff_id', currentStaffId).select().single();
+        if (error) { alert(t('saveFail') + ': ' + error.message); return; }
+        entriesMap.set(data.entry_id, data);
+        lastUsedLocation = location;
+        flashVariance(itemCode, null);
+        renderSummaryTable();
+    }
+}
+
+async function deleteRow(rowkey) {
+    if (!confirm(t('confirmDelete'))) return;
+    const { error } = await sbClient.from('stock_count_entries').delete().eq('entry_id', rowkey).eq('staff_id', currentStaffId);
+    if (error) { alert(t('saveFail') + ': ' + error.message); return; }
+    entriesMap.delete(Number(rowkey));
+    removeRowDOM(rowkey);
+    renumber(); renderSummaryTable();
+}
+
+function flashVariance(itemCode, justAddedTotal) {
+    const agg = computeAggregates();
+    const counted = agg[itemCode] ? agg[itemCode].counted : (justAddedTotal || 0);
+    const hasSap = sapRefMap[itemCode] !== undefined;
+    const box = document.getElementById('lastActionBar');
+    box.classList.remove('hidden');
+    if (hasSap) {
+        const variance = counted - sapRefMap[itemCode];
+        const cls = variance > 0 ? 'badge-over' : (variance < 0 ? 'badge-short' : 'badge-match');
+        box.className = `mt-3 fade-in rounded-xl p-3 border text-xs font-bold ${cls} border-[var(--glass-border)]`;
+        box.innerHTML = `${itemCode}: ${t('liveCounted')} <b>${counted}</b> | ${t('liveSap')} <b>${sapRefMap[itemCode]}</b> | ${t('liveVariance')}: <b>${variance > 0 ? '+' + variance : variance}</b>`;
+    } else {
+        box.className = `mt-3 fade-in rounded-xl p-3 border text-xs font-bold badge-match border-[var(--glass-border)]`;
+        box.innerHTML = `${itemCode}: ${t('liveCounted')} <b>${counted}</b> | ${t('noSapRef')}`;
+    }
+}
+
+/* =============================================================
+   🔎 Item / Location autocomplete (floating, escapes the grid scroll box)
+============================================================= */
+const itemDropdown = document.getElementById('csItemDropdown');
+const locationDropdown = document.getElementById('csLocationDropdown');
+let activeItemInput = null, activeItemIndex = -1, lastItemMatches = [];
+let activeLocationInput = null;
+
+function positionDropdown(dropdown, input) {
+    const r = input.getBoundingClientRect();
+    dropdown.style.left = r.left + 'px';
+    dropdown.style.top = (r.bottom + 4) + 'px';
+    dropdown.style.width = Math.max(r.width, 220) + 'px';
+    dropdown.style.display = 'block';
+}
+function itemDropdownVisible() { return itemDropdown.style.display === 'block'; }
+function hideItemDropdown() { itemDropdown.style.display = 'none'; activeItemInput = null; activeItemIndex = -1; }
+function locationDropdownVisible() { return locationDropdown.style.display === 'block'; }
+function hideLocationDropdown() { locationDropdown.style.display = 'none'; activeLocationInput = null; }
+
+function handleItemInput(input) {
+    const val = input.value.trim().toUpperCase();
+    input.dataset.itemcode = '';
+    input.classList.remove('invalid');
+    const tr = input.closest('tr');
+    const pn = tr.querySelector('.cs-partname'); if (pn) pn.textContent = '';
+    if (val.length < 2) { hideItemDropdown(); return; }
+    lastItemMatches = masterDataList.filter(m => m.item_code.toUpperCase().includes(val) || (m.code_name && m.code_name.toUpperCase().includes(val)) || (m.cl && m.cl.toUpperCase().includes(val))).slice(0, 10);
+    activeItemInput = input; activeItemIndex = -1;
+    if (lastItemMatches.length === 0) {
+        itemDropdown.innerHTML = `<div class="p-3 text-xs font-bold text-red-500 text-center">ไม่พบสินค้าในระบบ</div>`;
+    } else {
+        itemDropdown.innerHTML = lastItemMatches.map((m, i) => `
+            <div class="suggestion-item" data-idx="${i}">
+                <div class="text-sm font-black text-[var(--text-main)]">${m.item_code}</div>
+                <div class="text-[10px] font-bold text-[var(--text-sub)]">CL: ${m.cl || '-'} | ${m.code_name || ''}</div>
+            </div>`).join('');
+    }
+    positionDropdown(itemDropdown, input);
+}
+itemDropdown.addEventListener('mousedown', (e) => {
+    const s = e.target.closest('.suggestion-item');
+    if (!s) return;
+    e.preventDefault();
+    activeItemIndex = Number(s.dataset.idx);
+    selectHighlightedItemSuggestion();
+});
+function moveSuggestionHighlight(dir) {
+    if (!lastItemMatches.length) return;
+    activeItemIndex = (activeItemIndex + dir + lastItemMatches.length) % lastItemMatches.length;
+    itemDropdown.querySelectorAll('.suggestion-item').forEach(el => el.classList.remove('active'));
+    const el = itemDropdown.querySelector(`.suggestion-item[data-idx="${activeItemIndex}"]`);
+    if (el) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); }
+}
+function selectHighlightedItemSuggestion() {
+    if (!activeItemInput || activeItemIndex < 0 || !lastItemMatches[activeItemIndex]) return;
+    const m = lastItemMatches[activeItemIndex];
+    activeItemInput.value = m.item_code;
+    activeItemInput.dataset.itemcode = m.item_code;
+    activeItemInput.classList.remove('invalid');
+    const tr = activeItemInput.closest('tr');
+    const pn = tr.querySelector('.cs-partname'); if (pn) pn.textContent = partNameOf(m.item_code);
+    const input = activeItemInput;
+    hideItemDropdown();
+    focusCell(tr, 'bag');
+    const rowkey = input.dataset.rowkey;
+    clearTimeout(saveTimers[rowkey]);
+    saveTimers[rowkey] = setTimeout(() => saveRow(rowkey), 150);
+}
+function resolveItemCode(input) {
+    if (input.dataset.itemcode) return input.dataset.itemcode;
+    const val = input.value.trim().toUpperCase();
+    if (!val) return null;
+    const exact = masterDataList.find(m => m.item_code.toUpperCase() === val);
+    if (exact) {
+        input.value = exact.item_code; input.dataset.itemcode = exact.item_code;
+        const tr = input.closest('tr'); const pn = tr.querySelector('.cs-partname'); if (pn) pn.textContent = partNameOf(exact.item_code);
+        return exact.item_code;
+    }
+    return null;
+}
+
+function handleLocationInput(input) {
+    const val = input.value.trim().toUpperCase();
+    if (val.length < 1) { hideLocationDropdown(); return; }
+    const matches = locationsList.filter(l => l.location_id.toUpperCase().includes(val) || (l.zone && l.zone.toUpperCase().includes(val))).slice(0, 10);
+    activeLocationInput = input;
+    if (matches.length === 0) { hideLocationDropdown(); return; }
+    locationDropdown.innerHTML = matches.map(l => `<div class="suggestion-item" data-loc="${l.location_id}"><span class="text-sm font-black text-[var(--text-main)]">${l.location_id}</span><span class="text-[10px] font-bold text-[var(--text-sub)] ml-2">${l.zone || ''}</span></div>`).join('');
+    positionDropdown(locationDropdown, input);
+}
+locationDropdown.addEventListener('mousedown', (e) => {
+    const s = e.target.closest('.suggestion-item');
+    if (!s || !activeLocationInput) return;
+    e.preventDefault();
+    activeLocationInput.value = s.dataset.loc;
+    const input = activeLocationInput;
+    hideLocationDropdown();
+    const tr = input.closest('tr'); focusCell(tr, 'item');
+    const rowkey = input.dataset.rowkey;
+    clearTimeout(saveTimers[rowkey]);
+    saveTimers[rowkey] = setTimeout(() => saveRow(rowkey), 150);
+});
+
+countSheetBody.addEventListener('focusin', (e) => {
+    const input = e.target;
+    if (input.classList.contains('cs-item')) { if (input.value.trim().length >= 2) handleItemInput(input); }
+    else { hideItemDropdown(); }
+    if (input.dataset && input.dataset.col === 'location') { /* no-op; shown via input event */ }
+    else { hideLocationDropdown(); }
+});
+countSheetBody.addEventListener('input', (e) => {
+    if (e.target.dataset && e.target.dataset.col === 'location') handleLocationInput(e.target);
+});
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.cs-item') && !e.target.closest('#csItemDropdown')) hideItemDropdown();
+    if (!e.target.closest('[data-col="location"]') && !e.target.closest('#csLocationDropdown')) hideLocationDropdown();
+});
+window.addEventListener('scroll', () => { hideItemDropdown(); hideLocationDropdown(); }, true);
+window.addEventListener('resize', () => { hideItemDropdown(); hideLocationDropdown(); });
+
+/* =============================================================
+   📊 Summary vs SAP
+============================================================= */
+function computeAggregates() {
+    const map = {};
+    entriesMap.forEach(e => {
+        if (!map[e.item_code]) map[e.item_code] = { counted: 0, locations: new Set() };
+        map[e.item_code].counted += Number(e.total_qty) || 0;
+        if (e.location_id) map[e.item_code].locations.add(e.location_id);
+    });
+    Object.keys(sapRefMap).forEach(code => { if (!map[code]) map[code] = { counted: 0, locations: new Set() }; });
+    return map;
+}
+function varianceBadge(variance, hasSap) {
+    if (!hasSap) return `<span class="badge badge-match">${t('noSapRef')}</span>`;
+    if (variance > 0) return `<span class="badge badge-over"><i class="fa-solid fa-arrow-up"></i> +${variance} ${t('over')}</span>`;
+    if (variance < 0) return `<span class="badge badge-short"><i class="fa-solid fa-arrow-down"></i> ${variance} ${t('short')}</span>`;
+    return `<span class="badge badge-match"><i class="fa-solid fa-check"></i> ${t('match')}</span>`;
+}
+function renderSummaryTable() {
+    const tbody = document.getElementById('summaryTbody');
+    if (!currentSessionId) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-[var(--text-sub)] font-bold">${t('noSessionSelected')}</td></tr>`; return; }
+    const agg = computeAggregates();
+    let codes = Object.keys(agg);
+    const q = (document.getElementById('summarySearch').value || '').trim().toUpperCase();
+    if (q) codes = codes.filter(c => c.toUpperCase().includes(q) || partNameOf(c).toUpperCase().includes(q));
+    if (codes.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-[var(--text-sub)] font-bold">${t('noSummaryData')}</td></tr>`; return; }
+    codes.sort((a, b) => {
+        const va = sapRefMap[a] !== undefined ? Math.abs(agg[a].counted - sapRefMap[a]) : -1;
+        const vb = sapRefMap[b] !== undefined ? Math.abs(agg[b].counted - sapRefMap[b]) : -1;
+        return vb - va;
+    });
+    tbody.innerHTML = codes.map(code => {
+        const hasSap = sapRefMap[code] !== undefined;
+        const sapQty = hasSap ? sapRefMap[code] : null;
+        const counted = agg[code].counted;
+        const variance = hasSap ? (counted - sapQty) : null;
+        return `<tr class="hover:bg-[var(--card-hover)]">
+            <td class="font-black">${code}<div class="text-[10px] font-semibold text-[var(--text-sub)] whitespace-normal">${partNameOf(code)}</div></td>
+            <td>${hasSap ? sapQty : '-'}</td>
+            <td class="font-black">${counted}</td>
+            <td>${varianceBadge(variance, hasSap)}</td>
+            <td>${agg[code].locations.size}</td>
+        </tr>`;
+    }).join('');
+}
+document.getElementById('summarySearch').addEventListener('input', renderSummaryTable);
+document.getElementById('sessionSelect').addEventListener('change', (e) => selectSession(e.target.value));
+
+/* =============================================================
+   👑 Admin-only: New Session / Import SAP / Close Session
+============================================================= */
+document.getElementById('btnNewSession').addEventListener('click', async () => {
+    const name = prompt(t('promptSessionName'));
+    if (!name || !name.trim()) return;
+    const now = new Date(), pad = n => ('0' + n).slice(-2);
+    const sessionId = 'CNT-' + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+    const { error } = await sbClient.from('stock_count_sessions').insert([{ session_id: sessionId, session_name: name.trim(), status: 'OPEN', created_by: currentStaffId }]);
+    if (error) { alert(t('saveFail') + ': ' + error.message); return; }
+    alert(t('sessionCreated'));
+    await fetchOpenSessions();
+    document.getElementById('sessionSelect').value = sessionId;
+    selectSession(sessionId);
+});
+document.getElementById('btnCloseSession').addEventListener('click', async () => {
+    if (!currentSessionId) { alert(t('selectSessionFirst')); return; }
+    if (!confirm(t('confirmCloseSession'))) return;
+    const { error } = await sbClient.from('stock_count_sessions').update({ status: 'CLOSED', closed_at: new Date().toISOString() }).eq('session_id', currentSessionId);
+    if (error) { alert(t('saveFail') + ': ' + error.message); return; }
+    alert(t('sessionClosed'));
+    unsubscribeSession();
+    await fetchOpenSessions();
+});
+document.getElementById('btnImportSap').addEventListener('click', () => document.getElementById('sapFileInput').click());
+document.getElementById('sapFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!currentSessionId) { alert(t('selectSessionFirst')); e.target.value = ''; return; }
+    const btn = document.getElementById('btnImportSap');
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('importParsing')}`;
+    btn.disabled = true;
+    try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if (rows.length === 0) throw new Error(t('colHeaderNotFound'));
+        const headerKeys = Object.keys(rows[0]);
+        const findKey = (needle) => headerKeys.find(h => h.toString().trim().toLowerCase() === needle);
+        let itemKey = findKey('item no.') || findKey('item no') || headerKeys.find(h => h.toString().trim().toLowerCase().includes('item no'));
+        let qtyKey = findKey('end balance qty') || headerKeys.find(h => h.toString().trim().toLowerCase().includes('end balance'));
+        if (!itemKey || !qtyKey) throw new Error(t('colHeaderNotFound'));
+        const payload = rows.map(r => ({ session_id: currentSessionId, item_code: String(r[itemKey] || '').trim(), end_balance_qty: Number(r[qtyKey]) || 0 })).filter(r => r.item_code);
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('importUploading')}`;
+        const chunkSize = 500;
+        for (let i = 0; i < payload.length; i += chunkSize) {
+            const chunk = payload.slice(i, i + chunkSize);
+            const { error } = await sbClient.from('stock_count_sap_ref').upsert(chunk, { onConflict: 'session_id,item_code' });
+            if (error) throw error;
+        }
+        alert(`${t('importSuccess')} (${payload.length})`);
+        await loadSapRef();
+    } catch (err) {
+        console.error(err); alert(t('importFail') + ': ' + err.message);
+    } finally {
+        btn.innerHTML = origHtml; btn.disabled = false; e.target.value = '';
+    }
+});
+
+/* =============================================================
+   🏁 Init
+============================================================= */
+document.addEventListener('DOMContentLoaded', async () => {
+    changeLanguage(currentLang);
+    resetGrid();
+    const ok = await checkAccess();
+    if (!ok) return;
+    await Promise.all([fetchMasterData(), fetchLocations(), fetchOpenSessions()]);
+    changeLanguage(currentLang);
+    const loader = document.getElementById('masterLoading');
+    loader.classList.add('opacity-0');
+    setTimeout(() => loader.classList.add('hidden'), 300);
+});
+</script>
+</body>
+</html>

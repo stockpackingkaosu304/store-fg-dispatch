@@ -313,6 +313,14 @@
             background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); border-radius: 999px; padding: 2px 8px; cursor: pointer;
         }
         .item-img-view { max-width: 100%; max-height: 58vh; object-fit: contain; cursor: zoom-in; transition: all 0.2s ease; }
+        #itemLightbox { background: rgba(0,0,0,0.94); backdrop-filter: blur(4px); z-index: 10050; animation: none; }
+        #lbStage { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; display: flex; align-items: center; justify-content: center; }
+        #lbStage.dragging { cursor: grabbing; }
+        #lbImg { max-width: 98vw; max-height: 94vh; object-fit: contain; user-select: none; -webkit-user-drag: none; transform-origin: center center; will-change: transform; box-shadow: 0 0 60px rgba(0,0,0,0.8); }
+        .lb-ctrl { position: absolute; z-index: 2; display: flex; gap: 8px; }
+        .lb-btn { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 17px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
+        .lb-btn:hover { background: rgba(255,255,255,0.28); }
+        .lb-btn:active { transform: scale(0.92); }
         .item-img-view.zoomed { max-width: none; max-height: none; width: 220%; cursor: zoom-out; }
     </style>
 </head>
@@ -579,22 +587,40 @@
             </div>
             <div class="flex gap-1 p-1 glass-input rounded-xl mb-3">
                 <button id="itemImgTabQr" class="stats-tab-btn" onclick="switchItemImageKind('qr')"><i class="fa-solid fa-qrcode mr-1"></i><span data-i18n="imgTabQr">QR Code ลาเบล</span></button>
-                <button id="itemImgTabPhoto" class="stats-tab-btn" onclick="switchItemImageKind('photo')"><i class="fa-solid fa-image mr-1"></i><span data-i18n="imgTabPhoto">รูปชิ้นงาน</span></button>
+                <button id="itemImgTabPhoto" class="stats-tab-btn" onclick="switchItemImageKind('wi')"><i class="fa-solid fa-file-lines mr-1"></i><span data-i18n="imgTabPhoto">WI</span></button>
             </div>
             <div class="glass-input rounded-2xl overflow-auto custom-scroll flex items-center justify-center min-h-[240px] max-h-[60vh] flex-1 relative">
                 <div id="itemImgLoading" class="text-[var(--text-sub)] text-xs font-bold"><i class="fa-solid fa-spinner fa-spin mr-1"></i> ...</div>
-                <img id="itemImgEl" class="item-img-view hidden" alt="" onclick="toggleItemImgZoom()">
+                <img id="itemImgEl" class="item-img-view hidden" alt="" onclick="openItemLightbox()">
                 <div id="itemImgEmpty" class="hidden text-center text-[var(--text-sub)] p-6">
                     <i class="fa-solid fa-image text-4xl mb-3 block opacity-40"></i>
                     <div class="text-sm font-black" data-i18n="imgNoImage">ยังไม่มีรูปสำหรับไอเทมนี้</div>
                     <div class="text-[11px] mt-1 opacity-80" data-i18n="imgNoImageHint">กดปุ่มด้านล่างเพื่ออัปโหลดรูป (ต้องยืนยันรหัสพนักงาน)</div>
                 </div>
             </div>
-            <div id="itemImgZoomHint" class="hidden text-center text-[10px] text-[var(--text-sub)] mt-1.5 font-semibold" data-i18n="imgTapZoom">แตะที่รูปเพื่อซูมเข้า/ออก</div>
+            <div id="itemImgZoomHint" class="hidden text-center text-[10px] text-[var(--text-sub)] mt-1.5 font-semibold" data-i18n="imgTapZoom">แตะที่รูปเพื่อขยายเต็มจอ</div>
             <input type="file" id="itemImageFile" accept="image/*" style="display:none" onchange="onItemImageFileChosen(event)">
+            <button id="itemImgPdfBtn" onclick="exportWiPdf()" class="hidden mt-3 w-full bg-gradient-to-r from-rose-500 to-red-600 text-white font-black py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 transition-all active:scale-95">
+                <i class="fa-solid fa-file-pdf"></i> <span id="itemImgPdfBtnText" data-i18n="imgPdfBtn">ส่งออก PDF (A4 แนวนอน)</span>
+            </button>
             <button id="itemImgUploadBtn" onclick="startItemImageUpload()" class="mt-3 w-full glass-input hover:bg-[var(--card-hover)] text-[var(--text-main)] font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-all active:scale-95">
                 <i class="fa-solid fa-cloud-arrow-up text-sky-400"></i> <span id="itemImgUploadBtnText" data-i18n="imgUploadBtn">อัปโหลด/เปลี่ยนรูป</span>
             </button>
+        </div>
+    </div>
+
+    <!-- 🆕 Lightbox: ภาพ QR/WI ขยายเต็มจอ ซูม/ลากได้ (ลอยเหนือกรอบ) -->
+    <div id="itemLightbox" class="modal-overlay" onclick="if(event.target.id==='lbStage')closeItemLightbox()">
+        <div id="lbStage">
+            <img id="lbImg" alt="" draggable="false">
+        </div>
+        <div class="lb-ctrl" style="top:14px; right:14px;">
+            <button class="lb-btn" onclick="event.stopPropagation(); closeItemLightbox()" title="ปิด"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="lb-ctrl" style="bottom:18px; left:50%; transform:translateX(-50%);">
+            <button class="lb-btn" onclick="event.stopPropagation(); lbZoom(1/1.4)" title="-"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+            <button class="lb-btn" onclick="event.stopPropagation(); lbReset()" title="Reset"><i class="fa-solid fa-expand"></i></button>
+            <button class="lb-btn" onclick="event.stopPropagation(); lbZoom(1.4)" title="+"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
         </div>
     </div>
 
@@ -2662,8 +2688,8 @@
         let pendingRosterPhoto = null;
 
         // 🆕 บีบอัดรูปก่อนอัปโหลด (เหมือน pattern ที่ใช้ใน index.html/notices.html)
-        function compressImage(file, callback, maxDim) {
-            maxDim = maxDim || 800;
+        function compressImage(file, callback, maxDim, quality) {
+            maxDim = maxDim || 800; quality = quality || 0.75;
             const reader = new FileReader();
             reader.onload = function (event) {
                 const img = new Image();
@@ -2672,7 +2698,7 @@
                     let width = img.width, height = img.height;
                     if (width > height) { if (width > maxDim) { height *= maxDim / width; width = maxDim; } } else { if (height > maxDim) { width *= maxDim / height; height = maxDim; } }
                     canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
-                    canvas.toBlob(blob => { callback(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' })); }, 'image/jpeg', 0.75);
+                    canvas.toBlob(blob => { callback(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' })); }, 'image/jpeg', quality);
                 };
                 img.src = event.target.result;
             };
@@ -2831,7 +2857,7 @@
             const safe = String(itemCode).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
             return `<div class="mt-1.5 flex flex-wrap gap-1.5">
                 <button type="button" class="item-img-btn qr" onclick="event.stopPropagation(); openItemImage('${safe}', 'qr')"><i class="fa-solid fa-qrcode"></i> ${escapeHtmlLite(tt('btnQr', 'QR ลาเบล'))}</button>
-                <button type="button" class="item-img-btn photo" onclick="event.stopPropagation(); openItemImage('${safe}', 'photo')"><i class="fa-solid fa-image"></i> ${escapeHtmlLite(tt('btnPhoto', 'รูปงาน'))}</button>
+                <button type="button" class="item-img-btn photo" onclick="event.stopPropagation(); openItemImage('${safe}', 'wi')"><i class="fa-solid fa-file-lines"></i> ${escapeHtmlLite(tt('btnPhoto', 'WI'))}</button>
             </div>`;
         }
 
@@ -2929,10 +2955,16 @@
             return (m && m.item_code) ? m.item_code : code;
         }
         function itemImageCandidates(code, kind) {
-            const base = `${SB_URL}/storage/v1/object/public/${ITEM_IMG_BUCKET}/${kind}/${encodeURIComponent(itemImagePathCode(code))}`;
+            // WI อยู่โฟลเดอร์ wi/ (รองรับรูปเก่าในโฟลเดอร์ photo/ ด้วยเป็นตัวสำรอง)
+            const folders = kind === 'wi' ? ['wi', 'photo'] : [kind];
             const bust = itemImgBust[`${kind}|${code}`];
             const q = bust ? `?v=${bust}` : '';
-            return ['jpg', 'png', 'jpeg', 'webp'].map(ext => `${base}.${ext}${q}`);
+            const out = [];
+            folders.forEach(f => {
+                const base = `${SB_URL}/storage/v1/object/public/${ITEM_IMG_BUCKET}/${f}/${encodeURIComponent(itemImagePathCode(code))}`;
+                ['jpg', 'png', 'jpeg', 'webp'].forEach(ext => out.push(`${base}.${ext}${q}`));
+            });
+            return out;
         }
 
         function openItemImage(code, kind) {
@@ -2944,6 +2976,7 @@
             switchItemImageKind(kind || 'qr');
         }
         function closeItemImage(e) {
+            document.getElementById('itemLightbox').classList.remove('active');
             document.getElementById('itemImageModal').classList.remove('active');
             itemImgState.token++; // ยกเลิกการโหลดที่ค้างอยู่
         }
@@ -2963,11 +2996,13 @@
             const hint = document.getElementById('itemImgZoomHint');
             img.classList.add('hidden'); img.classList.remove('zoomed');
             empty.classList.add('hidden'); hint.classList.add('hidden');
+            document.getElementById('itemImgPdfBtn').classList.add('hidden');
             loading.classList.remove('hidden');
             let i = 0;
             img.onload = () => {
                 if (token !== itemImgState.token) return;
                 loading.classList.add('hidden'); img.classList.remove('hidden'); hint.classList.remove('hidden');
+                if (kind === 'wi') document.getElementById('itemImgPdfBtn').classList.remove('hidden');
             };
             img.onerror = () => {
                 if (token !== itemImgState.token) return;
@@ -2977,8 +3012,103 @@
             };
             img.src = urls[0];
         }
-        function toggleItemImgZoom() {
-            document.getElementById('itemImgEl').classList.toggle('zoomed');
+        // ---------- Lightbox (ขยายเต็มจอ, ซูม + ลากได้ทั้งเมาส์และสองนิ้ว) ----------
+        const lb = { s: 1, x: 0, y: 0, drag: false, sx: 0, sy: 0, pinch: null };
+        function applyLb() {
+            document.getElementById('lbImg').style.transform = `translate(${lb.x}px, ${lb.y}px) scale(${lb.s})`;
+        }
+        function lbReset() { lb.s = 1; lb.x = 0; lb.y = 0; applyLb(); }
+        function lbZoom(f) {
+            lb.s = Math.max(0.5, Math.min(lb.s * f, 8));
+            if (lb.s <= 1) { lb.x = 0; lb.y = 0; }
+            applyLb();
+        }
+        function openItemLightbox() {
+            const src = document.getElementById('itemImgEl');
+            if (!src.src || src.classList.contains('hidden')) return;
+            document.getElementById('lbImg').src = src.src;
+            lbReset();
+            document.getElementById('itemLightbox').classList.add('active');
+        }
+        function closeItemLightbox() {
+            document.getElementById('itemLightbox').classList.remove('active');
+        }
+        (function initLightbox() {
+            const stage = document.getElementById('lbStage');
+            stage.addEventListener('wheel', e => { e.preventDefault(); lbZoom(e.deltaY < 0 ? 1.15 : 1 / 1.15); }, { passive: false });
+            stage.addEventListener('dblclick', () => { if (lb.s > 1.05) lbReset(); else lbZoom(2.5); });
+            stage.addEventListener('mousedown', e => { lb.drag = true; lb.sx = e.clientX - lb.x; lb.sy = e.clientY - lb.y; stage.classList.add('dragging'); });
+            window.addEventListener('mousemove', e => { if (!lb.drag) return; lb.x = e.clientX - lb.sx; lb.y = e.clientY - lb.sy; applyLb(); });
+            window.addEventListener('mouseup', () => { lb.drag = false; stage.classList.remove('dragging'); });
+            stage.addEventListener('touchstart', e => {
+                if (e.touches.length === 2) {
+                    lb.pinch = { d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), s: lb.s };
+                    lb.drag = false;
+                } else if (e.touches.length === 1) {
+                    lb.drag = true; lb.sx = e.touches[0].clientX - lb.x; lb.sy = e.touches[0].clientY - lb.y;
+                }
+            }, { passive: true });
+            stage.addEventListener('touchmove', e => {
+                e.preventDefault();
+                if (e.touches.length === 2 && lb.pinch) {
+                    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    lb.s = Math.max(0.5, Math.min(lb.pinch.s * d / lb.pinch.d, 8));
+                    applyLb();
+                } else if (e.touches.length === 1 && lb.drag) {
+                    lb.x = e.touches[0].clientX - lb.sx; lb.y = e.touches[0].clientY - lb.sy; applyLb();
+                }
+            }, { passive: false });
+            stage.addEventListener('touchend', e => { if (e.touches.length < 2) lb.pinch = null; if (e.touches.length === 0) lb.drag = false; });
+        })();
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && document.getElementById('itemLightbox').classList.contains('active')) closeItemLightbox();
+        });
+
+        // ---------- ส่งออกหน้า WI เป็น PDF A4 แนวนอน เต็มหน้า ----------
+        function blobToJpegData(blob, maxSide) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(blob);
+                const im = new Image();
+                im.onload = () => {
+                    let w = im.naturalWidth, h = im.naturalHeight;
+                    const k = Math.min(1, maxSide / Math.max(w, h));
+                    const cw = Math.round(w * k), ch = Math.round(h * k);
+                    const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cw, ch);
+                    ctx.drawImage(im, 0, 0, cw, ch);
+                    URL.revokeObjectURL(url);
+                    resolve({ data: c.toDataURL('image/jpeg', 0.92), w: cw, h: ch });
+                };
+                im.onerror = e => { URL.revokeObjectURL(url); reject(e); };
+                im.src = url;
+            });
+        }
+        async function exportWiPdf() {
+            const img = document.getElementById('itemImgEl');
+            if (!img.src || img.classList.contains('hidden')) return;
+            if (!window.jspdf) { alert(tt('imgPdfFail', 'สร้าง PDF ไม่สำเร็จ') + ': jsPDF'); return; }
+            const btn = document.getElementById('itemImgPdfBtn');
+            const txt = document.getElementById('itemImgPdfBtnText');
+            const orig = txt.innerText;
+            btn.disabled = true; txt.innerText = tt('imgPdfBusy', 'กำลังสร้าง PDF...');
+            try {
+                const resp = await fetch(img.src);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const { data, w, h } = await blobToJpegData(await resp.blob(), 3600);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                const pw = 297, ph = 210, m = 3; // ขอบ 3 มม. กันเครื่องพิมพ์ตัดขอบ
+                const k = Math.min((pw - 2 * m) / w, (ph - 2 * m) / h);
+                const iw = w * k, ih = h * k;
+                pdf.addImage(data, 'JPEG', (pw - iw) / 2, (ph - ih) / 2, iw, ih);
+                pdf.save(`WI_${itemImagePathCode(itemImgState.code)}.pdf`);
+            } catch (err) {
+                console.error(err);
+                alert(tt('imgPdfFail', 'สร้าง PDF ไม่สำเร็จ') + ': ' + (err.message || err));
+            } finally {
+                btn.disabled = false; txt.innerText = orig;
+            }
         }
 
         // ---------- อัปโหลดรูป (ต้องยืนยันรหัสพนักงานที่อยู่ใน whitelist) ----------
@@ -3013,7 +3143,7 @@
                     btn.disabled = false;
                     btnText.innerText = tt('imgUploadBtn', 'อัปโหลด/เปลี่ยนรูป');
                 }
-            }, kind === 'qr' ? 1600 : 1200);
+            }, kind === 'qr' ? 1600 : 2800, kind === 'qr' ? 0.8 : 0.88);
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -3077,32 +3207,32 @@
             toolsCatalogBtn: "ฐานข้อมูลไอเทม", catalogTitle: "ฐานข้อมูลไอเทมทั้งหมด", catalogSearchPh: "ค้นหารหัส ITEM, ชื่องาน, ลูกค้า...",
             catalogOnlyUnplaced: "แสดงเฉพาะไอเทมที่ยังไม่มีตำแหน่ง", catalogNoLocation: "ยังไม่มีตำแหน่งในระบบ", catalogUnplacedHeader: "ไอเทมในฐานระบบ (ยังไม่มีตำแหน่ง)",
             catalogUnplacedShort: "ยังไม่มีตำแหน่ง", catalogMoreHint: "พิมพ์เพิ่มเพื่อกรองให้แคบลง หรือเปิด เครื่องมือ > ฐานข้อมูลไอเทม", catalogShowMore: "แสดงเพิ่ม", catalogLoading: "กำลังโหลดข้อมูลไอเทม...",
-            btnQr: "QR ลาเบล", btnPhoto: "รูปงาน", imgTabQr: "QR Code ลาเบล", imgTabPhoto: "รูปชิ้นงาน", imgNoImage: "ยังไม่มีรูปสำหรับไอเทมนี้",
-            imgNoImageHint: "กดปุ่มด้านล่างเพื่ออัปโหลดรูป (ต้องยืนยันรหัสพนักงาน)", imgTapZoom: "แตะที่รูปเพื่อซูมเข้า/ออก", imgUploadBtn: "อัปโหลด/เปลี่ยนรูป",
+            btnQr: "QR ลาเบล", btnPhoto: "WI", imgTabQr: "QR Code ลาเบล", imgTabPhoto: "WI", imgNoImage: "ยังไม่มีรูปสำหรับไอเทมนี้",
+            imgNoImageHint: "กดปุ่มด้านล่างเพื่ออัปโหลดรูป (ต้องยืนยันรหัสพนักงาน)", imgTapZoom: "แตะที่รูปเพื่อขยายเต็มจอ", imgPdfBtn: "ส่งออก PDF (A4 แนวนอน)", imgPdfBusy: "กำลังสร้าง PDF...", imgPdfFail: "สร้าง PDF ไม่สำเร็จ", imgUploadBtn: "อัปโหลด/เปลี่ยนรูป",
             imgUploading: "กำลังอัปโหลด...", imgUploadOk: "อัปโหลดรูปเรียบร้อยแล้ว", imgUploadFail: "อัปโหลดไม่สำเร็จ", imgVerifiedHint: "ยืนยันตัวตนแล้ว กดปุ่ม อัปโหลด/เปลี่ยนรูป อีกครั้งได้เลย"
         });
         Object.assign(translations.zh, {
             toolsCatalogBtn: "商品資料庫", catalogTitle: "全部商品資料庫", catalogSearchPh: "搜尋 ITEM 代碼、品名、客戶...",
             catalogOnlyUnplaced: "只顯示尚無儲位的商品", catalogNoLocation: "系統中尚無儲位", catalogUnplacedHeader: "系統商品 (尚無儲位)",
             catalogUnplacedShort: "尚無儲位", catalogMoreHint: "請輸入更多字元縮小範圍，或開啟 工具 > 商品資料庫", catalogShowMore: "顯示更多", catalogLoading: "正在載入商品資料...",
-            btnQr: "QR 標籤", btnPhoto: "產品照片", imgTabQr: "QR Code 標籤", imgTabPhoto: "產品照片", imgNoImage: "此商品尚無圖片",
-            imgNoImageHint: "點下方按鈕上傳圖片 (需驗證員工編號)", imgTapZoom: "點擊圖片可放大/縮小", imgUploadBtn: "上傳/更換圖片",
+            btnQr: "QR 標籤", btnPhoto: "WI", imgTabQr: "QR Code 標籤", imgTabPhoto: "WI", imgNoImage: "此商品尚無圖片",
+            imgNoImageHint: "點下方按鈕上傳圖片 (需驗證員工編號)", imgTapZoom: "點擊圖片全螢幕放大", imgPdfBtn: "匯出 PDF (A4 橫向)", imgPdfBusy: "正在建立 PDF...", imgPdfFail: "建立 PDF 失敗", imgUploadBtn: "上傳/更換圖片",
             imgUploading: "上傳中...", imgUploadOk: "圖片上傳成功", imgUploadFail: "上傳失敗", imgVerifiedHint: "驗證完成，請再按一次 上傳/更換圖片"
         });
         Object.assign(translations.mm, {
             toolsCatalogBtn: "ပစ္စည်းဒေတာဘေ့စ်", catalogTitle: "ပစ္စည်းအားလုံး ဒေတာဘေ့စ်", catalogSearchPh: "ITEM ကုဒ်၊ အမည်၊ ဖောက်သည် ရှာရန်...",
             catalogOnlyUnplaced: "နေရာမသတ်မှတ်ရသေးသော ပစ္စည်းများသာပြပါ", catalogNoLocation: "စနစ်တွင် နေရာမရှိသေးပါ", catalogUnplacedHeader: "စနစ်ထဲရှိ ပစ္စည်းများ (နေရာမရှိသေး)",
             catalogUnplacedShort: "နေရာမရှိသေး", catalogMoreHint: "ပိုမိုတိကျစွာ ရိုက်ထည့်ပါ သို့မဟုတ် ကိရိယာများ > ပစ္စည်းဒေတာဘေ့စ် ကိုဖွင့်ပါ", catalogShowMore: "ထပ်ပြရန်", catalogLoading: "ပစ္စည်းဒေတာ ရယူနေသည်...",
-            btnQr: "QR တံဆိပ်", btnPhoto: "ပစ္စည်းပုံ", imgTabQr: "QR Code တံဆိပ်", imgTabPhoto: "ပစ္စည်းပုံ", imgNoImage: "ဤပစ္စည်းအတွက် ပုံမရှိသေးပါ",
-            imgNoImageHint: "အောက်ပါခလုတ်ဖြင့် ပုံတင်ပါ (ဝန်ထမ်းကုဒ် အတည်ပြုရန်လိုသည်)", imgTapZoom: "ပုံကိုနှိပ်၍ ချဲ့/ချုံ့ပါ", imgUploadBtn: "ပုံတင်/ပြောင်းရန်",
+            btnQr: "QR တံဆိပ်", btnPhoto: "WI", imgTabQr: "QR Code တံဆိပ်", imgTabPhoto: "WI", imgNoImage: "ဤပစ္စည်းအတွက် ပုံမရှိသေးပါ",
+            imgNoImageHint: "အောက်ပါခလုတ်ဖြင့် ပုံတင်ပါ (ဝန်ထမ်းကုဒ် အတည်ပြုရန်လိုသည်)", imgTapZoom: "ပုံကိုနှိပ်၍ မျက်နှာပြင်အပြည့်ချဲ့ပါ", imgPdfBtn: "PDF ထုတ်ရန် (A4 အလျားလိုက်)", imgPdfBusy: "PDF ဖန်တီးနေသည်...", imgPdfFail: "PDF ဖန်တီး၍မရပါ", imgUploadBtn: "ပုံတင်/ပြောင်းရန်",
             imgUploading: "တင်နေသည်...", imgUploadOk: "ပုံတင်ပြီးပါပြီ", imgUploadFail: "တင်၍မရပါ", imgVerifiedHint: "အတည်ပြုပြီးပါပြီ ပုံတင်/ပြောင်းရန် ခလုတ်ကို ထပ်နှိပ်ပါ"
         });
         Object.assign(translations.en, {
             toolsCatalogBtn: "Item Database", catalogTitle: "All Items Database", catalogSearchPh: "Search ITEM code, name, customer...",
             catalogOnlyUnplaced: "Show only items with no location", catalogNoLocation: "No location in system yet", catalogUnplacedHeader: "Items in system (no location yet)",
             catalogUnplacedShort: "no location", catalogMoreHint: "Type more to narrow down, or open Tools > Item Database", catalogShowMore: "Show more", catalogLoading: "Loading item data...",
-            btnQr: "QR Label", btnPhoto: "Photo", imgTabQr: "QR Code Label", imgTabPhoto: "Product Photo", imgNoImage: "No image for this item yet",
-            imgNoImageHint: "Tap the button below to upload (staff ID verification required)", imgTapZoom: "Tap the image to zoom in/out", imgUploadBtn: "Upload / Replace",
+            btnQr: "QR Label", btnPhoto: "WI", imgTabQr: "QR Code Label", imgTabPhoto: "WI", imgNoImage: "No image for this item yet",
+            imgNoImageHint: "Tap the button below to upload (staff ID verification required)", imgTapZoom: "Tap the image for full-screen", imgPdfBtn: "Export PDF (A4 landscape)", imgPdfBusy: "Creating PDF...", imgPdfFail: "PDF export failed", imgUploadBtn: "Upload / Replace",
             imgUploading: "Uploading...", imgUploadOk: "Image uploaded", imgUploadFail: "Upload failed", imgVerifiedHint: "Verified. Tap Upload / Replace again."
         });
 

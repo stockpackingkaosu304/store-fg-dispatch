@@ -631,6 +631,7 @@
             <h3 class="text-base font-black text-[var(--text-main)] mb-1 relative z-10 flex items-center gap-2"><i class="fa-solid fa-id-badge text-sky-500"></i> <span data-i18n="staffIdTitle">กรอกรหัสพนักงาน</span></h3>
             <p class="text-[11px] text-[var(--text-sub)] mb-3 relative z-10" data-i18n="staffIdDesc">กรอกครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนี้</p>
             <input type="text" id="staffIdInput" data-i18n-placeholder="staffIdPlaceholder" placeholder="เช่น EMP001" class="w-full glass-input rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mb-3 relative z-10">
+            <input type="password" id="staffPinInput" inputmode="numeric" autocomplete="current-password" maxlength="8" data-i18n-placeholder="staffPinPlaceholder" placeholder="PIN" class="hidden w-full glass-input rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mb-3 relative z-10">
             <div class="flex gap-2 relative z-10">
                 <button onclick="cancelStaffIdPrompt()" class="flex-1 glass-input text-[var(--text-main)] font-bold py-2.5 rounded-xl text-sm" data-i18n="staffIdCancel">ยกเลิก</button>
                 <button onclick="confirmStaffId()" class="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black py-2.5 rounded-xl text-sm shadow-lg" data-i18n="staffIdConfirm">ยืนยัน</button>
@@ -1154,7 +1155,7 @@
             if (!isStaffVerified()) {
                 pendingStaffAction = { type: 'viewNotice', itemCode: itemCode };
                 document.getElementById('staffIdInput').value = '';
-                document.getElementById('staffIdModal').classList.add('active');
+                openStaffIdModal();
                 return;
             }
             touchStaffSession();
@@ -1532,6 +1533,33 @@
 
         // คืนค่ารหัสพนักงานถ้ายัง "active" อยู่ในช่วง session (ไม่เกิน 15 นาทีนับจากใช้งานล่าสุด)
         // ถ้าหมดเวลาแล้วจะล้างข้อมูลอัตโนมัติและถือว่ายังไม่ได้ล็อกอิน
+        // เปิดหน้าต่างรหัสพนักงาน: โหมดแจ้งปัญหา = รหัสอย่างเดียว / โหมดอื่น = รหัส + PIN
+        function openStaffIdModal() {
+            const needPin = !(pendingStaffAction && pendingStaffAction.type === 'issue');
+            const pin = document.getElementById('staffPinInput');
+            pin.value = '';
+            pin.classList.toggle('hidden', !needPin);
+            document.getElementById('staffIdModal').classList.add('active');
+        }
+
+        // เรียกฟังก์ชันบนฐานข้อมูลพร้อม token (ตรวจสิทธิ์ที่ฝั่งฐานข้อมูล)
+        // คืน true ถ้าสำเร็จ / false ถ้าไม่สำเร็จ (และแจ้งผู้ใช้แล้ว)
+        async function callStaffRpc(fn, args) {
+            const t = translations[currentLang] || translations.th;
+            const token = localStorage.getItem('wms_staff_token');
+            if (!token) { clearStaffSession(); alert(t.sessionExpired); return false; }
+            const { error } = await sbClient.rpc(fn, Object.assign({ p_token: token }, args));
+            if (error) {
+                const msg = error.message || '';
+                if (msg.indexOf('unauthorized') !== -1) { clearStaffSession(); alert(t.sessionExpired); }
+                else if (msg.indexOf('forbidden') !== -1) { alert(t.staffForbidden); }
+                else { console.error(error); alert(msg); }
+                return false;
+            }
+            touchStaffSession();
+            return true;
+        }
+
         function getStaffId() {
             const id = localStorage.getItem('wms_staff_id') || '';
             if (!id) return '';
@@ -1567,6 +1595,7 @@
             localStorage.removeItem('wms_staff_role');
             localStorage.removeItem('wms_staff_last_active');
             localStorage.removeItem('wms_staff_verified');
+            localStorage.removeItem('wms_staff_token');
             updateStaffStatusUI();
         }
 
@@ -1589,6 +1618,8 @@
         function handleStaffStatusClick() {
             const t = translations[currentLang] || translations.th;
             if (confirm(t.staffLogoutConfirm || 'ต้องการออกจากระบบ (ล้างรหัสพนักงานที่จำไว้ในเครื่องนี้) หรือไม่?')) {
+                const tk = localStorage.getItem('wms_staff_token');
+                if (tk) sbClient.rpc('staff_logout', { p_token: tk }).then(() => {}, () => {});
                 clearStaffSession();
                 alert(t.staffLogoutSuccess || 'ออกจากระบบเรียบร้อยแล้ว');
             }
@@ -1600,7 +1631,7 @@
             if (!staffId) {
                 pendingStaffAction = { type: 'issue', issueType: issueType };
                 document.getElementById('staffIdInput').value = '';
-                document.getElementById('staffIdModal').classList.add('active');
+                openStaffIdModal();
                 return;
             }
             touchStaffSession();
@@ -1639,31 +1670,35 @@
                 return;
             }
 
-            // กรณีดูรายการแจ้งปัญหา (กระดิ่ง) — ต้องเช็กับ whitelist เหมือนเดิม
+            // กรณีอื่น ๆ (ดูรายการแจ้งปัญหา / ผู้รับผิดชอบ STORE / ใบติดต่องาน / อัปโหลดรูป)
+            // — ต้องใส่ PIN และตรวจที่ฐานข้อมูล (ผิด 5 ครั้งถูกล็อกบัญชี 15 นาที)
+            const pin = document.getElementById('staffPinInput').value.trim();
+            if (!pin) { alert(t.staffPinRequired || 'กรุณากรอก PIN'); return; }
             confirmBtn.disabled = true;
             confirmBtn.innerText = '...';
 
             try {
-                const { data, error } = await sbClient
-                    .from('staff')
-                    .select('staff_id, name, role, active')
-                    .eq('staff_id', val)
-                    .eq('active', true)
-                    .maybeSingle();
+                const { data, error } = await sbClient.rpc('staff_login', { p_staff_id: val, p_pin: pin });
 
                 if (error) {
                     alert(t.staffIdCheckError || 'ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่');
                     console.error(error);
                     return;
                 }
-                if (!data) {
-                    alert(t.staffIdInvalid || 'รหัสพนักงานไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน');
+                if (!data || !data.ok) {
+                    document.getElementById('staffPinInput').value = '';
+                    if (data && data.error === 'locked') {
+                        alert((t.staffLocked || 'ถูกล็อกชั่วคราว ลองใหม่ใน {m} นาที').replace('{m}', Math.ceil((data.retry_after_sec || 900) / 60)));
+                    } else {
+                        alert(t.staffIdInvalid || 'รหัสพนักงานหรือ PIN ไม่ถูกต้อง');
+                    }
                     return;
                 }
 
                 // 🆕 กรณีดูผู้รับผิดชอบ STORE — ต้องเป็น role supervisor/manager เท่านั้น
                 if (pendingStaffAction && pendingStaffAction.type === 'viewRoster' && !['supervisor', 'manager'].includes(data.role)) {
-                    alert('หน้านี้สำหรับหัวหน้างานเท่านั้น (supervisor/manager)');
+                    sbClient.rpc('staff_logout', { p_token: data.token }).then(() => {}, () => {});
+                    alert(t.staffForbidden || 'หน้านี้สำหรับหัวหน้างานเท่านั้น (supervisor/manager)');
                     return;
                 }
 
@@ -1672,7 +1707,9 @@
                 localStorage.setItem('wms_staff_name', data.name || '');
                 localStorage.setItem('wms_staff_role', data.role || '');
                 localStorage.setItem('wms_staff_last_active', Date.now().toString());
+                localStorage.setItem('wms_staff_token', data.token);
                 localStorage.setItem('wms_staff_verified', 'true');
+                document.getElementById('staffPinInput').value = '';
                 updateStaffStatusUI();
                 document.getElementById('staffIdModal').classList.remove('active');
 
@@ -1768,7 +1805,7 @@
             if (!isStaffVerified()) {
                 pendingStaffAction = { type: 'viewIssues' };
                 document.getElementById('staffIdInput').value = '';
-                document.getElementById('staffIdModal').classList.add('active');
+                openStaffIdModal();
                 return;
             }
             touchStaffSession();
@@ -1830,8 +1867,7 @@
 
         async function resolveIssue(id) {
             touchStaffSession();
-            const { error } = await sbClient.from('location_issues').update({ status: 'RESOLVED' }).eq('id', id);
-            if (error) { console.error(error); return; }
+            if (!(await callStaffRpc('resolve_issue', { p_id: id }))) return;
             const item = issuesCache.find(i => i.id === id);
             if (item) item.status = 'RESOLVED';
             renderIssuesList();
@@ -2232,8 +2268,7 @@
             }
             if (!confirm('ยืนยันลบรายการนี้? การลบไม่สามารถย้อนกลับได้')) return;
             touchStaffSession();
-            const { error } = await sbClient.from('scrap_stock_log').delete().eq('id', id);
-            if (error) { alert('ลบไม่สำเร็จ: ' + error.message); return; }
+            if (!(await callStaffRpc('scrap_delete', { p_id: id }))) return;
             const res = await sbClient.from("latest_scrap_stock").select("*").eq("item_code", itemCode).maybeSingle();
             if (res.data && hasRemainingScrap(res.data)) {
                 scrapDataMap[itemCode.toUpperCase()] = res.data;
@@ -2669,7 +2704,7 @@
             if (!isStaffSupervisor()) {
                 pendingStaffAction = { type: 'viewRoster' };
                 document.getElementById('staffIdInput').value = '';
-                document.getElementById('staffIdModal').classList.add('active');
+                openStaffIdModal();
                 return;
             }
             touchStaffSession();
@@ -2806,24 +2841,22 @@
                 photoUrl = sbClient.storage.from('staff-photos').getPublicUrl(path).data.publicUrl;
             }
 
-            const { error } = await sbClient.from('store_roster').upsert({
+            const ok = await callStaffRpc('roster_save', { p_row: {
                 staff_id: staffId,
                 name: document.getElementById('rosterName').value.trim(),
                 shift: document.getElementById('rosterShift').value,
                 position: document.getElementById('rosterPosition').value.trim(),
                 note: document.getElementById('rosterNote').value.trim() || null,
-                photo_url: photoUrl,
-                updated_at: new Date().toISOString()
-            });
-            if (error) { alert('บันทึกไม่สำเร็จ: ' + error.message); return; }
+                photo_url: photoUrl
+            } });
+            if (!ok) return;
             document.getElementById('rosterAddForm').classList.add('hidden');
             await fetchRosterList();
         }
 
         async function deleteRosterEntry(staffId) {
             if (!confirm('ยืนยันลบข้อมูลพนักงานคนนี้?')) return;
-            const { error } = await sbClient.from('store_roster').delete().eq('staff_id', staffId);
-            if (error) { alert('ลบไม่สำเร็จ: ' + error.message); return; }
+            if (!(await callStaffRpc('roster_delete', { p_staff_id: staffId }))) return;
             await fetchRosterList();
         }
 
@@ -3116,7 +3149,7 @@
             if (!isStaffVerified()) {
                 pendingStaffAction = { type: 'itemImageUpload' };
                 document.getElementById('staffIdInput').value = '';
-                document.getElementById('staffIdModal').classList.add('active');
+                openStaffIdModal();
                 return;
             }
             touchStaffSession();
@@ -3163,7 +3196,8 @@
             th: { navMenu: "เมนูหลัก", searchPlaceholder: "ค้นหารหัสสินค้า, ชื่อ, รหัสช่อง (เช่น A1-05)...", btnOverview: "ภาพรวม 3D", btnFocusF1: "ชั้น 1", btnFocusF2: "ชั้น 2", legendEmpty: "ว่าง (Empty)", legendPartial: "มีบางส่วน (Partial)", legendFull: "เต็ม (Full)", legendRackPoint: "จุดวางสินค้า", legendLift: "ลิฟต์ขนของ", legendZone: "พื้นที่/เครื่องจักร", badgeOverview: "ภาพรวม 3 มิติ (ชั้น 1-2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "ปิดหน้าต่าง", modalNoData: "ไม่มีสินค้าในช่องนี้", modalNotFound: "ไม่พบข้อมูล", statusEmpty: "ว่าง (Empty)", statusPartial: "กลาง (Partial)", statusFull: "เต็ม (Full)", statusUnknown: "ไม่มีข้อมูล", searchPanelDefaultTitle: "สรุปผลการค้นหา", searchFoundPrefix: "พบ", searchFoundSuffix: "ตำแหน่ง", searchNotFoundTitle: "ไม่พบรายการ", searchNotFoundDesc: "ไม่พบข้อมูลที่ค้นหา", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "แพ็ก", labelCustomer: "ลูกค้า", labelMax: "Max",
                 reportIssueBtn: "แจ้งปัญหา", reportIssueTitle: "แจ้งปัญหา", reportIssuePrompt: "เลือกประเภทปัญหา", issueLocationMismatch: "ตำแหน่ง<br>ไม่ตรง", issueWrongColor: "สีถุง<br>ไม่ตรง", issueOther: "ปัญหา<br>อื่นๆ",
                 staffIdTitle: "กรอกรหัสพนักงาน", staffIdDesc: "กรอกครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนี้", staffIdPlaceholder: "เช่น EMP001", staffIdCancel: "ยกเลิก", staffIdConfirm: "ยืนยัน",
-                staffIdInvalid: "รหัสพนักงานไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน", staffIdCheckError: "ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่",
+                staffIdInvalid: "รหัสพนักงานหรือ PIN ไม่ถูกต้อง หรือไม่ได้รับอนุญาตให้ใช้งาน", staffIdCheckError: "ตรวจสอบรหัสพนักงานไม่สำเร็จ กรุณาลองใหม่",
+                staffPinPlaceholder: "PIN", staffPinRequired: "กรุณากรอก PIN", staffLocked: "ใส่ PIN ผิดหลายครั้ง ถูกล็อกชั่วคราว ลองใหม่ใน {m} นาที", staffForbidden: "สิทธิ์ไม่เพียงพอ (เฉพาะหัวหน้างาน)", sessionExpired: "หมดเวลาการใช้งาน กรุณากรอกรหัสพนักงานและ PIN ใหม่",
                 staffLogoutConfirm: "ต้องการออกจากระบบ (ล้างรหัสพนักงานที่จำไว้ในเครื่องนี้) หรือไม่?", staffLogoutSuccess: "ออกจากระบบเรียบร้อยแล้ว",
                 reportIssueSuccess: "ส่งแจ้งปัญหาเรียบร้อยแล้ว", reportIssueError: "เกิดข้อผิดพลาด กรุณาลองใหม่",
                 issueSelectItemLabel: "เลือกสินค้า (SKU) ที่มีปัญหา", issueSearchItemPlaceholder: "พิมพ์เพื่อกรอง SKU...", issueNoItemOption: "ไม่ระบุ SKU (ทั้งช่อง)",
@@ -3173,7 +3207,8 @@
             zh: { navMenu: "主選單", searchPlaceholder: "搜尋商品代碼、名稱、儲位...", btnOverview: "3D 總覽", btnFocusF1: "1樓", btnFocusF2: "2樓", legendEmpty: "空 (Empty)", legendPartial: "部分 (Partial)", legendFull: "滿 (Full)", legendRackPoint: "儲位", legendLift: "貨梯", legendZone: "區域/機台", badgeOverview: "3D 總覽 (1-2樓)", badgeF1: "1樓", badgeF2: "2樓", modalClose: "關閉視窗", modalNoData: "此儲位無商品", modalNotFound: "找不到資料", statusEmpty: "空 (Empty)", statusPartial: "部分 (Partial)", statusFull: "滿 (Full)", statusUnknown: "無資料", searchPanelDefaultTitle: "搜尋結果", searchFoundPrefix: "找到", searchFoundSuffix: "個位置", searchNotFoundTitle: "找不到結果", searchNotFoundDesc: "找不到符合的資料", labelCode: "代碼", labelMaxStack: "最大堆疊", labelPack: "包裝", labelCustomer: "客戶", labelMax: "最大",
                 reportIssueBtn: "回報問題", reportIssueTitle: "回報問題", reportIssuePrompt: "選擇問題類型", issueLocationMismatch: "位置<br>不符", issueWrongColor: "顏色<br>不符", issueOther: "其他<br>問題",
                 staffIdTitle: "輸入員工編號", staffIdDesc: "只需輸入一次，系統將記住", staffIdPlaceholder: "例如 EMP001", staffIdCancel: "取消", staffIdConfirm: "確認",
-                staffIdInvalid: "員工編號無效或未獲授權", staffIdCheckError: "驗證失敗，請重試",
+                staffIdInvalid: "員工編號或 PIN 錯誤，或未獲授權", staffIdCheckError: "驗證失敗，請重試",
+                staffPinPlaceholder: "PIN", staffPinRequired: "請輸入 PIN", staffLocked: "PIN 錯誤次數過多，已暫時鎖定，請 {m} 分鐘後再試", staffForbidden: "權限不足（僅限主管）", sessionExpired: "登入已逾時，請重新輸入員工編號與 PIN",
                 staffLogoutConfirm: "確定要登出嗎？(將清除本裝置記住的員工編號)", staffLogoutSuccess: "已成功登出",
                 reportIssueSuccess: "問題回報成功", reportIssueError: "發生錯誤，請重試",
                 issueSelectItemLabel: "選擇有問題的商品 (SKU)", issueSearchItemPlaceholder: "輸入以篩選 SKU...", issueNoItemOption: "不指定 SKU (整個儲位)",
@@ -3183,7 +3218,8 @@
             mm: { navMenu: "မီနူးမူ", searchPlaceholder: "ကုန်ကုဒ်၊ အမည် ရှာရန်...", btnOverview: "3D ကြည့်ရန်", btnFocusF1: "ပထမထပ်", btnFocusF2: "ဒုတိယထပ်", legendEmpty: "လွတ်", legendPartial: "အချို့", legendFull: "ပြည့်", legendRackPoint: "နေရာ", legendLift: "ဓာတ်လှေကား", legendZone: "နေရာ/စက်", badgeOverview: "3D ခြုံငုံ (ထပ် 1-2)", badgeF1: "ပထမထပ်", badgeF2: "ဒုတိယထပ်", modalClose: "ပိတ်ရန်", modalNoData: "ဤနေရာတွင် ကုန်ပစ္စည်းမရှိပါ", modalNotFound: "ဒေတာမတွေ့ပါ", statusEmpty: "လွတ်", statusPartial: "အချို့", statusFull: "ပြည့်", statusUnknown: "မသိပါ", searchPanelDefaultTitle: "ရလဒ်များ", searchFoundPrefix: "တွေ့ပြီး", searchFoundSuffix: "နေရာ", searchNotFoundTitle: "မတွေ့ပါ", searchNotFoundDesc: "ဒေတာမတွေ့ပါ", labelCode: "ကုဒ်", labelMaxStack: "အများဆုံး", labelPack: "ထုပ်ပိုး", labelCustomer: "ဖောက်သည်", labelMax: "Max",
                 reportIssueBtn: "ပြဿနာတိုင်ကြားရန်", reportIssueTitle: "ပြဿနာတိုင်ကြားရန်", reportIssuePrompt: "ပြဿနာအမျိုးအစားရွေးပါ", issueLocationMismatch: "တည်နေရာ<br>မကိုက်ညီ", issueWrongColor: "အရောင်<br>မကိုက်ညီ", issueOther: "အခြား<br>ပြဿနာ",
                 staffIdTitle: "ဝန်ထမ်းကုဒ်ထည့်ပါ", staffIdDesc: "တစ်ကြိမ်သာထည့်ရန်လိုသည်", staffIdPlaceholder: "ဥပမာ EMP001", staffIdCancel: "မလုပ်တော့ပါ", staffIdConfirm: "အတည်ပြုပါ",
-                staffIdInvalid: "ဝန်ထမ်းကုဒ် မှားနေသည် သို့မဟုတ် ခွင့်ပြုချက်မရှိပါ", staffIdCheckError: "စစ်ဆေးမှု မအောင်မြင်ပါ ထပ်ကြိုးစားပါ",
+                staffIdInvalid: "ဝန်ထမ်းကုဒ် သို့မဟုတ် PIN မှားနေသည် (သို့) ခွင့်ပြုချက်မရှိပါ", staffIdCheckError: "စစ်ဆေးမှု မအောင်မြင်ပါ ထပ်ကြိုးစားပါ",
+                staffPinPlaceholder: "PIN", staffPinRequired: "PIN ထည့်ပါ", staffLocked: "PIN မှားယွင်းမှု များလွန်း၍ ခေတ္တပိတ်ထားသည်။ {m} မိနစ်အကြာတွင် ပြန်စမ်းပါ", staffForbidden: "ခွင့်ပြုချက်မလုံလောက်ပါ (မန်နေဂျာများသာ)", sessionExpired: "အချိန်ကုန်သွားပါပြီ။ ဝန်ထမ်းကုဒ်နှင့် PIN ကို ပြန်ထည့်ပါ",
                 staffLogoutConfirm: "ထွက်လိုပါသလား? (ဤစက်တွင် မှတ်ထားသော ဝန်ထမ်းကုဒ်ကို ရှင်းလင်းပါမည်)", staffLogoutSuccess: "အောင်မြင်စွာ ထွက်ပြီးပါပြီ",
                 reportIssueSuccess: "ပြဿနာတိုင်ကြားခြင်း အောင်မြင်ပါသည်", reportIssueError: "အမှားဖြစ်ပွားသည် ထပ်ကြိုးစားပါ",
                 issueSelectItemLabel: "ပြဿနာရှိသော SKU ကိုရွေးပါ", issueSearchItemPlaceholder: "SKU ရှာရန် ရိုက်ထည့်ပါ...", issueNoItemOption: "SKU မသတ်မှတ်ပါ (နေရာတစ်ခုလုံး)",
@@ -3193,7 +3229,8 @@
             en: { navMenu: "Main Menu", searchPlaceholder: "Search item, name, location...", btnOverview: "3D Overview", btnFocusF1: "Floor 1", btnFocusF2: "Floor 2", legendEmpty: "Empty", legendPartial: "Partial", legendFull: "Full", legendRackPoint: "Storage", legendLift: "Cargo Lift", legendZone: "Zone/Machine", badgeOverview: "3D Overview (F1-F2)", badgeF1: "1ST FLOOR", badgeF2: "2ND FLOOR", modalClose: "Close", modalNoData: "No items here", modalNotFound: "Not found", statusEmpty: "Empty", statusPartial: "Partial", statusFull: "Full", statusUnknown: "No data", searchPanelDefaultTitle: "Search Results", searchFoundPrefix: "Found", searchFoundSuffix: "location(s)", searchNotFoundTitle: "No results", searchNotFoundDesc: "No matching data", labelCode: "Code", labelMaxStack: "Max Stack", labelPack: "Pack", labelCustomer: "Customer", labelMax: "Max",
                 reportIssueBtn: "Report Issue", reportIssueTitle: "Report Issue", reportIssuePrompt: "Select issue type", issueLocationMismatch: "Location<br>Mismatch", issueWrongColor: "Wrong<br>Color", issueOther: "Other<br>Issue",
                 staffIdTitle: "Enter Staff ID", staffIdDesc: "Enter once, it will be remembered on this device", staffIdPlaceholder: "e.g. EMP001", staffIdCancel: "Cancel", staffIdConfirm: "Confirm",
-                staffIdInvalid: "Invalid staff ID or not authorized", staffIdCheckError: "Could not verify staff ID, please try again",
+                staffIdInvalid: "Invalid staff ID or PIN, or not authorized", staffIdCheckError: "Could not verify staff ID, please try again",
+                staffPinPlaceholder: "PIN", staffPinRequired: "Please enter your PIN", staffLocked: "Too many wrong PINs. Locked temporarily, try again in {m} min.", staffForbidden: "Not enough permission (supervisors only)", sessionExpired: "Session expired. Please enter your staff ID and PIN again.",
                 staffLogoutConfirm: "Log out? (This will clear the staff ID remembered on this device)", staffLogoutSuccess: "Logged out successfully",
                 reportIssueSuccess: "Issue reported successfully", reportIssueError: "An error occurred, please try again",
                 issueSelectItemLabel: "Select the SKU with the issue", issueSearchItemPlaceholder: "Type to filter SKU...", issueNoItemOption: "No specific SKU (whole location)",

@@ -132,6 +132,11 @@
                 <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                 <input type="text" id="staffIdInput" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001" class="w-full bg-white/10 border border-[var(--glass-border)] rounded-2xl p-4 pl-12 text-center text-lg uppercase tracking-widest font-black text-[var(--text-main)] placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-inner backdrop-blur-sm">
             </div>
+            <div class="relative z-10 mb-4">
+                <i class="fa-solid fa-key absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="password" id="staffPinInput" inputmode="numeric" autocomplete="current-password" maxlength="8" data-i18n-placeholder="pinPh" placeholder="PIN" class="w-full bg-white/10 border border-[var(--glass-border)] rounded-2xl p-4 pl-12 text-center text-lg tracking-widest font-black text-[var(--text-main)] placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-inner backdrop-blur-sm">
+            </div>
+
             <p id="loginError" class="hidden text-xs text-red-400 font-bold mb-4 text-center bg-red-500/10 py-2 rounded-lg relative z-10"></p>
             <button id="loginConfirmBtn" onclick="confirmLogin()" class="relative z-10 w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black tracking-wide py-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                 <span id="loginConfirmBtnText" data-i18n="btnLogin">เข้าสู่ระบบ</span>
@@ -215,12 +220,31 @@
 
             setLoginLoading(true);
             try {
-                const { data, error } = await sbClient.from('staff').select('staff_id, role, active').eq('staff_id', staffId).maybeSingle();
-                if (error) throw error;
-                if (!data || !data.active) return showLoginError(t.errInvalid);
-                const allowedRoles = ['supervisor', 'manager'];
-                if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && !allowedRoles.includes(data.role)) return showLoginError(t.errReportOnly);
+                const pin = document.getElementById('staffPinInput').value.trim();
+                if (!pin) return showLoginError(t.errPinRequired);
 
+                // ตรวจรหัสพนักงาน + PIN ที่ฝั่งฐานข้อมูล (ผิด 5 ครั้งจะถูกล็อกชั่วคราว)
+                const { data, error } = await sbClient.rpc('staff_login', { p_staff_id: staffId, p_pin: pin });
+                if (error) throw error;
+                if (!data || !data.ok) {
+                    if (data && data.error === 'locked') {
+                        return showLoginError(t.errLocked.replace('{m}', Math.ceil((data.retry_after_sec || 900) / 60)));
+                    }
+                    return showLoginError(t.errInvalid);
+                }
+                const allowedRoles = ['supervisor', 'manager'];
+                if (SUPERVISOR_ONLY_PAGES.includes(targetPage) && !allowedRoles.includes(data.role)) {
+                    sbClient.rpc('staff_logout', { p_token: data.token }).then(() => {}, () => {});
+                    return showLoginError(t.errReportOnly);
+                }
+
+                // เก็บ session ใช้ร่วมกับ layout.html / notices.html (ชุด key เดียวกัน)
+                localStorage.setItem('wms_staff_id', data.staff_id);
+                localStorage.setItem('wms_staff_name', data.name || '');
+                localStorage.setItem('wms_staff_role', data.role || '');
+                localStorage.setItem('wms_staff_token', data.token);
+                localStorage.setItem('wms_staff_last_active', Date.now().toString());
+                localStorage.setItem('wms_staff_verified', 'true');
                 localStorage.setItem("savedStaffId", staffId);
                 document.getElementById('loginModal').querySelector('.glass-panel').style.transform = 'scale(0.9)';
                 document.getElementById('loginModal').querySelector('.glass-panel').style.opacity = '0';
@@ -233,8 +257,10 @@
             }
         }
 
-        document.getElementById("staffIdInput").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") { e.preventDefault(); confirmLogin(); }
+        ["staffIdInput", "staffPinInput"].forEach((id) => {
+            document.getElementById(id).addEventListener("keypress", (e) => {
+                if (e.key === "Enter") { e.preventDefault(); confirmLogin(); }
+            });
         });
 
         // 🔔 เช็คว่ามีใบติดต่องานใหม่ในรอบ 7 วันที่ผ่านมาไหม แสดงเป็นตัวเลขบนปุ่ม
@@ -258,6 +284,7 @@
 
         const translations = {
             th: {
+                pinPh: "PIN", errPinRequired: "กรุณากรอก PIN", errLocked: "ใส่ PIN ผิดหลายครั้ง ถูกล็อกชั่วคราว ลองใหม่ใน {m} นาที",
                 appTitle: "KAOSU WMS", appDesc: "Smart Warehouse System",
                 menuLayout: "แผนผังคลังสินค้า", menuLayoutDesc: "ดูสถานะพื้นที่ว่างแบบ Real-time",
                 menuNoticeLink: "สำหรับหัวหน้างาน: ใบติดต่องาน (Job Notices)",
@@ -268,6 +295,7 @@
                 errInvalid: "รหัสไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน", errReportOnly: "หน้านี้สำหรับหัวหน้างานเท่านั้น", errGeneral: "เกิดข้อผิดพลาด กรุณาลองใหม่"
             },
             zh: {
+                pinPh: "PIN", errPinRequired: "請輸入 PIN", errLocked: "PIN 錯誤次數過多，已暫時鎖定，請 {m} 分鐘後再試",
                 appTitle: "KAOSU 倉儲系統", appDesc: "智能庫存管理系統",
                 menuLayout: "倉庫佈局", menuLayoutDesc: "實時查看可用空間",
                 menuNoticeLink: "主管專用：工作通知單 (Job Notices)",
@@ -278,6 +306,7 @@
                 errInvalid: "編號錯誤或無權限", errReportOnly: "僅供主管使用", errGeneral: "發生錯誤，請重試"
             },
             mm: {
+                pinPh: "PIN", errPinRequired: "PIN ထည့်ပါ", errLocked: "PIN မှားယွင်းမှု များလွန်း၍ ခေတ္တပိတ်ထားသည်။ {m} မိနစ်အကြာတွင် ပြန်စမ်းပါ",
                 appTitle: "KAOSU WMS", appDesc: "စမတ်ကုန်လှောင်ရုံစနစ်",
                 menuLayout: "ကုန်လှောင်ရုံပုံစံ", menuLayoutDesc: "နေရာလွတ်များကို အချိန်နှင့်တပြေးညီ ကြည့်ရန်",
                 menuNoticeLink: "မန်နေဂျာအတွက်: အလုပ်ဆက်သွယ်ရေးစာများ",
@@ -288,6 +317,7 @@
                 errInvalid: "ကုဒ်မှားနေသည် (သို့) ခွင့်ပြုချက်မရှိပါ", errReportOnly: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ", errGeneral: "အမှားတစ်ခုဖြစ်ပွားသည်"
             },
             en: {
+                pinPh: "PIN", errPinRequired: "Please enter your PIN", errLocked: "Too many wrong PINs. Locked temporarily, try again in {m} min.",
                 appTitle: "KAOSU WMS", appDesc: "Smart Warehouse System",
                 menuLayout: "Store Layout", menuLayoutDesc: "View real-time space status",
                 menuNoticeLink: "For Supervisor: Job Notices",

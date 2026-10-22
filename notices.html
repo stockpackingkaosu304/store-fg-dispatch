@@ -392,18 +392,49 @@ document.addEventListener('touchmove', (e) => { if (e.touches[0]) { document.doc
 /* =============================================================
    🔒 Access Gate
 ============================================================= */
+// session ใช้ร่วมกับ menu.html / layout.html (ล็อกอินด้วยรหัสพนักงาน + PIN ที่เมนูหลัก)
+// ฝั่งนี้ตรวจเพื่อแสดง/ซ่อนหน้าจอเท่านั้น สิทธิ์จริงตรวจที่ฐานข้อมูลทุกครั้งที่บันทึก
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+function getSession() {
+    const id = localStorage.getItem('wms_staff_id');
+    const token = localStorage.getItem('wms_staff_token');
+    const role = localStorage.getItem('wms_staff_role') || '';
+    const last = parseInt(localStorage.getItem('wms_staff_last_active') || '0', 10);
+    if (!id || !token || localStorage.getItem('wms_staff_verified') !== 'true') return null;
+    if (!['supervisor', 'manager'].includes(role)) return null;
+    if (!last || (Date.now() - last) > SESSION_TIMEOUT_MS) return null;
+    return { id: id, token: token, role: role, name: localStorage.getItem('wms_staff_name') || id };
+}
+function touchSession() { localStorage.setItem('wms_staff_last_active', Date.now().toString()); }
+function clearSession() {
+    ['wms_staff_id', 'wms_staff_name', 'wms_staff_role', 'wms_staff_token', 'wms_staff_last_active', 'wms_staff_verified']
+        .forEach(k => localStorage.removeItem(k));
+}
+// ถ้าฐานข้อมูลตอบว่า session หมดอายุ/สิทธิ์ไม่พอ ให้ล้าง session แล้วกลับไปหน้าล็อก
+function handleAuthError(err) {
+    const msg = (err && err.message) || '';
+    if (msg.indexOf('unauthorized') !== -1 || msg.indexOf('forbidden') !== -1) {
+        clearSession();
+        checkAccess();
+        return true;
+    }
+    return false;
+}
+
 function checkAccess() {
-    const staffId = localStorage.getItem('savedStaffId');
-    if (!staffId) {
+    const sess = getSession();
+    if (!sess) {
+        clearSession();
         document.getElementById('accessGate').classList.remove('hidden');
         document.getElementById('mainWrap').classList.add('hidden');
         document.querySelector('.tab-bar').classList.add('hidden');
         document.querySelector('.fab').classList.add('hidden');
         return false;
     }
+    touchSession();
     document.getElementById('staffBadge').classList.remove('hidden');
     document.getElementById('staffBadge').classList.add('flex');
-    document.getElementById('staffBadgeLabel').innerText = staffId;
+    document.getElementById('staffBadgeLabel').innerText = sess.name;
     return true;
 }
 
@@ -572,8 +603,11 @@ async function addNewCustomerInline() {
     const code = document.getElementById('newCustomerCode').value.trim().toUpperCase();
     const name = document.getElementById('newCustomerName').value.trim();
     if (!code) { alert('กรุณากรอกรหัสลูกค้า'); return; }
-    const { error } = await sbClient.from('notice_customers').upsert({ customer_code: code, customer_name: name || code });
-    if (error) { alert('เพิ่มลูกค้าไม่สำเร็จ: ' + error.message); return; }
+    const sess = getSession();
+    if (!sess) { checkAccess(); return; }
+    touchSession();
+    const { error } = await sbClient.rpc('notice_customer_save', { p_token: sess.token, p_code: code, p_name: name || code });
+    if (error) { if (handleAuthError(error)) return; alert('เพิ่มลูกค้าไม่สำเร็จ: ' + error.message); return; }
     await fetchCustomers();
     selectedCustomerCodes.add(code);
     renderCustomerCheckboxes();
@@ -663,12 +697,13 @@ async function submitNotice() {
     const content = document.getElementById('noticeContent').value.trim();
     if (!content) { alert('กรุณากรอกเนื้อหา'); return; }
 
-    const staffId = localStorage.getItem('savedStaffId') || 'UNKNOWN';
+    const sess = getSession();
+    if (!sess) { checkAccess(); return; }
+    touchSession();
     const origText = textEl.textContent;
     textEl.textContent = 'กำลังบันทึก...'; iconEl.className = 'fa-solid fa-spinner fa-spin mr-2'; btn.disabled = true;
 
     try {
-        await sbClient.from('notice_categories').upsert({ name: category });
         const noticeId = (crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2));
 
         let photoUrls = [];
@@ -678,17 +713,12 @@ async function submitNotice() {
             if (!upErr) photoUrls.push(sbClient.storage.from('job-notice-photos').getPublicUrl(path).data.publicUrl);
         }
 
-        const { error: insErr } = await sbClient.from('job_notices').insert([{ id: noticeId, category: category, content: content, photo_urls: photoUrls, created_by: staffId }]);
-        if (insErr) throw new Error(insErr.message);
-
-        if (selectedCustomerCodes.size > 0) {
-            const rows = Array.from(selectedCustomerCodes).map(code => ({ notice_id: noticeId, customer_code: code }));
-            await sbClient.from('job_notice_customers').insert(rows);
-        }
-        if (selectedItemCodes.size > 0) {
-            const itemRows = Array.from(selectedItemCodes).map(code => ({ notice_id: noticeId, item_code: code }));
-            await sbClient.from('job_notice_items').insert(itemRows);
-        }
+        // บันทึกใบติดต่องานทั้งชุด (ใบ + ลูกค้า + ITEM) ผ่านฟังก์ชันที่ตรวจสิทธิ์หัวหน้างานที่ฐานข้อมูล
+        const { error: insErr } = await sbClient.rpc('notice_create', { p_token: sess.token, p_row: {
+            id: noticeId, category: category, content: content, photo_urls: photoUrls,
+            customer_codes: Array.from(selectedCustomerCodes), item_codes: Array.from(selectedItemCodes)
+        } });
+        if (insErr) { if (handleAuthError(insErr)) return; throw new Error(insErr.message); }
 
         alert('✅ บันทึกใบติดต่องานเรียบร้อยแล้ว');
         closeAddModal();

@@ -85,7 +85,7 @@
             <img src="logo.png" alt="KSS Logo" class="h-full w-auto object-contain relative z-10 drop-shadow-xl transition-all duration-300 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-active:scale-95">
         </div>
             <h1 class="text-3xl font-black tracking-wider mb-2 bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-emerald-400 drop-shadow-sm" data-i18n="appTitle">KAOSU WMS</h1>
-            <p class="text-[var(--text-sub)] text-sm font-medium tracking-wide" data-i18n="appDesc">Smart Warehouse & Dispatch System</p>
+            <p class="text-[var(--text-sub)] text-sm font-medium tracking-wide" data-i18n="appDesc">Smart Warehouse System</p>
         </div>
 
         <div class="p-6 pt-0 space-y-4">
@@ -102,26 +102,7 @@
                 <i class="fa-solid fa-chevron-right text-[var(--text-sub)] group-hover:text-sky-500 group-hover:translate-x-1 transition-all"></i>
             </button>
 
-            <button onclick="openLoginModal('index.html')" class="glass-card w-full rounded-2xl p-4 flex items-center gap-5 group text-left relative overflow-hidden active:scale-95">
-                <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500"></div>
-                <div class="w-14 h-14 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-2xl group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner">
-                    <i class="fa-solid fa-barcode"></i>
-                </div>
-                <div class="flex-1">
-                    <h2 class="text-lg font-bold text-[var(--text-main)]" data-i18n="menuDispatch">บันทึกจ่ายงาน</h2>
-                    <p class="text-xs text-[var(--text-sub)]" data-i18n="menuDispatchDesc">ระบบสแกนและตัดสต็อกสินค้า</p>
-                </div>
-                <i class="fa-solid fa-lock text-[var(--text-sub)] group-hover:text-emerald-500 group-hover:translate-x-1 transition-all"></i>
-            </button>
-
-            <div class="pt-6 pb-2 text-center">
-                <button onclick="openLoginModal('report.html')" class="group relative inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors py-2 px-4 rounded-full hover:bg-black/5">
-                    <i class="fa-solid fa-chart-pie group-hover:animate-spin"></i> 
-                    <span data-i18n="menuReportLink">สำหรับหัวหน้างาน: ดูรายงาน (Report)</span>
-                </button>
-            </div>
-
-            <div class="pt-0 pb-2 text-center">
+            <div class="pt-4 pb-2 text-center">
                 <button onclick="openLoginModal('notices.html')" class="group relative inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors py-2 px-4 rounded-full hover:bg-black/5">
                     <i class="fa-solid fa-file-lines group-hover:animate-pulse"></i>
                     <span data-i18n="menuNoticeLink">สำหรับหัวหน้างาน: ใบติดต่องาน (Job Notices)</span>
@@ -180,7 +161,7 @@
         let modalDescKey = "loginDescDispatch"; 
 
         // หน้าที่ต้องมี role = supervisor/manager เท่านั้นถึงจะเข้าได้ (เพิ่มหน้าใหม่ต่อท้าย array นี้ได้เลย)
-        const SUPERVISOR_ONLY_PAGES = ['report.html', 'notices.html'];
+        const SUPERVISOR_ONLY_PAGES = ['notices.html'];
 
         var sbClient = null;
         try {
@@ -277,10 +258,8 @@
 
         const translations = {
             th: {
-                appTitle: "KAOSU WMS", appDesc: "Smart Warehouse & Dispatch System",
+                appTitle: "KAOSU WMS", appDesc: "Smart Warehouse System",
                 menuLayout: "แผนผังคลังสินค้า", menuLayoutDesc: "ดูสถานะพื้นที่ว่างแบบ Real-time",
-                menuDispatch: "บันทึกจ่ายงาน", menuDispatchDesc: "ระบบสแกนและตัดสต็อกสินค้า",
-                menuReportLink: "สำหรับหัวหน้างาน: ดูรายงาน (Report)",
                 menuNoticeLink: "สำหรับหัวหน้างาน: ใบติดต่องาน (Job Notices)",
                 loginTitle: "ยืนยันตัวตน", loginDescDispatch: "กรุณากรอกรหัสพนักงาน (Staff ID) ของคุณเพื่อเข้าใช้งาน",
                 loginDescReport: "หน้านี้สำหรับหัวหน้างานเท่านั้น กรุณากรอกรหัสพนักงานของท่าน",
@@ -289,10 +268,8 @@
                 errInvalid: "รหัสไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าใช้งาน", errReportOnly: "หน้านี้สำหรับหัวหน้างานเท่านั้น", errGeneral: "เกิดข้อผิดพลาด กรุณาลองใหม่"
             },
             zh: {
-                appTitle: "KAOSU 倉儲系統", appDesc: "智能庫存管理與發貨",
+                appTitle: "KAOSU 倉儲系統", appDesc: "智能庫存管理系統",
                 menuLayout: "倉庫佈局", menuLayoutDesc: "實時查看可用空間",
-                menuDispatch: "發貨記錄", menuDispatchDesc: "掃描並扣減庫存",
-                menuReportLink: "主管專用：查看報告",
                 menuNoticeLink: "主管專用：工作通知單 (Job Notices)",
                 loginTitle: "身份驗證", loginDescDispatch: "請輸入您的員工編號 (Staff ID)",
                 loginDescReport: "此頁面僅供主管使用，請輸入編號",
@@ -303,8 +280,6 @@
             mm: {
                 appTitle: "KAOSU WMS", appDesc: "စမတ်ကုန်လှောင်ရုံစနစ်",
                 menuLayout: "ကုန်လှောင်ရုံပုံစံ", menuLayoutDesc: "နေရာလွတ်များကို အချိန်နှင့်တပြေးညီ ကြည့်ရန်",
-                menuDispatch: "ထုတ်ပေးမှုမှတ်တမ်း", menuDispatchDesc: "ကုန်ပစ္စည်းထုတ်ပေးခြင်း မှတ်တမ်းတင်ရန်",
-                menuReportLink: "မန်နေဂျာအတွက်: အစီရင်ခံစာကြည့်ရန်",
                 menuNoticeLink: "မန်နေဂျာအတွက်: အလုပ်ဆက်သွယ်ရေးစာများ",
                 loginTitle: "အကောင့်ဝင်ရန်", loginDescDispatch: "သင်၏ ဝန်ထမ်းကုဒ် (Staff ID) ကို ထည့်ပါ",
                 loginDescReport: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ ဖြစ်သည်။",
@@ -313,10 +288,8 @@
                 errInvalid: "ကုဒ်မှားနေသည် (သို့) ခွင့်ပြုချက်မရှိပါ", errReportOnly: "ဤစာမျက်နှာသည် မန်နေဂျာများအတွက်သာ", errGeneral: "အမှားတစ်ခုဖြစ်ပွားသည်"
             },
             en: {
-                appTitle: "KAOSU WMS", appDesc: "Smart Warehouse & Dispatch System",
+                appTitle: "KAOSU WMS", appDesc: "Smart Warehouse System",
                 menuLayout: "Store Layout", menuLayoutDesc: "View real-time space status",
-                menuDispatch: "Dispatch Record", menuDispatchDesc: "Scan and update inventory",
-                menuReportLink: "For Supervisor: View Report",
                 menuNoticeLink: "For Supervisor: Job Notices",
                 loginTitle: "Authentication", loginDescDispatch: "Please enter your Staff ID to continue",
                 loginDescReport: "Supervisors only. Please enter your Staff ID",

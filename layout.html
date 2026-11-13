@@ -2835,10 +2835,10 @@
                 : (rosterCache.find(x => x.staff_id === staffId) || {}).photo_url || null;
 
             if (pendingRosterPhoto) {
-                const path = `${staffId}_${Date.now()}.jpg`;
-                const { error: upErr } = await sbClient.storage.from('staff-photos').upload(path, pendingRosterPhoto, { upsert: true });
-                if (upErr) { alert('อัปโหลดรูปไม่สำเร็จ: ' + upErr.message); return; }
-                photoUrl = sbClient.storage.from('staff-photos').getPublicUrl(path).data.publicUrl;
+                const path = `${staffId.replace(/[^A-Za-z0-9_-]/g, '')}_${Date.now()}.jpg`;
+                const up = await uploadImageViaFunction('staff-photos', path, pendingRosterPhoto);
+                if (!up.ok) { alert('อัปโหลดรูปไม่สำเร็จ: ' + uploadErrorText(up.error)); return; }
+                photoUrl = up.url;
             }
 
             const ok = await callStaffRpc('roster_save', { p_row: {
@@ -2862,7 +2862,7 @@
 
         // ==========================================
         // 🆕 ฐานข้อมูลไอเทมทั้งหมด + ดู QR Code ลาเบล / รูปชิ้นงาน
-        //    รูปเก็บใน bucket "item-images" ตั้งชื่อไฟล์ตามรหัส ITEM:  qr/<ITEM>.jpg  และ  photo/<ITEM>.jpg
+        //    รูปเก็บใน bucket "item-images" ตั้งชื่อไฟล์ตามรหัส ITEM:  qr/<ITEM>.jpg  และ  wi/<ITEM>.jpg
         // ==========================================
         const ITEM_IMG_BUCKET = 'item-images';
         let itemLocMap = {};      // ITEM (upper) -> [locId, ...]  สร้างจาก locations.items_list
@@ -2980,6 +2980,33 @@
                 html += `<button type="button" onclick="showMoreCatalog()" class="w-full glass-input hover:bg-[var(--card-hover)] rounded-xl py-2.5 text-xs font-black text-sky-500">${escapeHtmlLite(tt('catalogShowMore', 'แสดงเพิ่ม'))} (${rows.length - catalogRenderLimit})</button>`;
             }
             list.innerHTML = html;
+        }
+
+        // 🆕 อัปโหลดรูปผ่าน Edge Function "upload-image" — ฐานข้อมูลตรวจ session token (PIN) ก่อนเสมอ
+        // คืนค่า { ok:true, url } หรือ { ok:false, error } (ถ้า session หมดอายุจะล้างรหัสพนักงานให้อัตโนมัติ)
+        async function uploadImageViaFunction(bucket, path, file) {
+            const token = localStorage.getItem('wms_staff_token');
+            if (!token) { clearStaffSession(); return { ok: false, error: 'unauthorized' }; }
+            const fd = new FormData();
+            fd.append('token', token); fd.append('bucket', bucket); fd.append('path', path);
+            fd.append('file', file, 'upload.jpg');
+            try {
+                const resp = await fetch(`${SB_URL}/functions/v1/upload-image`, {
+                    method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }, body: fd
+                });
+                const res = await resp.json().catch(() => ({}));
+                if (resp.ok && res.ok) { touchStaffSession(); return res; }
+                if (res.error === 'unauthorized') clearStaffSession();
+                return { ok: false, error: res.error || ('HTTP ' + resp.status) };
+            } catch (err) {
+                return { ok: false, error: String(err && err.message || err) };
+            }
+        }
+        function uploadErrorText(code) {
+            const t = translations[currentLang] || translations.th;
+            if (code === 'unauthorized') return t.sessionExpired;
+            if (code === 'forbidden') return t.staffForbidden;
+            return code;
         }
 
         // ---------- ตัวดูรูป QR / รูปชิ้นงาน ----------
@@ -3167,8 +3194,8 @@
             compressImage(file, async function (compressed) {
                 try {
                     const path = `${kind}/${itemImagePathCode(code)}.jpg`;
-                    const { error } = await sbClient.storage.from(ITEM_IMG_BUCKET).upload(path, compressed, { upsert: true, contentType: 'image/jpeg' });
-                    if (error) { alert(tt('imgUploadFail', 'อัปโหลดไม่สำเร็จ') + ': ' + error.message); return; }
+                    const up = await uploadImageViaFunction(ITEM_IMG_BUCKET, path, compressed);
+                    if (!up.ok) { alert(tt('imgUploadFail', 'อัปโหลดไม่สำเร็จ') + ': ' + uploadErrorText(up.error)); return; }
                     itemImgBust[`${kind}|${code}`] = Date.now();
                     alert(tt('imgUploadOk', 'อัปโหลดรูปเรียบร้อยแล้ว'));
                     if (itemImgState.code === code && itemImgState.kind === kind) loadItemImage();

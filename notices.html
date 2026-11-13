@@ -441,6 +441,8 @@ function checkAccess() {
 /* =============================================================
    🚀 DB & Logic
 ============================================================= */
+var SB_FN_URL = "https://suardrnsfpdqwcgupqkb.supabase.co/functions/v1";
+var SB_FN_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI";
 var sbClient = window.supabase.createClient("https://suardrnsfpdqwcgupqkb.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1YXJkcm5zZnBkcXdjZ3VwcWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTY1NjAsImV4cCI6MjA5ODAzMjU2MH0.-ooHJb_YXCpNgxkiGRlt6M1-A1iPTJFNYlPLFsfOzQI");
 
 var categories = [];
@@ -709,8 +711,14 @@ async function submitNotice() {
         let photoUrls = [];
         for (let i = 0; i < pendingPhotos.length; i++) {
             const path = `${noticeId}/${i}.jpg`;
-            const { error: upErr } = await sbClient.storage.from('job-notice-photos').upload(path, pendingPhotos[i]);
-            if (!upErr) photoUrls.push(sbClient.storage.from('job-notice-photos').getPublicUrl(path).data.publicUrl);
+            // อัปโหลดผ่าน Edge Function ที่ตรวจ session token (PIN) ก่อนเสมอ
+            const fd = new FormData();
+            fd.append('token', sess.token); fd.append('bucket', 'job-notice-photos'); fd.append('path', path);
+            fd.append('file', pendingPhotos[i], 'upload.jpg');
+            const upResp = await fetch(SB_FN_URL + '/upload-image', { method: 'POST', headers: { apikey: SB_FN_KEY, Authorization: 'Bearer ' + SB_FN_KEY }, body: fd });
+            const upRes = await upResp.json().catch(() => ({}));
+            if (upResp.ok && upRes.ok) photoUrls.push(upRes.url);
+            else if (upRes.error === 'unauthorized' || upRes.error === 'forbidden') { clearSession(); checkAccess(); return; }
         }
 
         // บันทึกใบติดต่องานทั้งชุด (ใบ + ลูกค้า + ITEM) ผ่านฟังก์ชันที่ตรวจสิทธิ์หัวหน้างานที่ฐานข้อมูล

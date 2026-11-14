@@ -141,6 +141,23 @@
             <button id="loginConfirmBtn" onclick="confirmLogin()" class="relative z-10 w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black tracking-wide py-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                 <span id="loginConfirmBtnText" data-i18n="btnLogin">เข้าสู่ระบบ</span>
             </button>
+            <button type="button" onclick="openPinRequest()" class="relative z-10 w-full mt-4 text-xs font-bold text-sky-500 hover:underline"><i class="fa-solid fa-key mr-1"></i><span data-i18n="pinForgotLink">ลืม PIN / ขอเปลี่ยน PIN</span></button>
+        </div>
+    </div>
+
+    <!-- 🆕 ขอเปลี่ยน PIN (พนักงานยื่นขอ → หัวหน้าอนุมัติในหน้าแผนผัง เมนู ⋯ > คำขอเปลี่ยน PIN) -->
+    <div id="pinRequestModal" class="modal-overlay">
+        <div class="glass-panel rounded-[2rem] p-8 w-11/12 max-w-sm shadow-2xl relative overflow-hidden">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-xl font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-key text-amber-400"></i> <span data-i18n="pinReqTitle">ขอเปลี่ยน PIN</span></h3>
+                <button onclick="closePinRequest()" class="text-[var(--text-sub)] hover:text-red-500 text-xl w-8 h-8 flex items-center justify-center rounded-full"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-[var(--text-sub)] mb-4 font-medium" data-i18n="pinReqDesc">ตั้ง PIN ใหม่ที่ต้องการ (ตัวเลข 4-8 หลัก) แล้วแจ้งหัวหน้างานให้อนุมัติ PIN เดิมใช้ได้จนกว่าจะอนุมัติ</p>
+            <input type="text" id="pinReqStaffId" data-i18n-placeholder="staffIdPh" placeholder="เช่น EMP001" autocomplete="off" class="w-full bg-white/10 border border-[var(--glass-border)] rounded-2xl p-3 mb-3 text-center uppercase tracking-widest font-black text-[var(--text-main)] outline-none focus:ring-2 focus:ring-amber-400">
+            <input type="password" id="pinReqNew" inputmode="numeric" maxlength="8" autocomplete="new-password" data-i18n-placeholder="pinReqNewPh" placeholder="PIN ใหม่ (ตัวเลข 4-8 หลัก)" class="w-full bg-white/10 border border-[var(--glass-border)] rounded-2xl p-3 mb-3 text-center tracking-widest font-black text-[var(--text-main)] outline-none focus:ring-2 focus:ring-amber-400">
+            <input type="password" id="pinReqNew2" inputmode="numeric" maxlength="8" autocomplete="new-password" data-i18n-placeholder="pinReqNew2Ph" placeholder="ยืนยัน PIN ใหม่อีกครั้ง" class="w-full bg-white/10 border border-[var(--glass-border)] rounded-2xl p-3 mb-4 text-center tracking-widest font-black text-[var(--text-main)] outline-none focus:ring-2 focus:ring-amber-400">
+            <p id="pinReqMsg" class="hidden text-xs font-bold mb-3 text-center py-2 rounded-lg"></p>
+            <button id="pinReqSubmitBtn" onclick="submitPinRequest()" class="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-3 rounded-2xl shadow-lg active:scale-95 transition-all disabled:opacity-50"><span data-i18n="pinReqSubmit">ส่งคำขอ</span></button>
         </div>
     </div>
 
@@ -328,6 +345,54 @@
                 errInvalid: "Invalid ID or permission denied", errReportOnly: "Supervisors only", errGeneral: "Error occurred, try again"
             }
         };
+
+        const PINREQ_TH = {"pinForgotLink": "ลืม PIN / ขอเปลี่ยน PIN", "pinReqTitle": "ขอเปลี่ยน PIN", "pinReqDesc": "ตั้ง PIN ใหม่ที่ต้องการ (ตัวเลข 4-8 หลัก) แล้วแจ้งหัวหน้างานให้อนุมัติ PIN เดิมใช้ได้จนกว่าจะอนุมัติ", "pinReqNewPh": "PIN ใหม่ (ตัวเลข 4-8 หลัก)", "pinReqNew2Ph": "ยืนยัน PIN ใหม่อีกครั้ง", "pinReqSubmit": "ส่งคำขอ", "pinReqBad": "PIN ต้องเป็นตัวเลข 4-8 หลัก", "pinReqMismatch": "PIN ทั้งสองช่องไม่ตรงกัน", "pinReqNeedId": "กรุณากรอกรหัสพนักงาน", "pinReqTooFast": "ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่", "pinReqSent": "ส่งคำขอแล้ว กรุณาแจ้งหัวหน้างานให้อนุมัติ (ระหว่างนี้ใช้ PIN เดิมได้)"};
+        const PINREQ_ZH = {"pinForgotLink": "忘記 PIN / 申請更改 PIN", "pinReqTitle": "申請更改 PIN", "pinReqDesc": "設定想要的新 PIN（4-8 位數字），再請主管核准。核准前仍可使用舊 PIN", "pinReqNewPh": "新 PIN（4-8 位數字）", "pinReqNew2Ph": "再次確認新 PIN", "pinReqSubmit": "送出申請", "pinReqBad": "PIN 必須是 4-8 位數字", "pinReqMismatch": "兩次輸入的 PIN 不一致", "pinReqNeedId": "請輸入員工編號", "pinReqTooFast": "申請過於頻繁，請稍後再試", "pinReqSent": "已送出申請，請通知主管核准（核准前仍可使用舊 PIN）"};
+        const PINREQ_MM = {"pinForgotLink": "PIN မေ့သွားသည် / PIN ပြောင်းရန် တောင်းဆိုမည်", "pinReqTitle": "PIN ပြောင်းရန် တောင်းဆိုခြင်း", "pinReqDesc": "လိုချင်သော PIN အသစ် (ဂဏန်း ၄-၈ လုံး) ထည့်ပြီး ကြီးကြပ်ရေးမှူးအား ခွင့်ပြုခိုင်းပါ။ ခွင့်မပြုမီ PIN အဟောင်းကို သုံးနိုင်သည်", "pinReqNewPh": "PIN အသစ် (ဂဏန်း ၄-၈ လုံး)", "pinReqNew2Ph": "PIN အသစ်ကို ထပ်မံရိုက်ပါ", "pinReqSubmit": "တောင်းဆိုမည်", "pinReqBad": "PIN သည် ဂဏန်း ၄-၈ လုံး ဖြစ်ရမည်", "pinReqMismatch": "PIN နှစ်ခု မတူညီပါ", "pinReqNeedId": "ဝန်ထမ်းကုဒ် ထည့်ပါ", "pinReqTooFast": "မကြာမီ ထပ်တောင်းဆိုနေသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ", "pinReqSent": "တောင်းဆိုပြီးပါပြီ။ ကြီးကြပ်ရေးမှူးအား ခွင့်ပြုခိုင်းပါ (ခွင့်မပြုမီ PIN အဟောင်းသုံးနိုင်သည်)"};
+        const PINREQ_EN = {"pinForgotLink": "Forgot PIN / Request PIN change", "pinReqTitle": "Request PIN change", "pinReqDesc": "Choose the new PIN you want (4-8 digits), then ask a supervisor to approve it. Your old PIN keeps working until approved.", "pinReqNewPh": "New PIN (4-8 digits)", "pinReqNew2Ph": "Confirm new PIN", "pinReqSubmit": "Send request", "pinReqBad": "PIN must be 4-8 digits", "pinReqMismatch": "The two PINs do not match", "pinReqNeedId": "Please enter your Staff ID", "pinReqTooFast": "Too many requests. Please wait a moment and try again.", "pinReqSent": "Request sent. Please ask a supervisor to approve it (your old PIN works until then)."};
+
+        function openPinRequest() {
+            document.getElementById('pinReqStaffId').value = document.getElementById('staffIdInput').value.trim();
+            document.getElementById('pinReqNew').value = '';
+            document.getElementById('pinReqNew2').value = '';
+            document.getElementById('pinReqMsg').classList.add('hidden');
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('pinRequestModal').classList.add('active');
+        }
+        function closePinRequest() {
+            document.getElementById('pinRequestModal').classList.remove('active');
+        }
+        function showPinReqMsg(msg, ok) {
+            const el = document.getElementById('pinReqMsg');
+            el.textContent = msg;
+            el.className = 'text-xs font-bold mb-3 text-center py-2 rounded-lg ' + (ok ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10');
+        }
+        async function submitPinRequest() {
+            const t = translations[currentLang] || translations.th;
+            const id = document.getElementById('pinReqStaffId').value.trim();
+            const p1 = document.getElementById('pinReqNew').value.trim();
+            const p2 = document.getElementById('pinReqNew2').value.trim();
+            if (!id) return showPinReqMsg(t.pinReqNeedId, false);
+            if (!/^[0-9]{4,8}$/.test(p1)) return showPinReqMsg(t.pinReqBad, false);
+            if (p1 !== p2) return showPinReqMsg(t.pinReqMismatch, false);
+            if (!sbClient) return showPinReqMsg(t.errSystemNotReady || '', false);
+            const btn = document.getElementById('pinReqSubmitBtn');
+            btn.disabled = true;
+            try {
+                const { data, error } = await sbClient.rpc('pin_request', { p_staff_id: id, p_new_pin: p1 });
+                if (error) { console.error(error); return showPinReqMsg(t.errGeneral, false); }
+                if (data && data.error === 'too_fast') return showPinReqMsg(t.pinReqTooFast, false);
+                if (data && data.error === 'bad_pin') return showPinReqMsg(t.pinReqBad, false);
+                document.getElementById('pinReqNew').value = '';
+                document.getElementById('pinReqNew2').value = '';
+                showPinReqMsg(t.pinReqSent, true);
+            } finally { btn.disabled = false; }
+        }
+
+        Object.assign(translations.th, PINREQ_TH);
+        Object.assign(translations.zh, PINREQ_ZH);
+        Object.assign(translations.mm, PINREQ_MM);
+        Object.assign(translations.en, PINREQ_EN);
 
         let currentLang = localStorage.getItem('wms_lang') || 'th';
         function changeLanguage(lang) {

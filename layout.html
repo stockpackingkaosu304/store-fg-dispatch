@@ -343,7 +343,7 @@
                         <img src="logo.png" alt="KSS Logo" class="h-7 md:h-8 w-auto object-contain relative z-10 drop-shadow-sm transition-transform duration-300 group-hover:scale-110">
                     </div>
                     <h1 class="text-base font-black tracking-widest text-[var(--text-main)] flex items-center transition-colors group-hover:text-red-500">
-                        KAOSU 3D <span class="text-[10px] text-[var(--text-sub)] font-bold ml-1 bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded shadow-inner">[v1.1.2]</span>
+                        KAOSU 3D <span class="text-[10px] text-[var(--text-sub)] font-bold ml-1 bg-[var(--input-bg)] border border-[var(--glass-border)] px-2 py-0.5 rounded shadow-inner">[v2.0]</span>
                     </h1>
                 </div>
             </div>
@@ -394,6 +394,7 @@
                         <button onclick="closeToolsMenuThen(openItemCatalog)" class="tools-menu-item"><i class="fa-solid fa-boxes-stacked text-orange-400"></i> <span data-i18n="toolsCatalogBtn">ฐานข้อมูลไอเทม</span></button>
                         <div class="tools-menu-divider"></div>
                         <button onclick="closeToolsMenuThen(openRosterPanel)" class="tools-menu-item"><i class="fa-solid fa-user-shield text-sky-400"></i> <span data-i18n="rosterBtn">ผู้รับผิดชอบ STORE</span></button>
+                        <button onclick="closeToolsMenuThen(openPinReqPanel)" class="tools-menu-item"><i class="fa-solid fa-key text-amber-400"></i> <span data-i18n="pinReqListTitle">คำขอเปลี่ยน PIN</span></button>
                     </div>
                 </div>
 
@@ -466,7 +467,7 @@
     </div>
 
     <!-- 🆕 Item Catalog Modal: ค้นหา/ดูไอเทมทุกชนิดใน part_master แม้ยังไม่มีตำแหน่งในระบบ -->
-    <div id="itemCatalogModal" class="modal-overlay" onclick="closeItemCatalog(event)">
+    <div id="itemCatalogModal" class="modal-overlay">
         <div class="glass-panel rounded-3xl shadow-2xl m-auto relative w-11/12 max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center p-4 md:p-5 border-b border-[var(--glass-border)] shrink-0">
                 <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-boxes-stacked text-orange-400"></i> <span data-i18n="catalogTitle">ฐานข้อมูลไอเทมทั้งหมด</span></h3>
@@ -576,7 +577,7 @@
     </div>
 
     <!-- 🆕 Item Image Viewer: QR Code ลาเบล / รูปชิ้นงาน (ทุกคนดูได้ — อัปโหลดต้องยืนยันรหัสพนักงาน) -->
-    <div id="itemImageModal" class="modal-overlay" onclick="closeItemImage(event)">
+    <div id="itemImageModal" class="modal-overlay">
         <div class="glass-panel rounded-3xl p-4 md:p-5 w-11/12 max-w-lg max-h-[92vh] flex flex-col shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
             <div class="flex justify-between items-start gap-2 mb-3">
                 <div class="min-w-0">
@@ -636,6 +637,34 @@
                 <button onclick="cancelStaffIdPrompt()" class="flex-1 glass-input text-[var(--text-main)] font-bold py-2.5 rounded-xl text-sm" data-i18n="staffIdCancel">ยกเลิก</button>
                 <button onclick="confirmStaffId()" class="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black py-2.5 rounded-xl text-sm shadow-lg" data-i18n="staffIdConfirm">ยืนยัน</button>
             </div>
+            <button id="pinForgotLink" type="button" onclick="openPinRequestModal()" class="hidden w-full mt-3 text-[11px] font-bold text-sky-500 hover:underline relative z-10"><i class="fa-solid fa-key mr-1"></i><span data-i18n="pinForgotLink">ลืม PIN / ขอเปลี่ยน PIN</span></button>
+        </div>
+    </div>
+
+    <!-- 🆕 PIN Change Request Modal (พนักงานยื่นขอ → หัวหน้าอนุมัติ) -->
+    <div id="pinRequestModal" class="modal-overlay">
+        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-xs shadow-2xl m-auto relative overflow-hidden" onclick="event.stopPropagation()">
+            <h3 class="text-base font-black text-[var(--text-main)] mb-1 flex items-center gap-2"><i class="fa-solid fa-key text-amber-400"></i> <span data-i18n="pinReqTitle">ขอเปลี่ยน PIN</span></h3>
+            <p class="text-[11px] text-[var(--text-sub)] mb-3" data-i18n="pinReqDesc">ตั้ง PIN ใหม่ที่ต้องการ (ตัวเลข 4-8 หลัก) แล้วแจ้งหัวหน้างานให้อนุมัติ PIN เดิมใช้ได้จนกว่าจะอนุมัติ</p>
+            <input type="text" id="pinReqStaffId" data-i18n-placeholder="staffIdPlaceholder" placeholder="รหัสพนักงาน" autocomplete="off" class="w-full glass-input rounded-xl py-2.5 px-4 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-amber-400 mb-2">
+            <input type="password" id="pinReqNew" inputmode="numeric" maxlength="8" autocomplete="new-password" data-i18n-placeholder="pinReqNewPh" placeholder="PIN ใหม่ (ตัวเลข 4-8 หลัก)" class="w-full glass-input rounded-xl py-2.5 px-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 mb-2">
+            <input type="password" id="pinReqNew2" inputmode="numeric" maxlength="8" autocomplete="new-password" data-i18n-placeholder="pinReqNew2Ph" placeholder="ยืนยัน PIN ใหม่อีกครั้ง" class="w-full glass-input rounded-xl py-2.5 px-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 mb-3">
+            <div class="flex gap-2">
+                <button onclick="closePinRequestModal()" class="flex-1 glass-input text-[var(--text-main)] font-bold py-2.5 rounded-xl text-sm" data-i18n="staffIdCancel">ยกเลิก</button>
+                <button id="pinReqSubmitBtn" onclick="submitPinRequest()" class="flex-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-2.5 rounded-xl text-sm shadow-lg" data-i18n="pinReqSubmit">ส่งคำขอ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 PIN Requests Approval Panel (supervisor/manager) -->
+    <div id="pinReqListModal" class="modal-overlay">
+        <div class="glass-panel rounded-3xl p-5 md:p-6 w-11/12 max-w-md max-h-[90vh] overflow-y-auto custom-scroll shadow-2xl m-auto relative" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-black text-[var(--text-main)] flex items-center gap-2"><i class="fa-solid fa-key text-amber-400"></i> <span data-i18n="pinReqListTitle">คำขอเปลี่ยน PIN</span></h3>
+                <button onclick="closePinReqPanel()" class="text-[var(--text-sub)] hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-[11px] text-[var(--text-sub)] mb-3" data-i18n="pinReqListHint">ก่อนกดอนุมัติ ให้ยืนยันตัวตนผู้ขอกับตัวเองก่อน คำขอหมดอายุใน 24 ชั่วโมง</p>
+            <div id="pinReqListBody" class="space-y-2"></div>
         </div>
     </div>
 
@@ -1442,7 +1471,7 @@
         // ==========================================
         // 🆕 ระบบแจ้งปัญหา (Report Issue) + Item Quick-Pick
         // ==========================================
-        let pendingStaffAction = null; // { type: 'issue', issueType: '...' } | { type: 'viewIssues' } | { type: 'viewRoster' } | { type: 'viewNotice', itemCode: '...' }
+        let pendingStaffAction = null; // { type: 'issue', issueType: '...' } | { type: 'viewIssues' } | { type: 'viewRoster' } | { type: 'viewPinReq' } | { type: 'viewNotice', itemCode: '...' }
         let currentIssueItems = [];   // [{code, name, cl}] items in currentModalLocId
         let selectedIssueItemCode = null; // null = ไม่ระบุ SKU (ทั้งช่อง)
 
@@ -1539,6 +1568,7 @@
             const pin = document.getElementById('staffPinInput');
             pin.value = '';
             pin.classList.toggle('hidden', !needPin);
+            document.getElementById('pinForgotLink').classList.toggle('hidden', !needPin);
             document.getElementById('staffIdModal').classList.add('active');
         }
 
@@ -1696,7 +1726,7 @@
                 }
 
                 // 🆕 กรณีดูผู้รับผิดชอบ STORE — ต้องเป็น role supervisor/manager เท่านั้น
-                if (pendingStaffAction && pendingStaffAction.type === 'viewRoster' && !['supervisor', 'manager'].includes(data.role)) {
+                if (pendingStaffAction && (pendingStaffAction.type === 'viewRoster' || pendingStaffAction.type === 'viewPinReq') && !['supervisor', 'manager'].includes(data.role)) {
                     sbClient.rpc('staff_logout', { p_token: data.token }).then(() => {}, () => {});
                     alert(t.staffForbidden || 'หน้านี้สำหรับหัวหน้างานเท่านั้น (supervisor/manager)');
                     return;
@@ -1720,6 +1750,8 @@
                         openIssuesPanelContent();
                     } else if (action.type === 'viewRoster') {
                         openRosterPanelContent();
+                    } else if (action.type === 'viewPinReq') {
+                        openPinReqPanelContent();
                     } else if (action.type === 'viewNotice') {
                         openNoticeDetailContent(action.itemCode);
                     } else if (action.type === 'itemImageUpload') {
@@ -3043,7 +3075,7 @@
         function switchItemImageKind(kind) {
             itemImgState.kind = kind;
             document.getElementById('itemImgTabQr').classList.toggle('active', kind === 'qr');
-            document.getElementById('itemImgTabPhoto').classList.toggle('active', kind === 'photo');
+            document.getElementById('itemImgTabPhoto').classList.toggle('active', kind === 'wi');
             loadItemImage();
         }
         function loadItemImage() {
@@ -3072,6 +3104,117 @@
             };
             img.src = urls[0];
         }
+
+        // ==========================================
+        // 🆕 ขอเปลี่ยน PIN (พนักงานยื่นคำขอ → หัวหน้า supervisor/manager อนุมัติ)
+        // ==========================================
+        function openPinRequestModal() {
+            document.getElementById('pinReqStaffId').value = document.getElementById('staffIdInput').value.trim();
+            document.getElementById('pinReqNew').value = '';
+            document.getElementById('pinReqNew2').value = '';
+            document.getElementById('staffIdModal').classList.remove('active');
+            document.getElementById('pinRequestModal').classList.add('active');
+        }
+        function closePinRequestModal() {
+            document.getElementById('pinRequestModal').classList.remove('active');
+            pendingStaffAction = null;
+        }
+        async function submitPinRequest() {
+            const id = document.getElementById('pinReqStaffId').value.trim();
+            const p1 = document.getElementById('pinReqNew').value.trim();
+            const p2 = document.getElementById('pinReqNew2').value.trim();
+            if (!id) { alert(tt('staffIdPlaceholder', 'กรุณากรอกรหัสพนักงาน')); return; }
+            if (!/^[0-9]{4,8}$/.test(p1)) { alert(tt('pinReqBad', 'PIN ต้องเป็นตัวเลข 4-8 หลัก')); return; }
+            if (p1 !== p2) { alert(tt('pinReqMismatch', 'PIN ทั้งสองช่องไม่ตรงกัน')); return; }
+            const btn = document.getElementById('pinReqSubmitBtn');
+            const old = btn.innerText;
+            btn.disabled = true; btn.innerText = '...';
+            try {
+                const { data, error } = await sbClient.rpc('pin_request', { p_staff_id: id, p_new_pin: p1 });
+                if (error) { console.error(error); alert(tt('staffIdCheckError', 'เกิดข้อผิดพลาด กรุณาลองใหม่')); return; }
+                if (data && data.error === 'too_fast') { alert(tt('pinReqTooFast', 'ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่')); return; }
+                if (data && data.error === 'bad_pin') { alert(tt('pinReqBad', 'PIN ต้องเป็นตัวเลข 4-8 หลัก')); return; }
+                document.getElementById('pinReqNew').value = '';
+                document.getElementById('pinReqNew2').value = '';
+                document.getElementById('pinRequestModal').classList.remove('active');
+                alert(tt('pinReqSent', 'ส่งคำขอแล้ว กรุณาแจ้งหัวหน้างานให้อนุมัติ (ระหว่างนี้ใช้ PIN เดิมได้)'));
+            } finally {
+                btn.disabled = false; btn.innerText = old;
+            }
+        }
+
+        function openPinReqPanel() {
+            if (!isStaffSupervisor()) {
+                pendingStaffAction = { type: 'viewPinReq' };
+                document.getElementById('staffIdInput').value = '';
+                openStaffIdModal();
+                return;
+            }
+            touchStaffSession();
+            openPinReqPanelContent();
+        }
+        function closePinReqPanel() {
+            document.getElementById('pinReqListModal').classList.remove('active');
+        }
+        function pinReqEscape(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        async function openPinReqPanelContent() {
+            document.getElementById('pinReqListModal').classList.add('active');
+            const body = document.getElementById('pinReqListBody');
+            body.innerHTML = '<div class="text-center text-[var(--text-sub)] text-xs font-bold py-6"><i class="fa-solid fa-spinner fa-spin mr-1"></i> ...</div>';
+            const token = localStorage.getItem('wms_staff_token');
+            if (!token) { clearStaffSession(); closePinReqPanel(); alert(tt('sessionExpired', 'หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่')); return; }
+            const { data, error } = await sbClient.rpc('pin_requests_list', { p_token: token });
+            if (error) {
+                const msg = error.message || '';
+                closePinReqPanel();
+                if (msg.indexOf('unauthorized') !== -1) { clearStaffSession(); alert(tt('sessionExpired', 'หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่')); }
+                else if (msg.indexOf('forbidden') !== -1) { alert(tt('staffForbidden', 'สิทธิ์ไม่เพียงพอ (เฉพาะหัวหน้างาน)')); }
+                else { console.error(error); alert(msg); }
+                return;
+            }
+            touchStaffSession();
+            const me = localStorage.getItem('wms_staff_id') || '';
+            if (!data || data.length === 0) {
+                body.innerHTML = '<div class="text-center text-[var(--text-sub)] text-sm font-bold py-8">' + pinReqEscape(tt('pinReqEmpty', 'ไม่มีคำขอที่รออนุมัติ')) + '</div>';
+                return;
+            }
+            body.innerHTML = data.map(r => {
+                const when = new Date(r.requested_at).toLocaleString();
+                const mine = String(r.staff_id) === String(me);
+                const actions = mine
+                    ? '<div class="text-[11px] font-bold text-amber-400 mt-2">' + pinReqEscape(tt('pinReqOwn', 'คำขอของคุณเอง ต้องให้หัวหน้าอีกคนอนุมัติ')) + '</div>'
+                    : '<div class="flex gap-2 mt-2">' +
+                      '<button onclick="decidePinRequest(\'' + pinReqEscape(r.staff_id) + '\', true)" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white font-black py-2 rounded-xl text-xs active:scale-95 transition-all"><i class="fa-solid fa-check mr-1"></i>' + pinReqEscape(tt('pinReqApprove', 'อนุมัติ')) + '</button>' +
+                      '<button onclick="decidePinRequest(\'' + pinReqEscape(r.staff_id) + '\', false)" class="flex-1 glass-input text-red-400 font-black py-2 rounded-xl text-xs active:scale-95 transition-all"><i class="fa-solid fa-xmark mr-1"></i>' + pinReqEscape(tt('pinReqReject', 'ปฏิเสธ')) + '</button></div>';
+                return '<div class="glass-input rounded-2xl p-3">' +
+                    '<div class="font-black text-sm text-[var(--text-main)]">' + pinReqEscape(r.name || '-') + ' <span class="text-sky-500">(' + pinReqEscape(r.staff_id) + ')</span></div>' +
+                    '<div class="text-[10px] text-[var(--text-sub)] font-bold">' + pinReqEscape(r.role) + ' · ' + pinReqEscape(when) + '</div>' + actions + '</div>';
+            }).join('');
+        }
+        async function decidePinRequest(staffId, approve) {
+            const msg = approve
+                ? tt('pinReqApproveConfirm', 'ยืนยันตัวตนผู้ขอแล้ว และต้องการอนุมัติ PIN ใหม่ของ {id} ใช่หรือไม่?').replace('{id}', staffId)
+                : tt('pinReqRejectConfirm', 'ปฏิเสธคำขอของ {id} ใช่หรือไม่?').replace('{id}', staffId);
+            if (!confirm(msg)) return;
+            const token = localStorage.getItem('wms_staff_token');
+            if (!token) { clearStaffSession(); closePinReqPanel(); alert(tt('sessionExpired', 'หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่')); return; }
+            const { error } = await sbClient.rpc('pin_request_decide', { p_token: token, p_staff_id: staffId, p_approve: approve });
+            if (error) {
+                const m = error.message || '';
+                if (m.indexOf('unauthorized') !== -1) { clearStaffSession(); closePinReqPanel(); alert(tt('sessionExpired', 'หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่')); return; }
+                if (m.indexOf('not_found') !== -1) { alert(tt('pinReqGone', 'ไม่พบคำขอนี้แล้ว (อาจหมดอายุหรือถูกจัดการไปแล้ว)')); }
+                else if (m.indexOf('self_approve') !== -1 || m.indexOf('forbidden') !== -1) { alert(tt('pinReqOwn', 'คำขอของคุณเอง ต้องให้หัวหน้าอีกคนอนุมัติ')); }
+                else { console.error(error); alert(m); }
+                openPinReqPanelContent();
+                return;
+            }
+            touchStaffSession();
+            alert(approve ? tt('pinReqApproved', 'อนุมัติแล้ว PIN ใหม่ใช้งานได้ทันที') : tt('pinReqRejected', 'ปฏิเสธคำขอแล้ว'));
+            openPinReqPanelContent();
+        }
+
         // ---------- Lightbox (ขยายเต็มจอ, ซูม + ลากได้ทั้งเมาส์และสองนิ้ว) ----------
         const lb = { s: 1, x: 0, y: 0, drag: false, sx: 0, sy: 0, pinch: null };
         function applyLb() {
@@ -3299,6 +3442,11 @@
             imgNoImageHint: "Tap the button below to upload (staff ID verification required)", imgTapZoom: "Tap the image for full-screen", imgPdfBtn: "Export PDF (A4 landscape)", imgPdfBusy: "Creating PDF...", imgPdfFail: "PDF export failed", imgUploadBtn: "Upload / Replace",
             imgUploading: "Uploading...", imgUploadOk: "Image uploaded", imgUploadFail: "Upload failed", imgVerifiedHint: "Verified. Tap Upload / Replace again."
         });
+
+        Object.assign(translations.th, { pinForgotLink: "ลืม PIN / ขอเปลี่ยน PIN", pinReqTitle: "ขอเปลี่ยน PIN", pinReqDesc: "ตั้ง PIN ใหม่ที่ต้องการ (ตัวเลข 4-8 หลัก) แล้วแจ้งหัวหน้างานให้อนุมัติ PIN เดิมใช้ได้จนกว่าจะอนุมัติ", pinReqNewPh: "PIN ใหม่ (ตัวเลข 4-8 หลัก)", pinReqNew2Ph: "ยืนยัน PIN ใหม่อีกครั้ง", pinReqSubmit: "ส่งคำขอ", pinReqBad: "PIN ต้องเป็นตัวเลข 4-8 หลัก", pinReqMismatch: "PIN ทั้งสองช่องไม่ตรงกัน", pinReqTooFast: "ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่", pinReqSent: "ส่งคำขอแล้ว กรุณาแจ้งหัวหน้างานให้อนุมัติ (ระหว่างนี้ใช้ PIN เดิมได้)", pinReqListTitle: "คำขอเปลี่ยน PIN", pinReqListHint: "ก่อนกดอนุมัติ ให้ยืนยันตัวตนผู้ขอกับตัวเองก่อน คำขอหมดอายุใน 24 ชั่วโมง", pinReqEmpty: "ไม่มีคำขอที่รออนุมัติ", pinReqOwn: "คำขอของคุณเอง ต้องให้หัวหน้าอีกคนอนุมัติ", pinReqApprove: "อนุมัติ", pinReqReject: "ปฏิเสธ", pinReqApproveConfirm: "ยืนยันตัวตนผู้ขอแล้ว และต้องการอนุมัติ PIN ใหม่ของ {id} ใช่หรือไม่?", pinReqRejectConfirm: "ปฏิเสธคำขอของ {id} ใช่หรือไม่?", pinReqGone: "ไม่พบคำขอนี้แล้ว (อาจหมดอายุหรือถูกจัดการไปแล้ว)", pinReqApproved: "อนุมัติแล้ว PIN ใหม่ใช้งานได้ทันที", pinReqRejected: "ปฏิเสธคำขอแล้ว" });
+        Object.assign(translations.zh, { pinForgotLink: "忘記 PIN / 申請更改 PIN", pinReqTitle: "申請更改 PIN", pinReqDesc: "設定想要的新 PIN（4-8 位數字），再請主管核准。核准前仍可使用舊 PIN", pinReqNewPh: "新 PIN（4-8 位數字）", pinReqNew2Ph: "再次確認新 PIN", pinReqSubmit: "送出申請", pinReqBad: "PIN 必須是 4-8 位數字", pinReqMismatch: "兩次輸入的 PIN 不一致", pinReqTooFast: "申請過於頻繁，請稍後再試", pinReqSent: "已送出申請，請通知主管核准（核准前仍可使用舊 PIN）", pinReqListTitle: "PIN 變更申請", pinReqListHint: "核准前請先當面確認申請人身分。申請 24 小時後失效", pinReqEmpty: "目前沒有待核准的申請", pinReqOwn: "這是您自己的申請，需由另一位主管核准", pinReqApprove: "核准", pinReqReject: "拒絕", pinReqApproveConfirm: "已確認申請人身分，要核准 {id} 的新 PIN 嗎？", pinReqRejectConfirm: "要拒絕 {id} 的申請嗎？", pinReqGone: "找不到此申請（可能已失效或已處理）", pinReqApproved: "已核准，新 PIN 立即生效", pinReqRejected: "已拒絕申請" });
+        Object.assign(translations.mm, { pinForgotLink: "PIN မေ့သွားသည် / PIN ပြောင်းရန် တောင်းဆိုမည်", pinReqTitle: "PIN ပြောင်းရန် တောင်းဆိုခြင်း", pinReqDesc: "လိုချင်သော PIN အသစ် (ဂဏန်း ၄-၈ လုံး) ထည့်ပြီး ကြီးကြပ်ရေးမှူးအား ခွင့်ပြုခိုင်းပါ။ ခွင့်မပြုမီ PIN အဟောင်းကို သုံးနိုင်သည်", pinReqNewPh: "PIN အသစ် (ဂဏန်း ၄-၈ လုံး)", pinReqNew2Ph: "PIN အသစ်ကို ထပ်မံရိုက်ပါ", pinReqSubmit: "တောင်းဆိုမည်", pinReqBad: "PIN သည် ဂဏန်း ၄-၈ လုံး ဖြစ်ရမည်", pinReqMismatch: "PIN နှစ်ခု မတူညီပါ", pinReqTooFast: "မကြာမီ ထပ်တောင်းဆိုနေသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ", pinReqSent: "တောင်းဆိုပြီးပါပြီ။ ကြီးကြပ်ရေးမှူးအား ခွင့်ပြုခိုင်းပါ (ခွင့်မပြုမီ PIN အဟောင်းသုံးနိုင်သည်)", pinReqListTitle: "PIN ပြောင်းရန် တောင်းဆိုမှုများ", pinReqListHint: "ခွင့်မပြုမီ တောင်းဆိုသူကို ကိုယ်တိုင် အတည်ပြုပါ။ တောင်းဆိုမှုသည် ၂၄ နာရီအကြာတွင် သက်တမ်းကုန်မည်", pinReqEmpty: "ခွင့်ပြုရန် စောင့်ဆိုင်းနေသော တောင်းဆိုမှု မရှိပါ", pinReqOwn: "သင့်ကိုယ်ပိုင်တောင်းဆိုမှု ဖြစ်သဖြင့် အခြားကြီးကြပ်ရေးမှူးတစ်ဦး ခွင့်ပြုရမည်", pinReqApprove: "ခွင့်ပြုမည်", pinReqReject: "ငြင်းပယ်မည်", pinReqApproveConfirm: "တောင်းဆိုသူကို အတည်ပြုပြီးပါပြီ။ {id} ၏ PIN အသစ်ကို ခွင့်ပြုမလား?", pinReqRejectConfirm: "{id} ၏ တောင်းဆိုမှုကို ငြင်းပယ်မလား?", pinReqGone: "ဤတောင်းဆိုမှု မတွေ့တော့ပါ (သက်တမ်းကုန်ခြင်း သို့မဟုတ် ဆောင်ရွက်ပြီးခြင်း ဖြစ်နိုင်သည်)", pinReqApproved: "ခွင့်ပြုပြီးပါပြီ။ PIN အသစ်ကို ချက်ချင်းသုံးနိုင်သည်", pinReqRejected: "တောင်းဆိုမှုကို ငြင်းပယ်လိုက်ပါပြီ" });
+        Object.assign(translations.en, { pinForgotLink: "Forgot PIN / Request PIN change", pinReqTitle: "Request PIN change", pinReqDesc: "Choose the new PIN you want (4-8 digits), then ask a supervisor to approve it. Your old PIN keeps working until approved.", pinReqNewPh: "New PIN (4-8 digits)", pinReqNew2Ph: "Confirm new PIN", pinReqSubmit: "Send request", pinReqBad: "PIN must be 4-8 digits", pinReqMismatch: "The two PINs do not match", pinReqTooFast: "Too many requests. Please wait a moment and try again.", pinReqSent: "Request sent. Please ask a supervisor to approve it (your old PIN works until then).", pinReqListTitle: "PIN change requests", pinReqListHint: "Verify the requester in person before approving. Requests expire after 24 hours.", pinReqEmpty: "No requests waiting for approval", pinReqOwn: "This is your own request. Another supervisor must approve it.", pinReqApprove: "Approve", pinReqReject: "Reject", pinReqApproveConfirm: "I have verified the requester. Approve the new PIN for {id}?", pinReqRejectConfirm: "Reject the request from {id}?", pinReqGone: "Request not found (it may have expired or been handled already)", pinReqApproved: "Approved. The new PIN works immediately.", pinReqRejected: "Request rejected" });
 
         function changeLanguage(lang) {
             if (!translations[lang]) return;
